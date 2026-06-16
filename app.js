@@ -1076,68 +1076,113 @@ timeline.addEventListener('touchend', tlPointerUp);
 window.addEventListener('resize', ()=>{ if(workingBuffer){ drawWaveform(getEffectiveBuffer()); tlBuildWaveImage(); } });
 
 // ============================================================
-// PALETAS DE COLOR + MENÚ APPA
+// SISTEMA DE COLOR: dos colores base (café y beige) elegidos
+// libremente por el usuario; el resto de variantes (oscuro, claro,
+// blanco-de-texto) se derivan automáticamente vía HSL.
 // ============================================================
-// Cada paleta define los 4 colores base. Verde/rojo/naranja (estados) se mantienen.
-const PALETTES = {
-  'Café (original)': { cream:'#fbe9cf', cream2:'#f6dfc0', brown:'#7a4a26', brownDark:'#5c3719', brownLight:'#a06b3f', white:'#fdf3e3' },
-  'Océano':          { cream:'#e3f0f4', cream2:'#cfe6ee', brown:'#1f5f7a', brownDark:'#123c4f', brownLight:'#4a8aa6', white:'#f0f9fc' },
-  'Bosque':          { cream:'#e8f1e0', cream2:'#d6e8c9', brown:'#3a6b2e', brownDark:'#264a1d', brownLight:'#6a9b56', white:'#f3f9ee' },
-  'Lavanda':         { cream:'#efe8f4', cream2:'#e0d3ee', brown:'#6a4a8a', brownDark:'#473060', brownLight:'#9476b6', white:'#f7f2fc' },
-  'Rosa':            { cream:'#f9e6ec', cream2:'#f2cfdb', brown:'#a63a5e', brownDark:'#6f243d', brownLight:'#c96b89', white:'#fcf0f4' },
-  'Carbón':          { cream:'#e8e8ea', cream2:'#d4d4d8', brown:'#3a3a40', brownDark:'#1f1f24', brownLight:'#6a6a72', white:'#f5f5f7' },
-  'Atardecer':       { cream:'#fdeede', cream2:'#fadcc0', brown:'#c0532a', brownDark:'#8a3618', brownLight:'#e0814f', white:'#fff5ec' },
-  'Menta':           { cream:'#e0f4ee', cream2:'#c9e8de', brown:'#1f7a63', brownDark:'#124f40', brownLight:'#4aa68c', white:'#f0fcf8' },
-};
+const DEFAULT_BROWN = '#7a4a26';
+const DEFAULT_CREAM = '#fbe9cf';
 
-let currentPalette = 'Café (original)';
-let isInverted = false;
+let colorBrown = DEFAULT_BROWN;
+let colorCream = DEFAULT_CREAM;
 
 function hexToRgb(h){ const n=parseInt(h.slice(1),16); return [n>>16, (n>>8)&255, n&255]; }
 function rgbToHex(r,g,b){ return '#'+[r,g,b].map(x=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join(''); }
-function invertHex(h){ const [r,g,b]=hexToRgb(h); return rgbToHex(255-r,255-g,255-b); }
 
-function applyPalette(name, invert){
-  const p = PALETTES[name];
-  if(!p) return;
+function rgbToHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h,s,l=(max+min)/2;
+  if(max===min){ h=0; s=0; }
+  else{
+    const d=max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    if(max===r) h=((g-b)/d + (g<b?6:0));
+    else if(max===g) h=(b-r)/d+2;
+    else h=(r-g)/d+4;
+    h/=6;
+  }
+  return [h*360, s, l];
+}
+function hslToRgb(h,s,l){
+  h/=360;
+  function hue2rgb(p,q,t){
+    if(t<0) t+=1; if(t>1) t-=1;
+    if(t<1/6) return p+(q-p)*6*t;
+    if(t<1/2) return q;
+    if(t<2/3) return p+(q-p)*(2/3-t)*6;
+    return p;
+  }
+  let r,g,b;
+  if(s===0){ r=g=b=l; }
+  else{
+    const q = l<0.5 ? l*(1+s) : l+s-l*s;
+    const p = 2*l-q;
+    r=hue2rgb(p,q,h+1/3); g=hue2rgb(p,q,h); b=hue2rgb(p,q,h-1/3);
+  }
+  return [r*255,g*255,b*255];
+}
+
+// Genera una variante más oscura o más clara de un color, preservando su tono (hue).
+function shade(hex, lightnessDelta){
+  const [r,g,b] = hexToRgb(hex);
+  const [h,s,l] = rgbToHsl(r,g,b);
+  const newL = Math.max(0, Math.min(1, l + lightnessDelta));
+  return rgbToHex(...hslToRgb(h, s, newL));
+}
+
+function applyColors(brownHex, creamHex){
+  const [,, lBrown] = rgbToHsl(...hexToRgb(brownHex));
+  const [,, lCream] = rgbToHsl(...hexToRgb(creamHex));
+
+  const brownDark = shade(brownHex, -0.13);
+  const brownLight = shade(brownHex, lBrown < 0.5 ? 0.18 : -0.12);
+  const cream2 = shade(creamHex, lCream > 0.5 ? -0.06 : 0.08);
+  // "white" es el color de texto/elementos sobre el botón café: debe contrastar con --brown,
+  // así que se deriva de su luminosidad (no de la del fondo), llevándolo casi a blanco u oscuro extremo.
+  const white = lBrown < 0.5 ? shade(brownHex, 0.85 - lBrown) : shade(brownHex, -(lBrown - 0.08));
+
   const map = {
-    '--cream': p.cream, '--cream-2': p.cream2,
-    '--brown': p.brown, '--brown-dark': p.brownDark,
-    '--brown-light': p.brownLight, '--white': p.white
+    '--cream': creamHex, '--cream-2': cream2,
+    '--brown': brownHex, '--brown-dark': brownDark,
+    '--brown-light': brownLight, '--white': white
   };
   const root = document.documentElement.style;
-  for(const k in map){
-    root.setProperty(k, invert ? invertHex(map[k]) : map[k]);
-  }
+  for(const k in map) root.setProperty(k, map[k]);
+
   // actualizar color de la flecha SVG (usa fill fijo)
   const arrow = document.querySelector('.appa-arrow path');
-  if(arrow) arrow.setAttribute('fill', invert ? invertHex(p.brown) : p.brown);
+  if(arrow) arrow.setAttribute('fill', brownHex);
+
+  // actualizar swatches del menú
+  const swB = $('swBrown'), swC = $('swCream');
+  if(swB) swB.style.background = brownHex;
+  if(swC) swC.style.background = creamHex;
+  const pB = $('colorBrownPicker'), pC = $('colorCreamPicker');
+  if(pB) pB.value = brownHex;
+  if(pC) pC.value = creamHex;
+
   // redibujar waveform y timeline con nuevos colores
   if(workingBuffer){ drawWaveform(getEffectiveBuffer()); tlBuildWaveImage(); }
-  // persistir
+
   try{
-    localStorage.setItem('appa_palette', name);
-    localStorage.setItem('appa_inverted', invert ? '1':'0');
+    localStorage.setItem('appa_color_brown', brownHex);
+    localStorage.setItem('appa_color_cream', creamHex);
   }catch(e){}
 }
 
-function renderPaletteGrid(){
-  const grid = $('paletteGrid');
-  grid.innerHTML = '';
-  for(const name in PALETTES){
-    const p = PALETTES[name];
-    const sw = document.createElement('div');
-    sw.className = 'palette-swatch' + (name===currentPalette ? ' selected':'');
-    const top = isInverted ? invertHex(p.brown) : p.brown;
-    const bot = isInverted ? invertHex(p.cream) : p.cream;
-    sw.innerHTML = `<div class="sw-top" style="background:${top}"></div><div class="sw-bottom" style="background:${bot}"></div><span class="sw-name">${name.split(' ')[0]}</span>`;
-    sw.addEventListener('click', ()=>{
-      currentPalette = name;
-      applyPalette(currentPalette, isInverted);
-      renderPaletteGrid();
-    });
-    grid.appendChild(sw);
-  }
+function setBrown(hex){ colorBrown = hex; applyColors(colorBrown, colorCream); }
+function setCream(hex){ colorCream = hex; applyColors(colorBrown, colorCream); }
+function swapColors(){
+  const tmp = colorBrown;
+  colorBrown = colorCream;
+  colorCream = tmp;
+  applyColors(colorBrown, colorCream);
+}
+function resetColors(){
+  colorBrown = DEFAULT_BROWN;
+  colorCream = DEFAULT_CREAM;
+  applyColors(colorBrown, colorCream);
 }
 
 function renderExportLog(){
@@ -1156,32 +1201,30 @@ function renderExportLog(){
   });
 }
 
-// Restaurar paleta guardada
+// Restaurar colores guardados
 try{
-  const savedPal = localStorage.getItem('appa_palette');
-  const savedInv = localStorage.getItem('appa_inverted');
-  if(savedPal && PALETTES[savedPal]) currentPalette = savedPal;
-  if(savedInv === '1') isInverted = true;
-  if(savedPal || savedInv) applyPalette(currentPalette, isInverted);
+  const savedBrown = localStorage.getItem('appa_color_brown');
+  const savedCream = localStorage.getItem('appa_color_cream');
+  if(savedBrown) colorBrown = savedBrown;
+  if(savedCream) colorCream = savedCream;
+  if(savedBrown || savedCream) applyColors(colorBrown, colorCream);
 }catch(e){}
 
 // Handlers del menú Appa
 const appaMenu = $('appaMenu');
-const exportDialog = $('exportDialog');
 
 document.querySelector('.brand').addEventListener('click', ()=>{
-  renderPaletteGrid();
+  applyColors(colorBrown, colorCream); // sincroniza swatches/pickers con el estado actual
   renderExportLog();
   appaMenu.classList.remove('hidden');
 });
 $('menuClose').addEventListener('click', ()=> appaMenu.classList.add('hidden'));
 appaMenu.addEventListener('click', (e)=>{ if(e.target===appaMenu) appaMenu.classList.add('hidden'); });
 
-$('invertBtn').addEventListener('click', ()=>{
-  isInverted = !isInverted;
-  applyPalette(currentPalette, isInverted);
-  renderPaletteGrid();
-});
+$('colorBrownPicker').addEventListener('input', (e)=> setBrown(e.target.value));
+$('colorCreamPicker').addEventListener('input', (e)=> setCream(e.target.value));
+$('invertBtn').addEventListener('click', swapColors);
+$('resetColorsBtn').addEventListener('click', resetColors);
 
 $('clearLogBtn').addEventListener('click', ()=>{
   exportLog = [];

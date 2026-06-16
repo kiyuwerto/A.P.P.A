@@ -243,17 +243,20 @@ input[type=range]::-webkit-slider-thumb{
 
 .menu-section{margin-top:18px;}
 .menu-section h4{margin:0 0 10px; font-size:1.05rem; font-weight:800; color:var(--brown-dark);}
-.palette-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(64px,1fr)); gap:10px; margin-bottom:12px;}
-.palette-swatch{
-  border:3px solid transparent; border-radius:14px; padding:0; height:54px; overflow:hidden;
-  display:flex; flex-direction:column; cursor:pointer; position:relative;
+
+.color-picker-row{display:flex; flex-direction:column; gap:10px; margin-bottom:12px;}
+.color-picker-item{
+  display:flex; align-items:center; gap:12px; background:var(--cream-2);
+  border-radius:14px; padding:10px 12px; cursor:pointer; position:relative;
 }
-.palette-swatch.selected{border-color:var(--brown-dark);}
-.palette-swatch .sw-top{flex:1;}
-.palette-swatch .sw-bottom{flex:1;}
-.palette-swatch .sw-name{
-  position:absolute; bottom:0; left:0; right:0; font-size:0.6rem; font-weight:800;
-  text-align:center; background:rgba(0,0,0,0.25); color:#fff; padding:1px 0;
+.cp-swatch{
+  width:42px; height:42px; border-radius:50%; border:3px solid var(--brown-dark);
+  flex-shrink:0; box-shadow:inset 0 0 0 2px rgba(255,255,255,0.3);
+}
+.cp-label{font-weight:800; font-size:0.98rem; color:var(--brown-dark); flex:1;}
+.cp-label small{display:block; font-weight:600; font-size:0.76rem; color:var(--brown-light); margin-top:1px;}
+.color-picker-item input[type=color]{
+  position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; border:none; padding:0;
 }
 .menu-toggle-btn{
   width:100%; background:var(--brown-light); color:var(--white); border:none;
@@ -281,19 +284,19 @@ input[type=range]::-webkit-slider-thumb{
       <button class="menu-link" id="btnExportarTop">Exportar</button>
     </div>
     <div class="appa-arrow" aria-hidden="true">
-      <svg viewBox="0 0 80 96" width="72" height="86">
-        <path d="M28 -4
-                 L52 -4
-                 L52 44
-                 Q52 46 54 46
+      <svg viewBox="0 0 80 96" width="80" height="86">
+        <path d="M16 -4
+                 L64 -4
+                 L64 44
+                 Q64 46 66 46
                  L70 46
                  Q74 46 71 49
                  L43 88
                  Q40 92 37 88
                  L9 49
                  Q6 46 10 46
-                 L26 46
-                 Q28 46 28 44
+                 L14 46
+                 Q16 46 16 44
                  Z" fill="#7a4a26"/>
       </svg>
     </div>
@@ -398,8 +401,20 @@ input[type=range]::-webkit-slider-thumb{
 
       <div class="menu-section">
         <h4>Tema de color</h4>
-        <div class="palette-grid" id="paletteGrid"></div>
-        <button class="menu-toggle-btn" id="invertBtn">Invertir colores</button>
+        <div class="color-picker-row">
+          <label class="color-picker-item" for="colorBrownPicker">
+            <span class="cp-swatch" id="swBrown"></span>
+            <span class="cp-label">Color café<small>botones y recuadros</small></span>
+            <input type="color" id="colorBrownPicker" value="#7a4a26">
+          </label>
+          <label class="color-picker-item" for="colorCreamPicker">
+            <span class="cp-swatch" id="swCream"></span>
+            <span class="cp-label">Color beige<small>fondo de la app</small></span>
+            <input type="color" id="colorCreamPicker" value="#fbe9cf">
+          </label>
+        </div>
+        <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir café ↔ beige</button>
+        <button class="menu-toggle-btn" id="resetColorsBtn">Restablecer colores originales</button>
       </div>
 
       <div class="menu-section">
