@@ -29,8 +29,9 @@ html,body{
 }
 button{font-family:inherit;}
 .app{
-  max-width:520px; margin:0 auto; padding:16px 16px calc(24px + env(safe-area-inset-bottom));
-  padding-top:calc(24px + env(safe-area-inset-top));
+  max-width:520px; margin:0 auto; padding:0 16px calc(24px + env(safe-area-inset-bottom));
+  padding-top:env(safe-area-inset-top);
+  position:relative;
 }
 
 /* HEADER */
@@ -166,19 +167,23 @@ input[type=range]::-webkit-slider-thumb{
 }
 .hidden{display:none !important;}
 
-/* FLECHA CABEZA DE APPA */
+/* FLECHA CABEZA DE APPA — nace del borde superior */
 .topbar{
   position:relative;
-  padding-top:18px;
-  margin-bottom:8px;
+  padding-top:64px;
+  margin-bottom:10px;
 }
 .appa-arrow{
-  position:absolute; left:50%; top:-2px; transform:translateX(-50%);
-  display:flex; align-items:center; justify-content:center;
+  position:absolute;
+  left:50%; top:0;
+  transform:translateX(-50%);
+  display:block;
   pointer-events:none;
-  filter:drop-shadow(0 2px 1px rgba(0,0,0,0.12));
+  z-index:0;
 }
 .appa-arrow svg{display:block;}
+/* el texto y los íconos van por encima y a los lados, sin tocar la flecha */
+.topbar .left, .topbar .right{position:relative; z-index:1;}
 
 /* TIMELINE TIPO INSHOT */
 .timeline-wrap{
@@ -207,6 +212,64 @@ input[type=range]::-webkit-slider-thumb{
   color:var(--white); font-weight:700; font-size:0.95rem; opacity:.65;
   pointer-events:none;
 }
+
+/* MENU-LINK clickable (Appa) */
+.brand{cursor:pointer;}
+
+/* MODALES */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,0.45);
+  display:flex; align-items:center; justify-content:center; z-index:100;
+  padding:20px; padding-top:calc(20px + env(safe-area-inset-top));
+}
+.modal-card{
+  background:var(--cream); border-radius:22px; padding:20px;
+  width:100%; max-width:440px; max-height:85vh; overflow-y:auto;
+  box-shadow:0 10px 40px rgba(0,0,0,0.3);
+}
+.modal-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+.modal-header h3{margin:0; font-size:1.4rem; font-weight:800; color:var(--brown-dark);}
+.modal-close{
+  background:none; border:none; font-size:2rem; line-height:1; color:var(--brown);
+  padding:0 6px; font-weight:300;
+}
+.modal-sub{color:var(--brown-light); font-weight:600; font-size:0.9rem; margin:4px 0 14px;}
+.modal-option{
+  display:block; width:100%; text-align:left; background:var(--brown); color:var(--white);
+  border:none; border-radius:14px; padding:14px 16px; margin-bottom:10px; font-weight:800; font-size:1.05rem;
+}
+.modal-option small{display:block; font-weight:600; font-size:0.78rem; opacity:.8; margin-top:3px;}
+.modal-option:active{filter:brightness(0.92);}
+
+.menu-section{margin-top:18px;}
+.menu-section h4{margin:0 0 10px; font-size:1.05rem; font-weight:800; color:var(--brown-dark);}
+.palette-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(64px,1fr)); gap:10px; margin-bottom:12px;}
+.palette-swatch{
+  border:3px solid transparent; border-radius:14px; padding:0; height:54px; overflow:hidden;
+  display:flex; flex-direction:column; cursor:pointer; position:relative;
+}
+.palette-swatch.selected{border-color:var(--brown-dark);}
+.palette-swatch .sw-top{flex:1;}
+.palette-swatch .sw-bottom{flex:1;}
+.palette-swatch .sw-name{
+  position:absolute; bottom:0; left:0; right:0; font-size:0.6rem; font-weight:800;
+  text-align:center; background:rgba(0,0,0,0.25); color:#fff; padding:1px 0;
+}
+.menu-toggle-btn{
+  width:100%; background:var(--brown-light); color:var(--white); border:none;
+  border-radius:12px; padding:11px; font-weight:800; font-size:0.95rem; margin-top:4px;
+}
+.menu-toggle-btn.danger{background:var(--red);}
+.menu-toggle-btn:active{filter:brightness(0.92);}
+
+.export-log{max-height:240px; overflow-y:auto; margin-bottom:10px;}
+.log-empty{color:var(--brown-light); font-weight:600; font-size:0.9rem; text-align:center; padding:16px 0;}
+.log-item{
+  background:var(--cream-2); border-radius:12px; padding:10px 12px; margin-bottom:8px;
+  font-size:0.85rem; color:var(--brown-dark);
+}
+.log-item .log-name{font-weight:800; word-break:break-all;}
+.log-item .log-meta{font-weight:600; color:var(--brown-light); font-size:0.78rem; margin-top:3px;}
 </style>
 </head>
 <body>
@@ -218,8 +281,20 @@ input[type=range]::-webkit-slider-thumb{
       <button class="menu-link" id="btnExportarTop">Exportar</button>
     </div>
     <div class="appa-arrow" aria-hidden="true">
-      <svg viewBox="0 0 100 100" width="56" height="56">
-        <polygon points="35,4 65,4 65,40 86,40 50,92 14,40 35,40" fill="#7a4a26"/>
+      <svg viewBox="0 0 80 96" width="72" height="86">
+        <path d="M28 -4
+                 L52 -4
+                 L52 44
+                 Q52 46 54 46
+                 L70 46
+                 Q74 46 71 49
+                 L43 88
+                 Q40 92 37 88
+                 L9 49
+                 Q6 46 10 46
+                 L26 46
+                 Q28 46 28 44
+                 Z" fill="#7a4a26"/>
       </svg>
     </div>
     <div class="right">
@@ -298,8 +373,46 @@ input[type=range]::-webkit-slider-thumb{
     <div class="mic-hint">Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.</div>
   </div>
 
+  <!-- MODAL: Exportar (Pro) -->
+  <div class="modal-overlay hidden" id="exportDialog">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Exportar</h3>
+        <button class="modal-close" id="exportClose">&times;</button>
+      </div>
+      <p class="modal-sub">Elige el formato de salida:</p>
+      <button class="modal-option" data-fmt="wav">WAV <small>Sin pérdida, máxima calidad (archivo grande)</small></button>
+      <button class="modal-option" data-fmt="mp3" data-kbps="320">MP3 320 kbps <small>Alta calidad, archivo mediano</small></button>
+      <button class="modal-option" data-fmt="mp3" data-kbps="192">MP3 192 kbps <small>Buena calidad, archivo liviano</small></button>
+      <button class="modal-option" data-fmt="mp3" data-kbps="128">MP3 128 kbps <small>Calidad estándar, muy liviano</small></button>
+    </div>
+  </div>
+
+  <!-- MODAL: Menú Appa -->
+  <div class="modal-overlay hidden" id="appaMenu">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Appa</h3>
+        <button class="modal-close" id="menuClose">&times;</button>
+      </div>
+
+      <div class="menu-section">
+        <h4>Tema de color</h4>
+        <div class="palette-grid" id="paletteGrid"></div>
+        <button class="menu-toggle-btn" id="invertBtn">Invertir colores</button>
+      </div>
+
+      <div class="menu-section">
+        <h4>Archivos generados</h4>
+        <div class="export-log" id="exportLogList"><div class="log-empty">Aún no has exportado nada.</div></div>
+        <button class="menu-toggle-btn danger" id="clearLogBtn">Borrar registro</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
-<script src="app.js"></script>
+<script src="lamejs.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

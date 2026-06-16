@@ -1,6 +1,7 @@
 // ============================================================
 // APPA — Editor de pitch/velocidad + Afinador. Todo 100% local.
 // ============================================================
+import { SoundTouch, SimpleFilter, WebAudioBufferSource } from './soundtouch.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -280,59 +281,89 @@ function getReversedBuffer(buffer){
   return rev;
 }
 
-// Pitch-shift independiente de velocidad (simple time-domain granular / PSOLA simplificado)
-// Usado cuando pitchLockOn está activo: cambia el TEMPO via resample sin afectar pitch,
-// y aplica el pitch deseado por separado mediante granular synthesis.
-function pitchShiftBuffer(buffer, semis){
-  if(Math.abs(semis) < 0.001) return buffer;
-  const rateForPitch = semitonesToRate(semis);
+// ============================================================
+// Motor de procesamiento con SoundTouch (WSOLA, calidad profesional)
+// pitch: factor multiplicativo del tono (1 = igual)
+// tempo: factor de velocidad sin afectar tono (1 = igual)
+// Procesa un AudioBuffer completo y devuelve uno nuevo.
+// ============================================================
+function processWithSoundTouch(buffer, pitchFactor, tempoFactor){
   const ctx = ensureAudioCtx();
+  const numCh = buffer.numberOfChannels;
   const inLen = buffer.length;
-  const outLen = Math.max(1, Math.floor(inLen / rateForPitch));
-  const out = ctx.createBuffer(buffer.numberOfChannels, outLen, buffer.sampleRate);
+  const sr = buffer.sampleRate;
 
-  const grainSize = 2048;
-  const hop = Math.floor(grainSize/4);
+  // Padding de silencio al final para drenar la latencia interna de SoundTouch
+  // (su buffer de historia es ~22050 muestras). Así no se corta el final del audio.
+  const padFrames = 24000;
+  const paddedLen = inLen + padFrames;
+  const padded = ctx.createBuffer(numCh, paddedLen, sr);
+  for(let ch=0; ch<numCh; ch++){
+    padded.getChannelData(ch).set(buffer.getChannelData(ch), 0);
+  }
 
-  for(let ch=0; ch<buffer.numberOfChannels; ch++){
-    const input = buffer.getChannelData(ch);
-    const output = out.getChannelData(ch);
-    const win = new Float32Array(grainSize);
-    for(let i=0;i<grainSize;i++){
-      win[i] = 0.5 - 0.5*Math.cos(2*Math.PI*i/(grainSize-1)); // Hann
+  const source = new WebAudioBufferSource(padded);
+  const st = new SoundTouch();
+  st.pitch = pitchFactor;
+  st.tempo = tempoFactor;
+
+  const filter = new SimpleFilter(source, st);
+
+  const BUFFER_SIZE = 4096;
+  const samples = new Float32Array(BUFFER_SIZE * 2);
+  const left = [];
+  const right = [];
+  let framesExtracted;
+  do {
+    framesExtracted = filter.extract(samples, BUFFER_SIZE);
+    for(let i=0;i<framesExtracted;i++){
+      left.push(samples[i*2]);
+      right.push(samples[i*2+1]);
     }
-    let inPos = 0;
-    let outPos = 0;
-    while(outPos < outLen && inPos + grainSize < input.length){
-      for(let i=0;i<grainSize;i++){
-        const oi = outPos+i;
-        if(oi < outLen){
-          output[oi] += input[inPos+i]*win[i];
-        }
-      }
-      inPos += hop*rateForPitch;
-      outPos += hop;
-    }
+  } while(framesExtracted > 0);
+
+  // Recortar a la duración teórica esperada (inLen ajustado por tempo)
+  const expectedLen = Math.floor(inLen / tempoFactor);
+  let outLen = Math.min(left.length, expectedLen);
+  if(outLen <= 0) outLen = left.length;
+  if(outLen === 0) return buffer;
+
+  const out = ctx.createBuffer(numCh, outLen, sr);
+  const outL = out.getChannelData(0);
+  for(let i=0;i<outLen;i++) outL[i] = left[i];
+  if(numCh > 1){
+    const outR = out.getChannelData(1);
+    for(let i=0;i<outLen;i++) outR[i] = right[i];
   }
   return out;
 }
 
+// Construye el buffer listo para reproducir, aplicando pitch/velocidad según el modo.
 function buildPlaybackBuffer(){
   let buf = getEffectiveBuffer();
-  if(pitchLockOn && Math.abs(pitchSemis) > 0.001){
-    setStatus('Procesando pitch…');
-    buf = pitchShiftBuffer(buf, pitchSemis);
-    setStatus('');
+  const pitchFactor = semitonesToRate(pitchSemis);
+
+  if(pitchLockOn){
+    // Pitch-lock ON: el tono lo fija el slider de pitch, la velocidad NO afecta el tono.
+    const needsProcess = Math.abs(pitchSemis) > 0.001 || Math.abs(speedRate - 1) > 0.001;
+    if(needsProcess){
+      setStatus('Procesando…');
+      buf = processWithSoundTouch(buf, pitchFactor, speedRate);
+      setStatus('');
+    }
+  } else {
+    // Pitch-lock OFF (vari-speed clásico tipo cinta): velocidad y pitch cambian juntos el rate.
+    // Esto se maneja con playbackRate en computePlaybackRate(), sin procesar el buffer.
   }
   return buf;
 }
 
 function computePlaybackRate(){
   if(pitchLockOn){
-    // el pitch ya fue aplicado en el buffer; el rate solo controla tempo
-    return speedRate;
+    // todo ya está aplicado en el buffer; reproducir a velocidad normal
+    return 1.0;
   } else {
-    // vari-speed clásico: el pitch del slider se suma multiplicativamente al rate
+    // vari-speed: pitch y velocidad afectan el rate (sube velocidad => sube tono)
     return speedRate * semitonesToRate(pitchSemis);
   }
 }
@@ -445,9 +476,12 @@ function clamp(v,min,max){ return Math.min(max, Math.max(min,v)); }
 pitchSlider.addEventListener('input', ()=>{
   pitchSemis = parseFloat(pitchSlider.value);
   pitchValue.value = pitchSemis.toFixed(3);
-  restartPlaybackIfPlaying();
+  if(!pitchLockOn) restartPlaybackIfPlaying(); // vari-speed es instantáneo
 });
-pitchSlider.addEventListener('change', pushHistory);
+pitchSlider.addEventListener('change', ()=>{
+  if(pitchLockOn) restartPlaybackIfPlaying(); // pitch-lock reprocesa al soltar
+  pushHistory();
+});
 
 pitchValue.addEventListener('change', ()=>{
   let v = clamp(parseFloat(pitchValue.value)||0, -48, 48);
@@ -461,9 +495,12 @@ pitchValue.addEventListener('change', ()=>{
 speedSlider.addEventListener('input', ()=>{
   speedRate = parseFloat(speedSlider.value);
   speedValue.value = speedRate.toFixed(3);
-  restartPlaybackIfPlaying();
+  if(!pitchLockOn) restartPlaybackIfPlaying(); // vari-speed es instantáneo
 });
-speedSlider.addEventListener('change', pushHistory);
+speedSlider.addEventListener('change', ()=>{
+  if(pitchLockOn) restartPlaybackIfPlaying(); // pitch-lock reprocesa al soltar
+  pushHistory();
+});
 
 speedValue.addEventListener('change', ()=>{
   let v = clamp(parseFloat(speedValue.value)||1, 0.05, 10);
@@ -519,11 +556,8 @@ updateUndoRedoButtons();
 // Exportación
 // ============================================================
 async function renderToBuffer(){
-  let buf = getEffectiveBuffer();
-  if(Math.abs(pitchSemis)>0.001 && pitchLockOn){
-    buf = pitchShiftBuffer(buf, pitchSemis);
-  }
-  const rate = computePlaybackRate();
+  const buf = buildPlaybackBuffer();   // ya aplica pitch-lock/stretch si corresponde
+  const rate = computePlaybackRate();  // 1.0 en pitch-lock; vari-speed si no
   const outLength = Math.max(1, Math.floor(buf.length/rate));
   const offlineCtx = new OfflineAudioContext(buf.numberOfChannels, outLength, buf.sampleRate);
   const src = offlineCtx.createBufferSource();
@@ -572,29 +606,109 @@ function bufferToWav(buffer){
   return new Blob([ab], {type:'audio/wav'});
 }
 
-async function doExport(quality){
+// ---- Codificar a MP3 con lamejs ----
+function bufferToMp3(buffer, kbps){
+  const numCh = Math.min(2, buffer.numberOfChannels);
+  const sr = buffer.sampleRate;
+  const encoder = new lamejs.Mp3Encoder(numCh, sr, kbps || 192);
+  const left = buffer.getChannelData(0);
+  const right = numCh > 1 ? buffer.getChannelData(1) : null;
+
+  // convertir float [-1,1] a int16
+  const len = buffer.length;
+  const l16 = new Int16Array(len);
+  const r16 = numCh > 1 ? new Int16Array(len) : null;
+  for(let i=0;i<len;i++){
+    let s = Math.max(-1, Math.min(1, left[i]));
+    l16[i] = s < 0 ? s*0x8000 : s*0x7FFF;
+    if(r16){
+      let sr2 = Math.max(-1, Math.min(1, right[i]));
+      r16[i] = sr2 < 0 ? sr2*0x8000 : sr2*0x7FFF;
+    }
+  }
+
+  const blockSize = 1152;
+  const mp3Data = [];
+  for(let i=0;i<len;i+=blockSize){
+    const lChunk = l16.subarray(i, i+blockSize);
+    let mp3buf;
+    if(numCh > 1){
+      const rChunk = r16.subarray(i, i+blockSize);
+      mp3buf = encoder.encodeBuffer(lChunk, rChunk);
+    } else {
+      mp3buf = encoder.encodeBuffer(lChunk);
+    }
+    if(mp3buf.length > 0) mp3Data.push(new Int8Array(mp3buf));
+  }
+  const end = encoder.flush();
+  if(end.length > 0) mp3Data.push(new Int8Array(end));
+  return new Blob(mp3Data, {type:'audio/mp3'});
+}
+
+// ---- Registro de archivos generados (persistente con localStorage no disponible en iframe;
+// usamos memoria + descarga; el registro vive mientras la app está abierta) ----
+let exportLog = [];
+try{
+  const saved = localStorage.getItem('appa_export_log');
+  if(saved) exportLog = JSON.parse(saved);
+}catch(e){}
+
+function addToExportLog(name, format, durationSec){
+  exportLog.unshift({
+    name, format,
+    date: new Date().toLocaleString('es-CL'),
+    duration: durationSec ? fmtTime(durationSec) : '—',
+    pitch: pitchSemis.toFixed(2),
+    speed: speedRate.toFixed(2)
+  });
+  if(exportLog.length > 50) exportLog = exportLog.slice(0,50);
+  try{ localStorage.setItem('appa_export_log', JSON.stringify(exportLog)); }catch(e){}
+}
+
+function triggerDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+}
+
+async function doExport(format, kbps){
   if(!workingBuffer){ setStatus('No hay audio cargado'); return; }
-  setStatus(quality==='pro' ? 'Exportando en alta calidad…' : 'Exportando rápido…');
+  setStatus('Exportando…');
   try{
     const rendered = await renderToBuffer();
-    const blob = bufferToWav(rendered);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `appa_export_${Date.now()}.wav`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    let blob, ext;
+    if(format === 'mp3'){
+      blob = bufferToMp3(rendered, kbps || 192);
+      ext = 'mp3';
+    } else {
+      blob = bufferToWav(rendered);
+      ext = 'wav';
+    }
+    const filename = `appa_${Date.now()}.${ext}`;
+    triggerDownload(blob, filename);
+    addToExportLog(filename, ext.toUpperCase() + (format==='mp3'?` ${kbps||192}k`:' (sin pérdida)'), rendered.duration);
     setStatus('Exportado ✓', 2000);
+    renderExportLog();
   }catch(err){
     console.error(err);
     setStatus('Error al exportar');
   }
 }
 
-btnExportFast.addEventListener('click', ()=>doExport('fast'));
-btnExportPro.addEventListener('click', ()=>doExport('pro'));
-btnExportarTop.addEventListener('click', ()=>doExport('pro'));
+// Export Rápido = WAV directo. Export Pro = elegir formato/calidad.
+btnExportFast.addEventListener('click', ()=> doExport('wav'));
+btnExportPro.addEventListener('click', openExportDialog);
+btnExportarTop.addEventListener('click', openExportDialog);
+
+function openExportDialog(){
+  if(!workingBuffer){ setStatus('No hay audio cargado'); return; }
+  $('exportDialog').classList.remove('hidden');
+}
 
 // ============================================================
 // Detector de tono en tiempo real (botón "Detectar tono")
@@ -602,11 +716,15 @@ btnExportarTop.addEventListener('click', ()=>doExport('pro'));
 btnDetectTone.addEventListener('click', async ()=>{
   if(!tunerPanel.classList.contains('hidden') && tunerActive){
     stopTuner();
+    tunerPanel.classList.add('hidden');
+    btnDetectTone.classList.remove('active');
     return;
   }
   tunerPanel.classList.remove('hidden');
   setMode('chromatic', true);
+  btnDetectTone.classList.add('active');
   await startTuner();
+  tunerPanel.scrollIntoView({behavior:'smooth', block:'center'});
 });
 
 // ============================================================
@@ -616,9 +734,12 @@ btnTunerToggle.addEventListener('click', async ()=>{
   const wasHidden = tunerPanel.classList.contains('hidden');
   tunerPanel.classList.toggle('hidden');
   if(wasHidden){
+    setMode('guitar', true);
     await startTuner();
+    tunerPanel.scrollIntoView({behavior:'smooth', block:'center'});
   } else {
     stopTuner();
+    btnDetectTone.classList.remove('active');
   }
 });
 
@@ -953,6 +1074,132 @@ timeline.addEventListener('touchend', tlPointerUp);
 
 // Inicialización
 window.addEventListener('resize', ()=>{ if(workingBuffer){ drawWaveform(getEffectiveBuffer()); tlBuildWaveImage(); } });
+
+// ============================================================
+// PALETAS DE COLOR + MENÚ APPA
+// ============================================================
+// Cada paleta define los 4 colores base. Verde/rojo/naranja (estados) se mantienen.
+const PALETTES = {
+  'Café (original)': { cream:'#fbe9cf', cream2:'#f6dfc0', brown:'#7a4a26', brownDark:'#5c3719', brownLight:'#a06b3f', white:'#fdf3e3' },
+  'Océano':          { cream:'#e3f0f4', cream2:'#cfe6ee', brown:'#1f5f7a', brownDark:'#123c4f', brownLight:'#4a8aa6', white:'#f0f9fc' },
+  'Bosque':          { cream:'#e8f1e0', cream2:'#d6e8c9', brown:'#3a6b2e', brownDark:'#264a1d', brownLight:'#6a9b56', white:'#f3f9ee' },
+  'Lavanda':         { cream:'#efe8f4', cream2:'#e0d3ee', brown:'#6a4a8a', brownDark:'#473060', brownLight:'#9476b6', white:'#f7f2fc' },
+  'Rosa':            { cream:'#f9e6ec', cream2:'#f2cfdb', brown:'#a63a5e', brownDark:'#6f243d', brownLight:'#c96b89', white:'#fcf0f4' },
+  'Carbón':          { cream:'#e8e8ea', cream2:'#d4d4d8', brown:'#3a3a40', brownDark:'#1f1f24', brownLight:'#6a6a72', white:'#f5f5f7' },
+  'Atardecer':       { cream:'#fdeede', cream2:'#fadcc0', brown:'#c0532a', brownDark:'#8a3618', brownLight:'#e0814f', white:'#fff5ec' },
+  'Menta':           { cream:'#e0f4ee', cream2:'#c9e8de', brown:'#1f7a63', brownDark:'#124f40', brownLight:'#4aa68c', white:'#f0fcf8' },
+};
+
+let currentPalette = 'Café (original)';
+let isInverted = false;
+
+function hexToRgb(h){ const n=parseInt(h.slice(1),16); return [n>>16, (n>>8)&255, n&255]; }
+function rgbToHex(r,g,b){ return '#'+[r,g,b].map(x=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join(''); }
+function invertHex(h){ const [r,g,b]=hexToRgb(h); return rgbToHex(255-r,255-g,255-b); }
+
+function applyPalette(name, invert){
+  const p = PALETTES[name];
+  if(!p) return;
+  const map = {
+    '--cream': p.cream, '--cream-2': p.cream2,
+    '--brown': p.brown, '--brown-dark': p.brownDark,
+    '--brown-light': p.brownLight, '--white': p.white
+  };
+  const root = document.documentElement.style;
+  for(const k in map){
+    root.setProperty(k, invert ? invertHex(map[k]) : map[k]);
+  }
+  // actualizar color de la flecha SVG (usa fill fijo)
+  const arrow = document.querySelector('.appa-arrow path');
+  if(arrow) arrow.setAttribute('fill', invert ? invertHex(p.brown) : p.brown);
+  // redibujar waveform y timeline con nuevos colores
+  if(workingBuffer){ drawWaveform(getEffectiveBuffer()); tlBuildWaveImage(); }
+  // persistir
+  try{
+    localStorage.setItem('appa_palette', name);
+    localStorage.setItem('appa_inverted', invert ? '1':'0');
+  }catch(e){}
+}
+
+function renderPaletteGrid(){
+  const grid = $('paletteGrid');
+  grid.innerHTML = '';
+  for(const name in PALETTES){
+    const p = PALETTES[name];
+    const sw = document.createElement('div');
+    sw.className = 'palette-swatch' + (name===currentPalette ? ' selected':'');
+    const top = isInverted ? invertHex(p.brown) : p.brown;
+    const bot = isInverted ? invertHex(p.cream) : p.cream;
+    sw.innerHTML = `<div class="sw-top" style="background:${top}"></div><div class="sw-bottom" style="background:${bot}"></div><span class="sw-name">${name.split(' ')[0]}</span>`;
+    sw.addEventListener('click', ()=>{
+      currentPalette = name;
+      applyPalette(currentPalette, isInverted);
+      renderPaletteGrid();
+    });
+    grid.appendChild(sw);
+  }
+}
+
+function renderExportLog(){
+  const list = $('exportLogList');
+  if(!exportLog.length){
+    list.innerHTML = '<div class="log-empty">Aún no has exportado nada.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  exportLog.forEach(item=>{
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div class="log-name">${item.name}</div>
+      <div class="log-meta">${item.format} · ${item.duration} · pitch ${item.pitch} · vel ${item.speed}x<br>${item.date}</div>`;
+    list.appendChild(div);
+  });
+}
+
+// Restaurar paleta guardada
+try{
+  const savedPal = localStorage.getItem('appa_palette');
+  const savedInv = localStorage.getItem('appa_inverted');
+  if(savedPal && PALETTES[savedPal]) currentPalette = savedPal;
+  if(savedInv === '1') isInverted = true;
+  if(savedPal || savedInv) applyPalette(currentPalette, isInverted);
+}catch(e){}
+
+// Handlers del menú Appa
+const appaMenu = $('appaMenu');
+const exportDialog = $('exportDialog');
+
+document.querySelector('.brand').addEventListener('click', ()=>{
+  renderPaletteGrid();
+  renderExportLog();
+  appaMenu.classList.remove('hidden');
+});
+$('menuClose').addEventListener('click', ()=> appaMenu.classList.add('hidden'));
+appaMenu.addEventListener('click', (e)=>{ if(e.target===appaMenu) appaMenu.classList.add('hidden'); });
+
+$('invertBtn').addEventListener('click', ()=>{
+  isInverted = !isInverted;
+  applyPalette(currentPalette, isInverted);
+  renderPaletteGrid();
+});
+
+$('clearLogBtn').addEventListener('click', ()=>{
+  exportLog = [];
+  try{ localStorage.removeItem('appa_export_log'); }catch(e){}
+  renderExportLog();
+});
+
+// Handlers del diálogo de exportación
+$('exportClose').addEventListener('click', ()=> exportDialog.classList.add('hidden'));
+exportDialog.addEventListener('click', (e)=>{ if(e.target===exportDialog) exportDialog.classList.add('hidden'); });
+document.querySelectorAll('.modal-option').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const fmt = btn.dataset.fmt;
+    const kbps = btn.dataset.kbps ? parseInt(btn.dataset.kbps) : null;
+    exportDialog.classList.add('hidden');
+    doExport(fmt, kbps);
+  });
+});
 
 // Registrar service worker para uso offline (PWA)
 if('serviceWorker' in navigator){

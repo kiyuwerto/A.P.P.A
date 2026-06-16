@@ -1,5 +1,5 @@
-const CACHE_NAME = 'appa-cache-v1';
-const ASSETS = ['./', './index.html', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'appa-cache-v3';
+const ASSETS = ['./', './index.html', './app.js', './soundtouch.js', './lamejs.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event)=>{
   event.waitUntil(
