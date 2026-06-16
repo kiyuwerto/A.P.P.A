@@ -30,7 +30,7 @@ html,body{
 button{font-family:inherit;}
 .app{
   max-width:520px; margin:0 auto; padding:16px 16px calc(24px + env(safe-area-inset-bottom));
-  padding-top:calc(14px + env(safe-area-inset-top));
+  padding-top:calc(24px + env(safe-area-inset-top));
 }
 
 /* HEADER */
@@ -167,12 +167,18 @@ input[type=range]::-webkit-slider-thumb{
 .hidden{display:none !important;}
 
 /* FLECHA CABEZA DE APPA */
-.topbar{position:relative;}
-.appa-arrow{
-  position:absolute; left:50%; top:-6px; transform:translateX(-50%);
-  display:flex; align-items:flex-start; justify-content:center;
-  pointer-events:none;
+.topbar{
+  position:relative;
+  padding-top:18px;
+  margin-bottom:8px;
 }
+.appa-arrow{
+  position:absolute; left:50%; top:-2px; transform:translateX(-50%);
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+  filter:drop-shadow(0 2px 1px rgba(0,0,0,0.12));
+}
+.appa-arrow svg{display:block;}
 
 /* TIMELINE TIPO INSHOT */
 .timeline-wrap{
@@ -212,8 +218,8 @@ input[type=range]::-webkit-slider-thumb{
       <button class="menu-link" id="btnExportarTop">Exportar</button>
     </div>
     <div class="appa-arrow" aria-hidden="true">
-      <svg viewBox="0 0 64 80" width="40" height="50">
-        <path d="M22 4 h20 v34 h16 L32 74 L6 38 h16 z" fill="#7a4a26"/>
+      <svg viewBox="0 0 100 100" width="56" height="56">
+        <polygon points="35,4 65,4 65,40 86,40 50,92 14,40 35,40" fill="#7a4a26"/>
       </svg>
     </div>
     <div class="right">
