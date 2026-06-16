@@ -1,4 +1,8 @@
-const CACHE_NAME = 'appa-cache-v5';
+const CACHE_NAME = 'appa-cache-v6';
+// Nota: los archivos de ffmpeg (ffmpeg.js, 814.ffmpeg.js, ffmpeg-core.js, ffmpeg-core.wasm)
+// NO se precachean aquí a propósito: el .wasm pesa ~32MB y si su descarga falla durante
+// la instalación, todo el service worker fallaría y la app dejaría de funcionar offline.
+// Se cachean de forma perezosa (on-demand) la primera vez que el usuario exporta video.
 const ASSETS = ['./', './index.html', './app.js', './soundtouch.js', './lamejs.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (event)=>{

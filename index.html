@@ -273,6 +273,38 @@ input[type=range]::-webkit-slider-thumb{
 }
 .log-item .log-name{font-weight:800; word-break:break-all;}
 .log-item .log-meta{font-weight:600; color:var(--brown-light); font-size:0.78rem; margin-top:3px;}
+
+/* Panel de recorte */
+.trim-panel{
+  background:var(--cream-2); border-radius:16px; padding:14px; margin-top:12px;
+  border:2px solid var(--brown-light);
+}
+.trim-row{display:flex; justify-content:space-around; font-weight:700; color:var(--brown-dark); margin-bottom:12px; font-size:1rem;}
+.trim-row b{color:var(--brown);}
+.trim-buttons{display:flex; gap:10px; margin-bottom:8px;}
+.trim-buttons .menu-toggle-btn{margin-top:0;}
+.timeline .trim-marker{
+  position:absolute; top:0; bottom:0; width:3px; background:var(--green); z-index:3; pointer-events:none;
+}
+.timeline .trim-region{
+  position:absolute; top:0; bottom:0; background:rgba(93,138,74,0.25); z-index:1; pointer-events:none;
+}
+
+/* Atajos de velocidad */
+.speed-preset-row{
+  display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; justify-content:center;
+}
+.speed-chip{
+  background:var(--brown); color:var(--white); border:none; border-radius:12px;
+  padding:10px 16px; font-weight:800; font-size:0.95rem; min-width:58px;
+}
+.speed-chip.active{background:var(--green);}
+.speed-chip:active{filter:brightness(0.92);}
+
+.ffmpeg-progress{margin-top:16px;}
+.ffmpeg-progress-bar{width:100%; height:14px; background:var(--brown); border-radius:10px; overflow:hidden;}
+.ffmpeg-progress-fill{height:100%; width:0%; background:var(--green); transition:width 0.3s;}
+.ffmpeg-progress-label{text-align:center; font-weight:700; font-size:0.85rem; color:var(--brown-light); margin-top:8px;}
 </style>
 </head>
 <body>
@@ -323,6 +355,10 @@ input[type=range]::-webkit-slider-thumb{
     <button class="upload-btn secondary" id="btnRecord">Grabar mic</button>
     <input type="file" id="fileInput" accept="audio/*,video/*">
   </div>
+  <div class="upload-row">
+    <button class="upload-btn secondary" id="btnOverdub">Grabar encima</button>
+    <button class="upload-btn" id="btnClearAll" style="background:var(--red);">Limpiar todo</button>
+  </div>
 
   <div class="status-bar" id="statusBar"></div>
 
@@ -354,9 +390,41 @@ input[type=range]::-webkit-slider-thumb{
     <button class="tile-btn" id="btnPitchLock">Pitch-lock</button>
     <button class="tile-btn" id="btnDetectTone">Detectar tono</button>
     <button class="tile-btn" id="btnReverse">Reversa</button>
+    <button class="tile-btn" id="btnLoop">Loop</button>
+    <button class="tile-btn" id="btnTrim">Recortar</button>
+    <button class="tile-btn" id="btnSpeedPreset">Velocidad &#9660;</button>
     <button class="tile-btn export" id="btnExportFast">Export Rápi</button>
     <button class="tile-btn export pro" id="btnExportPro">Export Pro</button>
     <button class="tile-btn" id="btnTunerToggle">Afinador &#9660;</button>
+  </div>
+
+  <!-- Panel de recorte (aparece al activar Recortar) -->
+  <div class="trim-panel hidden" id="trimPanel">
+    <div class="trim-row">
+      <span>Inicio: <b id="trimStartLabel">0:00</b></span>
+      <span>Fin: <b id="trimEndLabel">0:00</b></span>
+    </div>
+    <div class="trim-buttons">
+      <button class="menu-toggle-btn" id="trimSetStart">Marcar inicio aquí</button>
+      <button class="menu-toggle-btn" id="trimSetEnd">Marcar fin aquí</button>
+    </div>
+    <div class="trim-buttons">
+      <button class="menu-toggle-btn" id="trimApply" style="background:var(--green);">Aplicar recorte</button>
+      <button class="menu-toggle-btn" id="trimCancel" style="background:var(--brown-light);">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Desplegable de velocidad -->
+  <div class="speed-preset-row hidden" id="speedPresetRow">
+    <button class="speed-chip" data-speed="0.25">0.25x</button>
+    <button class="speed-chip" data-speed="0.5">0.5x</button>
+    <button class="speed-chip" data-speed="0.75">0.75x</button>
+    <button class="speed-chip" data-speed="1">1x</button>
+    <button class="speed-chip" data-speed="1.25">1.25x</button>
+    <button class="speed-chip" data-speed="1.5">1.5x</button>
+    <button class="speed-chip" data-speed="2">2x</button>
+    <button class="speed-chip" data-speed="3">3x</button>
+    <button class="speed-chip" data-speed="4">4x</button>
   </div>
 
   <div class="panel hidden" id="tunerPanel">
@@ -384,11 +452,20 @@ input[type=range]::-webkit-slider-thumb{
         <h3>Exportar</h3>
         <button class="modal-close" id="exportClose">&times;</button>
       </div>
-      <p class="modal-sub">Elige el formato de salida:</p>
+      <p class="modal-sub">Audio:</p>
       <button class="modal-option" data-fmt="wav">WAV <small>Sin pérdida, máxima calidad (archivo grande)</small></button>
       <button class="modal-option" data-fmt="mp3" data-kbps="320">MP3 320 kbps <small>Alta calidad, archivo mediano</small></button>
       <button class="modal-option" data-fmt="mp3" data-kbps="192">MP3 192 kbps <small>Buena calidad, archivo liviano</small></button>
       <button class="modal-option" data-fmt="mp3" data-kbps="128">MP3 128 kbps <small>Calidad estándar, muy liviano</small></button>
+      <button class="modal-option" data-fmt="m4a"><span>MP4 (solo audio)</span> <small>Audio en contenedor MP4/AAC, compatible con iPhone</small></button>
+
+      <p class="modal-sub" id="videoExportLabel" style="margin-top:16px;">Video (con el audio modificado):</p>
+      <button class="modal-option" data-fmt="mp4video" id="exportVideoOption"><span>MP4 con audio editado</span> <small>Recodifica el video completo. Puede tardar varios minutos.</small></button>
+
+      <div class="ffmpeg-progress hidden" id="ffmpegProgress">
+        <div class="ffmpeg-progress-bar"><div class="ffmpeg-progress-fill" id="ffmpegProgressFill"></div></div>
+        <div class="ffmpeg-progress-label" id="ffmpegProgressLabel">Preparando…</div>
+      </div>
     </div>
   </div>
 
@@ -429,6 +506,7 @@ input[type=range]::-webkit-slider-thumb{
 </div>
 
 <script src="lamejs.js"></script>
+<script src="ffmpeg.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -48,10 +48,15 @@ let audioCtx = null;
 let mediaType = null;      // 'audio' | 'video'
 let originalBuffer = null; // AudioBuffer original (decodificado)
 let workingBuffer = null;  // AudioBuffer tras reversa, etc.
+let originalVideoFile = null; // File original si se cargó un video (para exportar con ffmpeg)
 let sourceNode = null;
 let isPlaying = false;
 let isReversed = false;
 let pitchLockOn = false;
+let loopEnabled = false;
+let trimMode = false;
+let trimStart = 0;   // segundos (audio original)
+let trimEnd = 0;     // segundos
 let rafId = null;
 
 let pitchSemis = 0;     // -48..48
@@ -139,6 +144,7 @@ async function loadFile(file){
   stopPlayback();
   const isVideo = file.type.startsWith('video');
   mediaType = isVideo ? 'video' : 'audio';
+  originalVideoFile = isVideo ? file : null;
 
   const url = URL.createObjectURL(file);
 
@@ -187,12 +193,16 @@ let recStream = null;
 let recRafId = null;
 let recWaveform = [];   // amplitudes acumuladas durante la grabación
 let recStartTime = 0;
+let isOverdub = false;
+let overdubStartSec = 0;
 
-btnRecord.addEventListener('click', async ()=>{
-  if(isRecording){
-    mediaRecorder.stop();
-    return;
-  }
+async function beginRecording(overdub){
+  if(isRecording){ mediaRecorder.stop(); return; }
+  if(overdub && !workingBuffer){ setStatus('Primero necesitas un audio cargado para grabar encima', 2500); return; }
+
+  isOverdub = overdub;
+  overdubStartSec = overdub ? TL.pos : 0;
+
   try{
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
     recStream = stream;
@@ -204,11 +214,18 @@ btnRecord.addEventListener('click', async ()=>{
       isRecording = false;
       btnRecord.textContent = 'Grabar mic';
       btnRecord.classList.remove('recording');
+      btnOverdub.textContent = 'Grabar encima';
+      btnOverdub.classList.remove('recording');
       stopRecVisualization();
       stream.getTracks().forEach(t=>t.stop());
       const blob = new Blob(recordedChunks, {type:'audio/webm'});
       const file = new File([blob], 'grabacion.webm', {type:'audio/webm'});
-      await loadFile(file);
+
+      if(isOverdub){
+        await applyOverdub(file);
+      } else {
+        await loadFile(file);
+      }
     };
 
     // --- visualización en vivo ---
@@ -218,26 +235,81 @@ btnRecord.addEventListener('click', async ()=>{
     recAnalyser.fftSize = 1024;
     src.connect(recAnalyser);
 
-    // preparar el timeline para mostrar la grabación en curso
-    mediaType = 'audio';
-    videoEl.classList.add('hidden');
-    waveCanvas.classList.remove('hidden');
-    placeholderText.classList.add('hidden');
-    previewControls.classList.add('hidden');
-    tlEmpty.classList.add('hidden');
+    if(!overdub){
+      // preparar el timeline para mostrar la grabación en curso desde cero
+      mediaType = 'audio';
+      videoEl.classList.add('hidden');
+      waveCanvas.classList.remove('hidden');
+      placeholderText.classList.add('hidden');
+      previewControls.classList.add('hidden');
+      tlEmpty.classList.add('hidden');
+    }
     recStartTime = performance.now();
 
     mediaRecorder.start();
     isRecording = true;
-    btnRecord.textContent = 'Detener ■';
-    btnRecord.classList.add('recording');
-    setStatus('Grabando…');
+    if(overdub){
+      btnOverdub.textContent = 'Detener ■';
+      btnOverdub.classList.add('recording');
+      setStatus('Grabando encima desde ' + fmtTime(overdubStartSec) + '…');
+    } else {
+      btnRecord.textContent = 'Detener ■';
+      btnRecord.classList.add('recording');
+      setStatus('Grabando…');
+    }
     drawRecVisualization();
   }catch(err){
     console.error(err);
     setStatus('No se pudo acceder al micrófono');
   }
-});
+}
+
+btnRecord.addEventListener('click', ()=> beginRecording(false));
+const btnOverdub = $('btnOverdub');
+btnOverdub.addEventListener('click', ()=> beginRecording(true));
+
+// Mezcla la nueva grabación sobre el audio existente, reemplazando el tramo
+// que va desde overdubStartSec hasta donde alcance la nueva grabación.
+async function applyOverdub(file){
+  setStatus('Procesando grabación…');
+  try{
+    const arrayBuf = await file.arrayBuffer();
+    const ctx = ensureAudioCtx();
+    const newClip = await ctx.decodeAudioData(arrayBuf);
+
+    const base = originalBuffer;
+    const sr = base.sampleRate;
+    const startSample = Math.floor(overdubStartSec * sr);
+    const newClipLen = newClip.length;
+    const endSample = startSample + newClipLen;
+    const totalLen = Math.max(base.length, endSample);
+
+    const merged = ctx.createBuffer(base.numberOfChannels, totalLen, sr);
+    for(let ch=0; ch<base.numberOfChannels; ch++){
+      const baseData = base.getChannelData(ch);
+      const outData = merged.getChannelData(ch);
+      // copiar el audio base completo primero
+      outData.set(baseData, 0);
+      // pisar el tramo con la grabación nueva (usa canal 0 si la nueva es mono)
+      const newData = newClip.getChannelData(Math.min(ch, newClip.numberOfChannels-1));
+      outData.set(newData, startSample);
+    }
+
+    originalBuffer = merged;
+    workingBuffer = merged;
+    reversedCache = null; reversedCacheSrc = null;
+    isReversed = false;
+    btnReverse.classList.remove('active');
+    drawWaveform(workingBuffer);
+    tlInit();
+    timeLabel.textContent = `0:00 / ${fmtTime(originalBuffer.duration)}`;
+    setStatus('Grabación añadida ✓', 2000);
+    pushHistory();
+  }catch(err){
+    console.error(err);
+    setStatus('Error al procesar la grabación encima');
+  }
+}
 
 function stopRecVisualization(){
   if(recRafId) cancelAnimationFrame(recRafId);
@@ -299,6 +371,53 @@ function drawRollingWave(canvas, container, amps, centerLine){
     const phColor = getComputedStyle(document.documentElement).getPropertyValue('--white').trim() || '#fff';
   }
 }
+
+// ============================================================
+// LIMPIAR TODO el campo de trabajo
+// ============================================================
+$('btnClearAll').addEventListener('click', ()=>{
+  if(!workingBuffer && !originalBuffer){ setStatus('No hay nada que limpiar', 1500); return; }
+  stopPlayback();
+  originalBuffer = null;
+  workingBuffer = null;
+  originalVideoFile = null;
+  reversedCache = null; reversedCacheSrc = null;
+  mediaType = null;
+  isReversed = false;
+  pitchLockOn = false;
+  loopEnabled = false;
+  trimMode = false;
+  pitchSemis = 0;
+  speedRate = 1.0;
+  playStartOffset = 0;
+  history = []; historyIndex = -1;
+  updateUndoRedoButtons();
+
+  pitchSlider.value = 0; pitchValue.value = '0.000';
+  speedSlider.value = 1; speedValue.value = '1.000';
+  btnReverse.classList.remove('active');
+  btnPitchLock.classList.remove('active');
+  btnLoop.classList.remove('active');
+  btnTrim.classList.remove('active');
+  trimPanel.classList.add('hidden');
+  clearTrimMarkers();
+  document.querySelectorAll('.speed-chip').forEach(c=>c.classList.remove('active'));
+
+  videoEl.src = '';
+  videoEl.classList.add('hidden');
+  waveCanvas.classList.add('hidden');
+  placeholderText.classList.remove('hidden');
+  previewControls.classList.add('hidden');
+  tlEmpty.classList.remove('hidden');
+  TL.waveImg = null; TL.pos = 0;
+  const tlCtx = tlCanvas.getContext('2d');
+  tlCtx.clearRect(0,0,tlCanvas.width,tlCanvas.height);
+  const wCtx = waveCanvas.getContext('2d');
+  wCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height);
+  timeLabel.textContent = '0:00 / 0:00';
+
+  setStatus('Campo de trabajo limpiado ✓', 2000);
+});
 
 // ============================================================
 // Waveform
@@ -503,30 +622,59 @@ function startPlayback(){
   sourceNode.playbackRate.value = computePlaybackRate();
   sourceNode.connect(ctx.destination);
   sourceNode.onended = ()=>{
-    if(isPlaying){ stopPlayback(); }
+    if(isPlaying){
+      if(loopEnabled){
+        // reiniciar desde el principio en bucle
+        playStartOffset = 0;
+        TL.pos = 0;
+        stopPlayback();
+        startPlayback();
+      } else {
+        stopPlayback();
+      }
+    }
   };
-  sourceNode.start(0, playStartOffset);
+  // playStartOffset está en segundos del audio ORIGINAL. Si el buffer fue
+  // comprimido/estirado por pitch-lock (tempo distinto de 1), hay que escalar
+  // el offset al sistema de tiempo del buffer procesado. Si no, el inicio se desfasa.
+  let bufferOffset = playStartOffset;
+  if(pitchLockOn && Math.abs(speedRate - 1) > 0.001){
+    bufferOffset = playStartOffset / speedRate;
+  }
+  bufferOffset = Math.max(0, Math.min(bufferOffset, buf.duration - 0.01));
+  sourceNode.start(0, bufferOffset);
   playStartCtxTime = ctx.currentTime;
   isPlaying = true;
   btnPlayPause.textContent = '❚❚';
   tickAudio(buf);
+  if(tunerMode === 'audiofile' && !tunerPanel.classList.contains('hidden')){
+    startLiveToneTracking();
+  }
 }
 
 function tickAudio(buf){
   const ctx = ensureAudioCtx();
+  const origDur = originalBuffer.duration;
   function step(){
     if(!isPlaying) return;
     const rate = sourceNode ? sourceNode.playbackRate.value : 1;
-    const elapsed = (ctx.currentTime - playStartCtxTime)*rate + playStartOffset;
-    const dur = buf.duration;
-    if(elapsed >= dur){
+    // tiempo transcurrido en el buffer procesado desde que arrancó
+    const bufElapsed = (ctx.currentTime - playStartCtxTime)*rate;
+    // convertir a tiempo del audio original
+    let origElapsed;
+    if(pitchLockOn && Math.abs(speedRate - 1) > 0.001){
+      origElapsed = playStartOffset + bufElapsed*speedRate;
+    } else {
+      origElapsed = playStartOffset + bufElapsed;
+    }
+    if(origElapsed >= origDur){
       playStartOffset = 0;
       TL.pos = 0;
       stopPlayback();
-      timeLabel.textContent = `0:00 / ${fmtTime(originalBuffer.duration)}`;
+      timeLabel.textContent = `0:00 / ${fmtTime(origDur)}`;
       return;
     }
-    timeLabel.textContent = `${fmtTime(elapsed)} / ${fmtTime(originalBuffer.duration)}`;
+    timeLabel.textContent = `${fmtTime(origElapsed)} / ${fmtTime(origDur)}`;
     rafId = requestAnimationFrame(step);
   }
   step();
@@ -766,6 +914,12 @@ function triggerDownload(blob, filename){
 
 async function doExport(format, kbps){
   if(!workingBuffer){ setStatus('No hay audio cargado'); return; }
+
+  if(format === 'mp4video'){
+    await exportVideoWithFfmpeg();
+    return;
+  }
+
   setStatus('Exportando…');
   try{
     const rendered = await renderToBuffer();
@@ -773,6 +927,9 @@ async function doExport(format, kbps){
     if(format === 'mp3'){
       blob = bufferToMp3(rendered, kbps || 192);
       ext = 'mp3';
+    } else if(format === 'm4a'){
+      blob = await encodeWavToM4a(rendered);
+      ext = 'm4a';
     } else {
       blob = bufferToWav(rendered);
       ext = 'wav';
@@ -788,6 +945,122 @@ async function doExport(format, kbps){
   }
 }
 
+// ============================================================
+// FFMPEG (carga diferida, solo cuando se necesita)
+// ============================================================
+let ffmpegInstance = null;
+let ffmpegLoading = null;
+
+async function getFfmpeg(){
+  if(ffmpegInstance) return ffmpegInstance;
+  if(ffmpegLoading) return ffmpegLoading;
+  ffmpegLoading = (async ()=>{
+    if(!window.FFmpegWASM){
+      throw new Error('FFmpeg no se cargó (revisa que ffmpeg.js esté presente)');
+    }
+    const { FFmpeg } = window.FFmpegWASM;
+    const ff = new FFmpeg();
+    ff.on('progress', ({progress})=>{
+      const pct = Math.round(Math.min(1, Math.max(0, progress))*100);
+      const fill = $('ffmpegProgressFill');
+      const label = $('ffmpegProgressLabel');
+      if(fill) fill.style.width = pct + '%';
+      if(label) label.textContent = `Procesando… ${pct}%`;
+    });
+    await ff.load({
+      coreURL: 'ffmpeg-core.js',
+      wasmURL: 'ffmpeg-core.wasm'
+    });
+    ffmpegInstance = ff;
+    return ff;
+  })();
+  return ffmpegLoading;
+}
+
+function showFfmpegProgress(show, label){
+  const panel = $('ffmpegProgress');
+  panel.classList.toggle('hidden', !show);
+  if(label) $('ffmpegProgressLabel').textContent = label;
+  $('ffmpegProgressFill').style.width = '0%';
+}
+
+// Codifica un AudioBuffer a M4A (AAC en contenedor MP4) usando ffmpeg, vía WAV intermedio.
+async function encodeWavToM4a(buffer){
+  showFfmpegProgress(true, 'Cargando motor de conversión…');
+  const ff = await getFfmpeg();
+  const wavBlob = bufferToWav(buffer);
+  const wavData = new Uint8Array(await wavBlob.arrayBuffer());
+  await ff.writeFile('input.wav', wavData);
+  showFfmpegProgress(true, 'Convirtiendo a MP4/AAC…');
+  await ff.exec(['-i', 'input.wav', '-c:a', 'aac', '-b:a', '192k', 'output.m4a']);
+  const data = await ff.readFile('output.m4a');
+  await ff.deleteFile('input.wav').catch(()=>{});
+  await ff.deleteFile('output.m4a').catch(()=>{});
+  showFfmpegProgress(false);
+  return new Blob([data.buffer], {type:'audio/mp4'});
+}
+
+// Exporta el VIDEO completo con el audio ya procesado (pitch/velocidad/reversa)
+// reemplazando su pista de audio original. Si el video tiene reversa activada,
+// también se invierten los frames de video (operación más pesada).
+async function exportVideoWithFfmpeg(){
+  if(!originalVideoFile){ setStatus('Esto requiere haber subido un video', 2500); return; }
+  $('exportDialog').classList.add('hidden');
+  showFfmpegProgress(true, 'Cargando motor de video (puede tardar la primera vez)…');
+  setStatus('Preparando exportación de video…');
+
+  try{
+    const ff = await getFfmpeg();
+
+    // 1) renderizar el audio procesado (pitch/velocidad/pitch-lock) a WAV
+    showFfmpegProgress(true, 'Procesando audio…');
+    const renderedAudio = await renderToBuffer();
+    const wavBlob = bufferToWav(renderedAudio);
+    const wavData = new Uint8Array(await wavBlob.arrayBuffer());
+
+    // 2) escribir el video original y el audio nuevo al sistema de archivos virtual
+    const videoData = new Uint8Array(await originalVideoFile.arrayBuffer());
+    const inName = 'input_video.' + (originalVideoFile.name.split('.').pop() || 'mp4');
+    await ff.writeFile(inName, videoData);
+    await ff.writeFile('new_audio.wav', wavData);
+
+    // 3) determinar el filtro de video. La velocidad de reproducción del video
+    // (vari-speed sin pitch-lock) ya se refleja en cuánto dura el audio nuevo,
+    // así que ajustamos el video para que coincida en duración usando setpts.
+    const videoFilters = [];
+    if(isReversed) videoFilters.push('reverse');
+    // ajustar duración del video a la del audio nuevo (vari-speed o pitch-lock)
+    const speedFactorForVideo = renderedAudio.duration > 0 ? (originalBuffer.duration / renderedAudio.duration) : 1;
+    if(Math.abs(speedFactorForVideo - 1) > 0.01){
+      videoFilters.push(`setpts=PTS/${speedFactorForVideo}`);
+    }
+    const vf = videoFilters.length ? videoFilters.join(',') : null;
+
+    showFfmpegProgress(true, 'Recodificando video (esto puede tardar varios minutos)…');
+    const args = ['-i', inName, '-i', 'new_audio.wav'];
+    if(vf) args.push('-vf', vf);
+    args.push('-map', '0:v:0', '-map', '1:a:0', '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', '-b:a', '192k', '-shortest', 'output.mp4');
+    await ff.exec(args);
+
+    const data = await ff.readFile('output.mp4');
+    const blob = new Blob([data.buffer], {type:'video/mp4'});
+    const filename = `appa_video_${Date.now()}.mp4`;
+    triggerDownload(blob, filename);
+    addToExportLog(filename, 'MP4 (video + audio editado)', renderedAudio.duration);
+    renderExportLog();
+    setStatus('Video exportado ✓', 2500);
+
+    await ff.deleteFile(inName).catch(()=>{});
+    await ff.deleteFile('new_audio.wav').catch(()=>{});
+    await ff.deleteFile('output.mp4').catch(()=>{});
+  }catch(err){
+    console.error(err);
+    setStatus('Error al exportar video. Revisa la consola.');
+  } finally {
+    showFfmpegProgress(false);
+  }
+}
+
 // Export Rápido = WAV directo. Export Pro = elegir formato/calidad.
 btnExportFast.addEventListener('click', ()=> doExport('wav'));
 btnExportPro.addEventListener('click', openExportDialog);
@@ -795,6 +1068,12 @@ btnExportarTop.addEventListener('click', openExportDialog);
 
 function openExportDialog(){
   if(!workingBuffer){ setStatus('No hay audio cargado'); return; }
+  // mostrar la opción de exportar video solo si se cargó un video
+  const videoOpt = $('exportVideoOption');
+  const videoLabel = $('videoExportLabel');
+  const showVideo = !!originalVideoFile;
+  videoOpt.classList.toggle('hidden', !showVideo);
+  videoLabel.classList.toggle('hidden', !showVideo);
   $('exportDialog').classList.remove('hidden');
 }
 
@@ -1186,7 +1465,12 @@ function tlAnimate(){
     } else if(sourceNode){
       const ctx = ensureAudioCtx();
       const rate = sourceNode.playbackRate.value;
-      TL.pos = playStartOffset + (ctx.currentTime - playStartCtxTime)*rate;
+      const bufElapsed = (ctx.currentTime - playStartCtxTime)*rate;
+      if(pitchLockOn && Math.abs(speedRate - 1) > 0.001){
+        TL.pos = playStartOffset + bufElapsed*speedRate;
+      } else {
+        TL.pos = playStartOffset + bufElapsed;
+      }
     }
     const dur = tlGetDuration();
     if(TL.pos > dur) TL.pos = dur;
@@ -1204,8 +1488,30 @@ function tlInit(){
 }
 
 // --- Scrubbing: arrastrar la pista para moverse ---
+// --- Zoom con pellizco (pinch) ---
+TL.pinching = false;
+TL.pinchStartDist = 0;
+TL.pinchStartPxPerSec = TL.pxPerSec;
+const TL_MIN_PXPERSEC = 12;
+const TL_MAX_PXPERSEC = 800;
+
+function touchDist(touches){
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
 function tlPointerDown(e){
   if(!TL.waveImg) return;
+  if(e.touches && e.touches.length === 2){
+    // iniciar pellizco: cancelar cualquier drag de 1 dedo en curso
+    TL.dragging = false;
+    TL.pinching = true;
+    TL.pinchStartDist = touchDist(e.touches);
+    TL.pinchStartPxPerSec = TL.pxPerSec;
+    if(e.cancelable) e.preventDefault();
+    return;
+  }
   TL.dragging = true;
   timeline.classList.add('dragging');
   TL.dragStartX = (e.touches ? e.touches[0].clientX : e.clientX);
@@ -1222,6 +1528,24 @@ function tlPointerDown(e){
   }
 }
 function tlPointerMove(e){
+  if(e.touches && e.touches.length === 2 && TL.pinching){
+    const dist = touchDist(e.touches);
+    const ratio = dist / Math.max(1, TL.pinchStartDist);
+    let newPxPerSec = TL.pinchStartPxPerSec * ratio;
+    newPxPerSec = Math.max(TL_MIN_PXPERSEC, Math.min(TL_MAX_PXPERSEC, newPxPerSec));
+    TL.pxPerSec = newPxPerSec;
+    // TL.pos (el playhead, centro) queda fijo: reconstruimos la imagen con throttle
+    // para no saturar en audios largos durante el gesto.
+    if(!TL._pinchRebuildScheduled){
+      TL._pinchRebuildScheduled = true;
+      requestAnimationFrame(()=>{
+        tlBuildWaveImage();
+        TL._pinchRebuildScheduled = false;
+      });
+    }
+    if(e.cancelable) e.preventDefault();
+    return;
+  }
   if(!TL.dragging) return;
   const x = (e.touches ? e.touches[0].clientX : e.clientX);
   const dx = x - TL.dragStartX;
@@ -1238,7 +1562,13 @@ function tlPointerMove(e){
   if(originalBuffer) timeLabel.textContent = `${fmtTime(newPos)} / ${fmtTime(originalBuffer.duration)}`;
   if(e.cancelable) e.preventDefault();
 }
-function tlPointerUp(){
+function tlPointerUp(e){
+  if(e && e.touches && e.touches.length > 0){
+    // todavía queda un dedo; si estábamos en pinch, terminó
+    TL.pinching = false;
+    return;
+  }
+  TL.pinching = false;
   if(!TL.dragging) return;
   TL.dragging = false;
   timeline.classList.remove('dragging');
@@ -1253,6 +1583,7 @@ window.addEventListener('mouseup', tlPointerUp);
 timeline.addEventListener('touchstart', tlPointerDown, {passive:false});
 timeline.addEventListener('touchmove', tlPointerMove, {passive:false});
 timeline.addEventListener('touchend', tlPointerUp);
+timeline.addEventListener('touchcancel', tlPointerUp);
 
 // Inicialización
 window.addEventListener('resize', ()=>{ if(workingBuffer){ drawWaveform(getEffectiveBuffer()); tlBuildWaveImage(); } });
@@ -1425,6 +1756,182 @@ document.querySelectorAll('.modal-option').forEach(btn=>{
     doExport(fmt, kbps);
   });
 });
+
+// ============================================================
+// LOOP
+// ============================================================
+const btnLoop = $('btnLoop');
+btnLoop.addEventListener('click', ()=>{
+  loopEnabled = !loopEnabled;
+  btnLoop.classList.toggle('active', loopEnabled);
+  setStatus(loopEnabled ? 'Bucle activado: el audio se repetirá' : 'Bucle desactivado', 2000);
+});
+
+// ============================================================
+// ATAJOS DE VELOCIDAD (desplegable)
+// ============================================================
+const btnSpeedPreset = $('btnSpeedPreset');
+const speedPresetRow = $('speedPresetRow');
+btnSpeedPreset.addEventListener('click', ()=>{
+  speedPresetRow.classList.toggle('hidden');
+});
+document.querySelectorAll('.speed-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    const v = parseFloat(chip.dataset.speed);
+    speedRate = v;
+    speedSlider.value = v;
+    speedValue.value = v.toFixed(3);
+    document.querySelectorAll('.speed-chip').forEach(c=> c.classList.toggle('active', c===chip));
+    restartPlaybackIfPlaying();
+    pushHistory();
+  });
+});
+
+// ============================================================
+// RECORTAR (trim)
+// ============================================================
+const btnTrim = $('btnTrim');
+const trimPanel = $('trimPanel');
+btnTrim.addEventListener('click', ()=>{
+  if(!workingBuffer){ setStatus('Primero sube o graba un audio', 2500); return; }
+  trimMode = !trimMode;
+  btnTrim.classList.toggle('active', trimMode);
+  trimPanel.classList.toggle('hidden', !trimMode);
+  if(trimMode){
+    trimStart = 0;
+    trimEnd = getEffectiveBuffer().duration;
+    updateTrimLabels();
+    drawTrimMarkers();
+    trimPanel.scrollIntoView({behavior:'smooth', block:'center'});
+  } else {
+    clearTrimMarkers();
+  }
+});
+
+function updateTrimLabels(){
+  $('trimStartLabel').textContent = fmtTime(trimStart);
+  $('trimEndLabel').textContent = fmtTime(trimEnd);
+}
+
+$('trimSetStart').addEventListener('click', ()=>{
+  trimStart = Math.min(TL.pos, trimEnd - 0.1);
+  trimStart = Math.max(0, trimStart);
+  updateTrimLabels();
+  drawTrimMarkers();
+});
+$('trimSetEnd').addEventListener('click', ()=>{
+  trimEnd = Math.max(TL.pos, trimStart + 0.1);
+  trimEnd = Math.min(getEffectiveBuffer().duration, trimEnd);
+  updateTrimLabels();
+  drawTrimMarkers();
+});
+
+$('trimCancel').addEventListener('click', ()=>{
+  trimMode = false;
+  btnTrim.classList.remove('active');
+  trimPanel.classList.add('hidden');
+  clearTrimMarkers();
+});
+
+$('trimApply').addEventListener('click', ()=>{
+  const src = getEffectiveBuffer();
+  const sr = src.sampleRate;
+  const startSample = Math.floor(trimStart * sr);
+  const endSample = Math.floor(trimEnd * sr);
+  const newLen = endSample - startSample;
+  if(newLen <= 0){ setStatus('Rango de recorte inválido'); return; }
+
+  const ctx = ensureAudioCtx();
+  const trimmed = ctx.createBuffer(src.numberOfChannels, newLen, sr);
+  for(let ch=0; ch<src.numberOfChannels; ch++){
+    const from = src.getChannelData(ch).subarray(startSample, endSample);
+    trimmed.getChannelData(ch).set(from);
+  }
+  // el recorte se vuelve el nuevo audio base
+  originalBuffer = trimmed;
+  workingBuffer = trimmed;
+  isReversed = false;
+  btnReverse.classList.remove('active');
+  reversedCache = null; reversedCacheSrc = null;
+  stopPlayback();
+  playStartOffset = 0;
+  drawWaveform(workingBuffer);
+  tlInit();
+  trimMode = false;
+  btnTrim.classList.remove('active');
+  trimPanel.classList.add('hidden');
+  clearTrimMarkers();
+  timeLabel.textContent = `0:00 / ${fmtTime(originalBuffer.duration)}`;
+  setStatus('Audio recortado ✓', 2000);
+  pushHistory();
+});
+
+function drawTrimMarkers(){
+  clearTrimMarkers();
+  if(!trimMode) return;
+  const dur = getEffectiveBuffer().duration;
+  const rect = timeline.getBoundingClientRect();
+  const w = rect.width;
+  const centerX = w/2;
+  // Los marcadores se posicionan relativos a la ventana visible centrada en TL.pos.
+  // Como el timeline hace scroll, los dibujamos como overlay fijo proporcional simple:
+  // marca de inicio y fin como porcentaje del total, en una mini-barra superpuesta.
+  const startPct = (trimStart/dur)*100;
+  const endPct = (trimEnd/dur)*100;
+  const region = document.createElement('div');
+  region.className = 'trim-region';
+  region.style.left = startPct + '%';
+  region.style.width = (endPct-startPct) + '%';
+  region.dataset.trim = '1';
+  timeline.appendChild(region);
+  ['start','end'].forEach((which)=>{
+    const m = document.createElement('div');
+    m.className = 'trim-marker';
+    m.style.left = (which==='start'?startPct:endPct) + '%';
+    m.dataset.trim = '1';
+    timeline.appendChild(m);
+  });
+}
+function clearTrimMarkers(){
+  timeline.querySelectorAll('[data-trim]').forEach(el=> el.remove());
+}
+
+// ============================================================
+// DETECTAR TONO EN TIEMPO REAL durante la reproducción del audio
+// (además del análisis estático). Mientras el audio suena en modo
+// 'audiofile', mostramos la nota del instante actual.
+// ============================================================
+let liveToneRaf = null;
+function startLiveToneTracking(){
+  if(liveToneRaf) return;
+  function track(){
+    if(tunerMode !== 'audiofile' || !isPlaying){ liveToneRaf = null; return; }
+    const buffer = getEffectiveBuffer();
+    if(buffer){
+      const sr = buffer.sampleRate;
+      const data = buffer.getChannelData(0);
+      // tomar una ventana alrededor de la posición actual de reproducción
+      const center = Math.floor(TL.pos * sr);
+      const winSize = 4096;
+      const start = Math.max(0, center - winSize/2);
+      if(start + winSize < data.length){
+        const slice = data.slice(start, start+winSize);
+        const freq = autoCorrelate(slice, sr);
+        if(freq > 40 && freq < 2000 && isFinite(freq)){
+          const {name, octave, cents} = freqToNote(freq);
+          tunerNote.textContent = name + octave;
+          tunerFreq.textContent = freq.toFixed(1) + ' Hz';
+          const pct = clamp(50 + cents/50*50, 0, 100);
+          tunerNeedle.style.left = pct + '%';
+          tunerNeedle.style.background = Math.abs(cents)<15 ? 'var(--green)' : 'var(--white)';
+          tunerStatus.textContent = '▶ Tono en tiempo real';
+        }
+      }
+    }
+    liveToneRaf = requestAnimationFrame(track);
+  }
+  track();
+}
 
 // Registrar service worker para uso offline (PWA)
 if('serviceWorker' in navigator){
