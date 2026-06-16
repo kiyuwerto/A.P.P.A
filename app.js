@@ -17,6 +17,10 @@ const btnPlayPause = $('btnPlayPause');
 const timeLabel = $('timeLabel');
 const statusBar = $('statusBar');
 
+const timeline = $('timeline');
+const tlCanvas = $('tlCanvas');
+const tlEmpty = $('tlEmpty');
+
 const pitchSlider = $('pitchSlider');
 const pitchValue = $('pitchValue');
 const speedSlider = $('speedSlider');
@@ -161,6 +165,8 @@ async function loadFile(file){
     workingBuffer = originalBuffer;
     isReversed = false;
     drawWaveform(workingBuffer);
+    tlInit();
+    playStartOffset = 0;
     timeLabel.textContent = `0:00 / ${fmtTime(originalBuffer.duration)}`;
     setStatus('Listo ✓', 1500);
     pushHistory();
@@ -361,6 +367,7 @@ function startPlayback(){
 
   if(mediaType==='video'){
     videoEl.playbackRate = Math.min(16, Math.max(0.0625, speedRate * (pitchLockOn?1:semitonesToRate(pitchSemis))));
+    try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
     // Nota: video nativo no soporta pitch-lock real sin pipeline adicional; el audio del <video> sigue su pitch natural según rate.
     videoEl.play();
     isPlaying = true;
@@ -395,6 +402,7 @@ function tickAudio(buf){
     const dur = buf.duration;
     if(elapsed >= dur){
       playStartOffset = 0;
+      TL.pos = 0;
       stopPlayback();
       timeLabel.textContent = `0:00 / ${fmtTime(originalBuffer.duration)}`;
       return;
@@ -482,6 +490,7 @@ btnReverse.addEventListener('click', ()=>{
   isReversed = !isReversed;
   btnReverse.classList.toggle('active', isReversed);
   drawWaveform(getEffectiveBuffer());
+  tlBuildWaveImage();
   setStatus(isReversed ? 'Reversa activada' : 'Reversa desactivada', 1500);
   restartPlaybackIfPlaying();
   pushHistory();
@@ -780,9 +789,170 @@ function loopTuner(){
 }
 
 // ============================================================
-// Inicialización
+// TIMELINE TIPO INSHOT
+// La pista de audio se desplaza horizontalmente bajo un playhead
+// central fijo. Se puede arrastrar para hacer scrubbing.
 // ============================================================
-window.addEventListener('resize', ()=>{ if(workingBuffer) drawWaveform(getEffectiveBuffer()); });
+const TL = {
+  pxPerSec: 90,          // zoom horizontal (px por segundo de audio)
+  waveImg: null,         // canvas pre-renderizado con el waveform completo
+  waveDurationSec: 0,    // duración del audio dibujado
+  pos: 0,                // posición actual en segundos
+  dragging: false,
+  dragStartX: 0,
+  dragStartPos: 0,
+};
+
+function tlGetDuration(){
+  const b = getEffectiveBuffer();
+  return b ? b.duration : 0;
+}
+
+// Pre-renderiza el waveform completo a un canvas fuera de pantalla
+function tlBuildWaveImage(){
+  const buffer = getEffectiveBuffer();
+  if(!buffer){ TL.waveImg=null; return; }
+  const dpr = window.devicePixelRatio || 1;
+  const dur = buffer.duration;
+  TL.waveDurationSec = dur;
+  const totalW = Math.max(1, Math.floor(dur * TL.pxPerSec));
+  const h = 78;
+
+  const off = document.createElement('canvas');
+  off.width = totalW * dpr;
+  off.height = h * dpr;
+  const ctx = off.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const data = buffer.getChannelData(0);
+  const step = Math.max(1, Math.floor(data.length / totalW));
+  ctx.fillStyle = '#fdf3e3';
+  const mid = h/2;
+  for(let x=0; x<totalW; x++){
+    let min=1, max=-1;
+    const base = x*step;
+    for(let j=0;j<step;j++){
+      const idx = base+j;
+      if(idx>=data.length) break;
+      const v = data[idx];
+      if(v<min) min=v;
+      if(v>max) max=v;
+    }
+    const y1 = mid + min*mid*0.9;
+    const y2 = mid + max*mid*0.9;
+    ctx.fillRect(x, Math.min(y1,y2), 1, Math.max(2, Math.abs(y2-y1)));
+  }
+  TL.waveImg = off;
+}
+
+// Dibuja la ventana visible centrada en TL.pos
+function tlDraw(){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = timeline.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  if(tlCanvas.width !== w*dpr || tlCanvas.height !== h*dpr){
+    tlCanvas.width = w*dpr; tlCanvas.height = h*dpr;
+    tlCanvas.style.width = w+'px'; tlCanvas.style.height = h+'px';
+  }
+  const ctx = tlCanvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+
+  if(!TL.waveImg){ return; }
+
+  // el playhead está en el centro (w/2). El pixel del waveform bajo el playhead
+  // corresponde a TL.pos * pxPerSec. Desplazamos la imagen para alinearlos.
+  const centerX = w/2;
+  const srcCenterPx = TL.pos * TL.pxPerSec;
+  const drawX = centerX - srcCenterPx;
+
+  // dibujar regiones fuera de la pista con un tono más oscuro (antes del inicio / después del fin)
+  ctx.drawImage(TL.waveImg, drawX, 0, TL.waveImg.width/dpr, h);
+
+  // velo semitransparente sobre la parte ya reproducida (izquierda del centro)
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(0, 0, centerX, h);
+}
+
+let tlRaf = null;
+function tlAnimate(){
+  // sincroniza TL.pos con la reproducción real
+  if(isPlaying && !TL.dragging){
+    if(mediaType==='video'){
+      TL.pos = videoEl.currentTime;
+    } else if(sourceNode){
+      const ctx = ensureAudioCtx();
+      const rate = sourceNode.playbackRate.value;
+      TL.pos = playStartOffset + (ctx.currentTime - playStartCtxTime)*rate;
+    }
+    const dur = tlGetDuration();
+    if(TL.pos > dur) TL.pos = dur;
+    if(TL.pos < 0) TL.pos = 0;
+  }
+  tlDraw();
+  tlRaf = requestAnimationFrame(tlAnimate);
+}
+
+function tlInit(){
+  tlEmpty.classList.add('hidden');
+  tlBuildWaveImage();
+  TL.pos = 0;
+  if(!tlRaf) tlAnimate();
+}
+
+// --- Scrubbing: arrastrar la pista para moverse ---
+function tlPointerDown(e){
+  if(!TL.waveImg) return;
+  TL.dragging = true;
+  timeline.classList.add('dragging');
+  TL.dragStartX = (e.touches ? e.touches[0].clientX : e.clientX);
+  TL.dragStartPos = TL.pos;
+  // si estaba reproduciendo, pausamos para hacer scrub limpio
+  TL._wasPlaying = isPlaying;
+  if(isPlaying){
+    if(mediaType==='audio'){
+      const ctx = ensureAudioCtx();
+      const rate = sourceNode ? sourceNode.playbackRate.value : 1;
+      playStartOffset += (ctx.currentTime - playStartCtxTime)*rate;
+    }
+    stopPlayback();
+  }
+}
+function tlPointerMove(e){
+  if(!TL.dragging) return;
+  const x = (e.touches ? e.touches[0].clientX : e.clientX);
+  const dx = x - TL.dragStartX;
+  // arrastrar a la derecha => retroceder en el tiempo (la pista se mueve con el dedo)
+  let newPos = TL.dragStartPos - dx / TL.pxPerSec;
+  const dur = tlGetDuration();
+  newPos = Math.max(0, Math.min(dur, newPos));
+  TL.pos = newPos;
+  // actualizar el offset de reproducción y el reloj
+  playStartOffset = newPos;
+  if(mediaType==='video' && videoEl.readyState>=1){
+    try{ videoEl.currentTime = newPos; }catch(e){}
+  }
+  if(originalBuffer) timeLabel.textContent = `${fmtTime(newPos)} / ${fmtTime(originalBuffer.duration)}`;
+  if(e.cancelable) e.preventDefault();
+}
+function tlPointerUp(){
+  if(!TL.dragging) return;
+  TL.dragging = false;
+  timeline.classList.remove('dragging');
+  if(TL._wasPlaying){
+    startPlayback();
+  }
+}
+
+timeline.addEventListener('mousedown', tlPointerDown);
+window.addEventListener('mousemove', tlPointerMove);
+window.addEventListener('mouseup', tlPointerUp);
+timeline.addEventListener('touchstart', tlPointerDown, {passive:false});
+timeline.addEventListener('touchmove', tlPointerMove, {passive:false});
+timeline.addEventListener('touchend', tlPointerUp);
+
+// Inicialización
+window.addEventListener('resize', ()=>{ if(workingBuffer){ drawWaveform(getEffectiveBuffer()); tlBuildWaveImage(); } });
 
 // Registrar service worker para uso offline (PWA)
 if('serviceWorker' in navigator){
