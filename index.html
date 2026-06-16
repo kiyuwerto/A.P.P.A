@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Appa</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --cream:#fbe9cf;
+  --cream-2:#f6dfc0;
+  --brown:#7a4a26;
+  --brown-dark:#5c3719;
+  --brown-light:#a06b3f;
+  --white:#fdf3e3;
+  --green:#5d8a4a;
+  --red:#b94a3a;
+  --orange:#c97b2e;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{
+  margin:0; padding:0; background:var(--cream); color:var(--brown-dark);
+  font-family:-apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Helvetica Neue", Arial, sans-serif;
+  overscroll-behavior:none;
+  width:100%; min-height:100vh;
+}
+button{font-family:inherit;}
+.app{
+  max-width:520px; margin:0 auto; padding:16px 16px calc(24px + env(safe-area-inset-bottom));
+  padding-top:calc(14px + env(safe-area-inset-top));
+}
+
+/* HEADER */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+}
+.topbar .left{display:flex; gap:18px; align-items:center;}
+.brand{font-weight:800; font-size:1.3rem; color:var(--brown-dark);}
+.menu-link{font-weight:800; font-size:1.05rem; color:var(--brown); background:none; border:none; padding:0;}
+.topbar .right{display:flex; gap:14px; align-items:center;}
+.icon-btn{
+  background:none; border:none; color:var(--brown); font-size:1.5rem; line-height:1;
+  padding:6px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+}
+.icon-btn:disabled{opacity:.3;}
+.icon-btn:active{background:var(--cream-2);}
+
+/* PREVIEW */
+.preview{
+  background:var(--brown);
+  border-radius:22px;
+  height:280px;
+  display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+  margin-bottom:18px;
+  box-shadow:0 2px 0 rgba(0,0,0,0.05) inset;
+}
+.preview video{width:100%; height:100%; object-fit:contain; background:#000;}
+.preview .placeholder{
+  color:var(--white); font-weight:800; font-size:1.5rem; text-align:center; padding:0 20px;
+}
+.preview .placeholder small{display:block; font-weight:600; font-size:0.85rem; opacity:.75; margin-top:8px;}
+.preview canvas{width:100%; height:100%; display:block;}
+.preview .controls-row{
+  position:absolute; bottom:10px; left:10px; right:10px;
+  display:flex; gap:8px; align-items:center; justify-content:center;
+}
+.preview .play-btn{
+  background:var(--white); color:var(--brown); border:none; width:46px; height:46px; border-radius:50%;
+  font-size:1.3rem; display:flex; align-items:center; justify-content:center;
+}
+.preview .time-label{
+  color:var(--white); font-weight:700; font-size:0.8rem; background:rgba(0,0,0,0.25);
+  padding:5px 10px; border-radius:20px;
+}
+.upload-row{display:flex; gap:10px; margin-bottom:18px;}
+.upload-btn{
+  flex:1; background:var(--brown); color:var(--white); border:none; border-radius:16px;
+  padding:13px 8px; font-weight:800; font-size:0.92rem; text-align:center;
+}
+.upload-btn.secondary{background:var(--brown-light);}
+.upload-btn.recording{background:var(--red);}
+input[type=file]{display:none;}
+
+/* SLIDERS */
+.control-block{margin-bottom:20px;}
+.control-label{
+  font-weight:800; font-size:1.25rem; margin-bottom:10px; display:flex; justify-content:space-between; align-items:baseline;
+}
+.control-row{display:flex; gap:12px; align-items:center;}
+input[type=range]{
+  -webkit-appearance:none; appearance:none;
+  flex:1; height:18px; background:var(--brown); border-radius:12px;
+  outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:34px; height:34px; border-radius:50%; background:var(--white);
+  border:3px solid var(--brown); box-shadow:0 1px 3px rgba(0,0,0,0.3);
+}
+.value-box{
+  border:2.5px solid var(--brown); border-radius:12px; background:var(--cream);
+  width:108px; text-align:center; font-weight:800; font-size:1.15rem; color:var(--brown-dark);
+  padding:11px 4px; -moz-appearance:textfield;
+}
+.value-box::-webkit-outer-spin-button, .value-box::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0;}
+
+/* GRID BUTTONS */
+.grid-buttons{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:6px;
+}
+.tile-btn{
+  background:var(--brown); color:var(--white); border:none; border-radius:16px;
+  padding:14px 6px; font-weight:700; font-size:0.92rem; min-height:64px;
+  display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.2;
+}
+.tile-btn.active{background:var(--green);}
+.tile-btn.export{background:var(--orange);}
+.tile-btn.export.pro{background:var(--brown-dark);}
+.tile-btn:active{filter:brightness(0.92);}
+.tile-btn.full{grid-column:1 / -1;}
+
+/* TUNER PANEL */
+.panel{
+  background:var(--cream-2); border-radius:18px; padding:16px; margin-top:14px;
+  border:2px solid var(--brown-light);
+}
+.panel h3{margin:0 0 12px; font-size:1.1rem; font-weight:800;}
+.tuner-mode-row{display:flex; gap:8px; margin-bottom:14px;}
+.mode-btn{
+  flex:1; padding:9px 4px; border-radius:12px; border:2px solid var(--brown); background:transparent;
+  color:var(--brown-dark); font-weight:800; font-size:0.9rem;
+}
+.mode-btn.selected{background:var(--brown); color:var(--white);}
+.tuner-display{
+  display:flex; flex-direction:column; align-items:center; padding:14px 0 18px;
+}
+.tuner-note{font-size:3rem; font-weight:800; color:var(--brown-dark); min-height:60px;}
+.tuner-freq{font-size:0.95rem; font-weight:700; color:var(--brown-light); margin-top:2px;}
+.tuner-meter{
+  width:100%; height:14px; background:var(--brown); border-radius:10px; position:relative; margin-top:14px; overflow:hidden;
+}
+.tuner-meter .center-mark{
+  position:absolute; left:50%; top:0; bottom:0; width:2px; background:rgba(255,255,255,0.5);
+}
+.tuner-meter .needle{
+  position:absolute; top:1px; bottom:1px; width:10px; border-radius:6px; background:var(--white);
+  left:50%; transform:translateX(-50%); transition:left 0.08s linear, background 0.15s;
+}
+.tuner-status{font-weight:800; margin-top:10px; font-size:0.95rem;}
+.strings-row{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; justify-content:center;}
+.string-chip{
+  background:var(--brown); color:var(--white); border:none; border-radius:14px;
+  padding:10px 6px; font-weight:800; font-size:1rem; min-width:54px; text-align:center;
+}
+.string-chip small{display:block; font-weight:600; font-size:0.65rem; opacity:.8;}
+.string-chip.match{background:var(--green);}
+.mic-hint{font-size:0.82rem; color:var(--brown-light); text-align:center; margin-top:10px; font-weight:600;}
+
+.status-bar{
+  text-align:center; font-weight:700; font-size:0.85rem; color:var(--brown-light); margin:-6px 0 14px;
+  min-height:18px;
+}
+.hidden{display:none !important;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="left">
+      <span class="brand">Appa</span>
+      <button class="menu-link" id="btnExportarTop">Exportar</button>
+    </div>
+    <div class="right">
+      <button class="icon-btn" id="btnUndo" title="Deshacer">&#8630;</button>
+      <button class="icon-btn" id="btnRedo" title="Rehacer">&#8631;</button>
+    </div>
+  </div>
+
+  <div class="preview" id="previewBox">
+    <video id="videoEl" playsinline class="hidden"></video>
+    <canvas id="waveCanvas" class="hidden"></canvas>
+    <div class="placeholder" id="placeholderText">Vista previa Video
+      <small>Sube un archivo o grábate con el micrófono</small>
+    </div>
+    <div class="controls-row hidden" id="previewControls">
+      <button class="play-btn" id="btnPlayPause">&#9658;</button>
+      <span class="time-label" id="timeLabel">0:00 / 0:00</span>
+    </div>
+  </div>
+
+  <div class="upload-row">
+    <button class="upload-btn" id="btnUpload">Subir archivo</button>
+    <button class="upload-btn secondary" id="btnRecord">Grabar mic</button>
+    <input type="file" id="fileInput" accept="audio/*,video/*">
+  </div>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <div class="control-block">
+    <div class="control-label"><span>Pitch (±48 st)</span></div>
+    <div class="control-row">
+      <input type="range" id="pitchSlider" min="-48" max="48" step="0.01" value="0">
+      <input type="number" class="value-box" id="pitchValue" step="0.001" value="0.000">
+    </div>
+  </div>
+
+  <div class="control-block">
+    <div class="control-label"><span>Velocidad (0.050x-10.000x)</span></div>
+    <div class="control-row">
+      <input type="range" id="speedSlider" min="0.05" max="10" step="0.001" value="1">
+      <input type="number" class="value-box" id="speedValue" step="0.001" value="1.000">
+    </div>
+  </div>
+
+  <div class="grid-buttons">
+    <button class="tile-btn" id="btnPitchLock">Pitch-lock</button>
+    <button class="tile-btn" id="btnDetectTone">Detectar tono</button>
+    <button class="tile-btn" id="btnReverse">Reversa</button>
+    <button class="tile-btn export" id="btnExportFast">Export Rápi</button>
+    <button class="tile-btn export pro" id="btnExportPro">Export Pro</button>
+    <button class="tile-btn" id="btnTunerToggle">Afinador &#9660;</button>
+  </div>
+
+  <div class="panel hidden" id="tunerPanel">
+    <h3>Afinador</h3>
+    <div class="tuner-mode-row">
+      <button class="mode-btn selected" data-mode="guitar">Guitarra</button>
+      <button class="mode-btn" data-mode="ukulele">Ukelele</button>
+      <button class="mode-btn" data-mode="chromatic">Cromático</button>
+    </div>
+    <div class="tuner-display">
+      <div class="tuner-note" id="tunerNote">—</div>
+      <div class="tuner-freq" id="tunerFreq">0.0 Hz</div>
+      <div class="tuner-meter"><div class="center-mark"></div><div class="needle" id="tunerNeedle"></div></div>
+      <div class="tuner-status" id="tunerStatus">Esperando micrófono…</div>
+    </div>
+    <div class="strings-row" id="stringsRow"></div>
+    <div class="mic-hint">Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.</div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
