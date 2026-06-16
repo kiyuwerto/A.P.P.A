@@ -280,23 +280,23 @@ input[type=range]::-webkit-slider-thumb{
 
   <div class="topbar">
     <div class="left">
-      <span class="brand">Appa</span>
+      <span class="brand">APPA</span>
       <button class="menu-link" id="btnExportarTop">Exportar</button>
     </div>
     <div class="appa-arrow" aria-hidden="true">
-      <svg viewBox="0 0 80 96" width="80" height="86">
-        <path d="M16 -4
-                 L64 -4
-                 L64 44
-                 Q64 46 66 46
-                 L70 46
-                 Q74 46 71 49
-                 L43 88
-                 Q40 92 37 88
-                 L9 49
-                 Q6 46 10 46
-                 L14 46
-                 Q16 46 16 44
+      <svg viewBox="0 0 96 96" width="84" height="86">
+        <path d="M24 -4
+                 L72 -4
+                 L72 40
+                 Q72 42 74 42
+                 L90 42
+                 Q95 42 91.5 46
+                 L51 89
+                 Q48 93 45 89
+                 L4.5 46
+                 Q1 42 6 42
+                 L22 42
+                 Q24 42 24 40
                  Z" fill="#7a4a26"/>
       </svg>
     </div>
@@ -360,8 +360,8 @@ input[type=range]::-webkit-slider-thumb{
   </div>
 
   <div class="panel hidden" id="tunerPanel">
-    <h3>Afinador</h3>
-    <div class="tuner-mode-row">
+    <h3 id="tunerTitle">Afinador</h3>
+    <div class="tuner-mode-row" id="tunerModeRow">
       <button class="mode-btn selected" data-mode="guitar">Guitarra</button>
       <button class="mode-btn" data-mode="ukulele">Ukelele</button>
       <button class="mode-btn" data-mode="chromatic">Cromático</button>
@@ -373,7 +373,8 @@ input[type=range]::-webkit-slider-thumb{
       <div class="tuner-status" id="tunerStatus">Esperando micrófono…</div>
     </div>
     <div class="strings-row" id="stringsRow"></div>
-    <div class="mic-hint">Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.</div>
+    <div class="mic-hint" id="tunerHint">Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.</div>
+    <button class="menu-toggle-btn hidden" id="reanalyzeBtn" style="margin-top:12px;">Volver a analizar</button>
   </div>
 
   <!-- MODAL: Exportar (Pro) -->
@@ -395,7 +396,7 @@ input[type=range]::-webkit-slider-thumb{
   <div class="modal-overlay hidden" id="appaMenu">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>Appa</h3>
+        <h3>APPA</h3>
         <button class="modal-close" id="menuClose">&times;</button>
       </div>
 
@@ -413,7 +414,7 @@ input[type=range]::-webkit-slider-thumb{
             <input type="color" id="colorCreamPicker" value="#fbe9cf">
           </label>
         </div>
-        <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir café ↔ beige</button>
+        <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir</button>
         <button class="menu-toggle-btn" id="resetColorsBtn">Restablecer colores originales</button>
       </div>
 

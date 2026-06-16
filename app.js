@@ -181,6 +181,12 @@ async function loadFile(file){
 let mediaRecorder = null;
 let recordedChunks = [];
 let isRecording = false;
+let recAudioCtx = null;
+let recAnalyser = null;
+let recStream = null;
+let recRafId = null;
+let recWaveform = [];   // amplitudes acumuladas durante la grabación
+let recStartTime = 0;
 
 btnRecord.addEventListener('click', async ()=>{
   if(isRecording){
@@ -189,28 +195,110 @@ btnRecord.addEventListener('click', async ()=>{
   }
   try{
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    recStream = stream;
     mediaRecorder = new MediaRecorder(stream);
     recordedChunks = [];
+    recWaveform = [];
     mediaRecorder.ondataavailable = (e)=> recordedChunks.push(e.data);
     mediaRecorder.onstop = async ()=>{
       isRecording = false;
       btnRecord.textContent = 'Grabar mic';
       btnRecord.classList.remove('recording');
+      stopRecVisualization();
       stream.getTracks().forEach(t=>t.stop());
       const blob = new Blob(recordedChunks, {type:'audio/webm'});
       const file = new File([blob], 'grabacion.webm', {type:'audio/webm'});
       await loadFile(file);
     };
+
+    // --- visualización en vivo ---
+    recAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const src = recAudioCtx.createMediaStreamSource(stream);
+    recAnalyser = recAudioCtx.createAnalyser();
+    recAnalyser.fftSize = 1024;
+    src.connect(recAnalyser);
+
+    // preparar el timeline para mostrar la grabación en curso
+    mediaType = 'audio';
+    videoEl.classList.add('hidden');
+    waveCanvas.classList.remove('hidden');
+    placeholderText.classList.add('hidden');
+    previewControls.classList.add('hidden');
+    tlEmpty.classList.add('hidden');
+    recStartTime = performance.now();
+
     mediaRecorder.start();
     isRecording = true;
     btnRecord.textContent = 'Detener ■';
     btnRecord.classList.add('recording');
     setStatus('Grabando…');
+    drawRecVisualization();
   }catch(err){
     console.error(err);
     setStatus('No se pudo acceder al micrófono');
   }
 });
+
+function stopRecVisualization(){
+  if(recRafId) cancelAnimationFrame(recRafId);
+  recRafId = null;
+  if(recAudioCtx){ try{ recAudioCtx.close(); }catch(e){} recAudioCtx = null; }
+  recAnalyser = null;
+}
+
+function drawRecVisualization(){
+  if(!isRecording || !recAnalyser) return;
+  const buf = new Float32Array(recAnalyser.fftSize);
+  recAnalyser.getFloatTimeDomainData(buf);
+  // amplitud RMS de este frame
+  let sum = 0;
+  for(let i=0;i<buf.length;i++) sum += buf[i]*buf[i];
+  const rms = Math.sqrt(sum/buf.length);
+  recWaveform.push(rms);
+
+  // dibujar la onda acumulada, desplazándose tipo "rolling" en el preview y timeline
+  drawRollingWave(waveCanvas, previewBox, recWaveform);
+  drawRollingWave(tlCanvas, timeline, recWaveform, true);
+
+  // actualizar contador de tiempo
+  const elapsed = (performance.now() - recStartTime)/1000;
+  setStatus('Grabando… ' + fmtTime(elapsed));
+
+  recRafId = requestAnimationFrame(drawRecVisualization);
+}
+
+// Dibuja una forma de onda tipo barras a partir de un array de amplitudes,
+// mostrando las más recientes a la derecha (efecto de avance).
+function drawRollingWave(canvas, container, amps, centerLine){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = container.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  if(canvas.width !== w*dpr || canvas.height !== h*dpr){
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    canvas.style.width = w+'px'; canvas.style.height = h+'px';
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+
+  const barW = 3, gap = 1;
+  const totalBars = Math.floor(w/(barW+gap));
+  const slice = amps.slice(-totalBars); // las más recientes
+  const mid = h/2;
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--white').trim() || '#fdf3e3';
+
+  for(let i=0;i<slice.length;i++){
+    const amp = Math.min(1, slice[i]*4); // escalar para que se vea
+    const barH = Math.max(2, amp*h*0.85);
+    const x = i*(barW+gap);
+    ctx.fillRect(x, mid - barH/2, barW, barH);
+  }
+
+  if(centerLine){
+    // línea de playhead al centro como en el timeline normal
+    const phColor = getComputedStyle(document.documentElement).getPropertyValue('--white').trim() || '#fff';
+  }
+}
 
 // ============================================================
 // Waveform
@@ -711,41 +799,120 @@ function openExportDialog(){
 }
 
 // ============================================================
-// Detector de tono en tiempo real (botón "Detectar tono")
+// Detector de tono del AUDIO CARGADO (botón "Detectar tono")
+// Analiza el buffer ya grabado/subido y muestra la nota predominante.
 // ============================================================
 btnDetectTone.addEventListener('click', async ()=>{
-  if(!tunerPanel.classList.contains('hidden') && tunerActive){
-    stopTuner();
+  // Si el panel está abierto en modo "audio", lo cerramos
+  if(!tunerPanel.classList.contains('hidden') && tunerMode === 'audiofile'){
     tunerPanel.classList.add('hidden');
     btnDetectTone.classList.remove('active');
     return;
   }
+  if(!workingBuffer){
+    setStatus('Primero sube o graba un audio', 2500);
+    return;
+  }
+  // Detener el afinador en vivo si estaba activo
+  if(tunerActive) stopTuner();
+
   tunerPanel.classList.remove('hidden');
-  setMode('chromatic', true);
+  setModeAudioFile();
   btnDetectTone.classList.add('active');
-  await startTuner();
+  analyzeLoadedAudioTone();
   tunerPanel.scrollIntoView({behavior:'smooth', block:'center'});
 });
 
+// Analiza el audio cargado: toma muestras a lo largo del clip, detecta la
+// frecuencia en cada una, y reporta la nota más frecuente + un desglose.
+function analyzeLoadedAudioTone(){
+  const buffer = getEffectiveBuffer();
+  if(!buffer){ return; }
+  const sr = buffer.sampleRate;
+  const data = buffer.getChannelData(0);
+  const windowSize = 4096;
+  const numWindows = 40; // cuántos puntos analizar a lo largo del audio
+  const step = Math.max(windowSize, Math.floor((data.length - windowSize) / numWindows));
+
+  const noteCounts = {};
+  const detectedFreqs = [];
+  let analyzed = 0;
+
+  for(let start=0; start + windowSize < data.length; start += step){
+    const slice = data.slice(start, start + windowSize);
+    const freq = autoCorrelate(slice, sr);
+    if(freq > 40 && freq < 2000 && isFinite(freq)){
+      detectedFreqs.push(freq);
+      const {name, octave} = freqToNote(freq);
+      const key = name + octave;
+      noteCounts[key] = (noteCounts[key]||0) + 1;
+      analyzed++;
+    }
+  }
+
+  if(analyzed === 0){
+    tunerNote.textContent = '—';
+    tunerFreq.textContent = 'Sin tono claro';
+    tunerStatus.textContent = 'No se detectó una nota definida (¿voz/ruido?)';
+    tunerNeedle.style.left = '50%';
+    stringsRow.innerHTML = '';
+    return;
+  }
+
+  // nota predominante
+  let topNote = null, topCount = 0;
+  for(const k in noteCounts){ if(noteCounts[k] > topCount){ topCount = noteCounts[k]; topNote = k; } }
+
+  // frecuencia mediana de las detecciones (más robusta que el promedio)
+  detectedFreqs.sort((a,b)=>a-b);
+  const medianFreq = detectedFreqs[Math.floor(detectedFreqs.length/2)];
+  const {name, octave, cents} = freqToNote(medianFreq);
+
+  tunerNote.textContent = topNote;
+  tunerFreq.textContent = `${medianFreq.toFixed(1)} Hz (mediana)`;
+  tunerStatus.textContent = `Nota predominante en el audio · ${analyzed} muestras`;
+
+  // posición de la aguja según afinación de la nota mediana
+  const pct = clamp(50 + cents/50*50, 0, 100);
+  tunerNeedle.style.left = pct + '%';
+  tunerNeedle.style.background = Math.abs(cents)<15 ? 'var(--green)' : 'var(--white)';
+
+  // mostrar top 3 notas detectadas como chips
+  const sorted = Object.entries(noteCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  stringsRow.innerHTML = '';
+  sorted.forEach(([note,count])=>{
+    const pctg = Math.round(count/analyzed*100);
+    const chip = document.createElement('div');
+    chip.className = 'string-chip';
+    chip.innerHTML = `${note}<small>${pctg}%</small>`;
+    stringsRow.appendChild(chip);
+  });
+}
+
 // ============================================================
-// Afinador desplegable
+// Afinador EN TIEMPO REAL con micrófono (botón "Afinador")
 // ============================================================
 btnTunerToggle.addEventListener('click', async ()=>{
   const wasHidden = tunerPanel.classList.contains('hidden');
-  tunerPanel.classList.toggle('hidden');
-  if(wasHidden){
-    setMode('guitar', true);
-    await startTuner();
-    tunerPanel.scrollIntoView({behavior:'smooth', block:'center'});
-  } else {
+  const wasAudioMode = tunerMode === 'audiofile';
+  if(!wasHidden && !wasAudioMode){
+    // estaba abierto en modo afinador en vivo -> cerrar
     stopTuner();
-    btnDetectTone.classList.remove('active');
+    tunerPanel.classList.add('hidden');
+    return;
   }
+  tunerPanel.classList.remove('hidden');
+  btnDetectTone.classList.remove('active');
+  setMode('guitar', true);
+  await startTuner();
+  tunerPanel.scrollIntoView({behavior:'smooth', block:'center'});
 });
 
 document.querySelectorAll('.mode-btn').forEach(btn=>{
   btn.addEventListener('click', ()=> setMode(btn.dataset.mode, false));
 });
+
+$('reanalyzeBtn').addEventListener('click', analyzeLoadedAudioTone);
 
 const TUNINGS = {
   guitar: [
@@ -766,13 +933,28 @@ const TUNINGS = {
 
 function setMode(mode, keepNeedle){
   tunerMode = mode;
+  // modo afinador en vivo: mostrar selector de instrumento, título Afinador
+  $('tunerTitle').textContent = 'Afinador';
+  $('tunerModeRow').classList.remove('hidden');
+  $('tunerHint').textContent = 'Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.';
+  $('tunerHint').classList.remove('hidden');
+  $('reanalyzeBtn').classList.add('hidden');
   document.querySelectorAll('.mode-btn').forEach(b=> b.classList.toggle('selected', b.dataset.mode===mode));
   renderStrings();
 }
 
+function setModeAudioFile(){
+  tunerMode = 'audiofile';
+  $('tunerTitle').textContent = 'Tono del audio';
+  $('tunerModeRow').classList.add('hidden');
+  $('tunerHint').textContent = 'Análisis de la nota predominante en el audio cargado. Los chips muestran las 3 notas más frecuentes.';
+  $('tunerHint').classList.remove('hidden');
+  $('reanalyzeBtn').classList.remove('hidden');
+}
+
 function renderStrings(){
   stringsRow.innerHTML = '';
-  if(tunerMode==='chromatic'){ return; }
+  if(tunerMode==='chromatic' || tunerMode==='audiofile'){ return; }
   const strings = TUNINGS[tunerMode];
   strings.forEach(s=>{
     const chip = document.createElement('div');
