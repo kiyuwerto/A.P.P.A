@@ -329,6 +329,15 @@ input[type=range]::-webkit-slider-thumb{
 .ffmpeg-progress-fill{height:100%; width:0%; background:var(--green); transition:width 0.3s;}
 .ffmpeg-progress-label{text-align:center; font-weight:700; font-size:0.85rem; color:var(--brown-light); margin-top:8px;}
 
+.appa-spinner{
+  display:block; width:140px; height:140px; margin:0 auto 14px;
+  animation: appa-spin 2.2s linear infinite;
+}
+@keyframes appa-spin{
+  from{ transform: rotate(0deg); }
+  to{ transform: rotate(360deg); }
+}
+
 /* PIE: marca, ayuda y créditos */
 .app-footer{
   margin-top:40px; padding-top:24px; border-top:2px solid var(--cream-2);
@@ -546,6 +555,7 @@ input[type=range]::-webkit-slider-thumb{
       <button class="modal-option" data-fmt="mp4video" id="exportVideoOption"><span>MP4 con audio editado</span> <small>Recodifica el video completo. Puede tardar varios minutos.</small></button>
 
       <div class="ffmpeg-progress hidden" id="ffmpegProgress">
+        <img src="appa-loading.png" alt="" class="appa-spinner" id="appaSpinner">
         <div class="ffmpeg-progress-bar"><div class="ffmpeg-progress-fill" id="ffmpegProgressFill"></div></div>
         <div class="ffmpeg-progress-label" id="ffmpegProgressLabel">Preparando…</div>
       </div>
