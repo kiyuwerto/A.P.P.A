@@ -92,6 +92,26 @@ function setStatus(msg, timeout){
   }
 }
 
+// ============================================================
+// Overlay de carga genérico (Appa girando) — se muestra en cualquier
+// operación que tome tiempo: subir archivo, decodificar audio, exportar, etc.
+// Usa un contador por si hay llamadas anidadas (ej. exportar llama a renderToBuffer
+// que también podría mostrar loading) para no ocultar antes de tiempo.
+// ============================================================
+let loadingDepth = 0;
+function showLoading(text){
+  loadingDepth++;
+  const overlay = $('loadingOverlay');
+  $('loadingOverlayText').textContent = text || 'Cargando…';
+  overlay.classList.remove('hidden');
+}
+function hideLoading(){
+  loadingDepth = Math.max(0, loadingDepth-1);
+  if(loadingDepth === 0){
+    $('loadingOverlay').classList.add('hidden');
+  }
+}
+
 function fmtTime(s){
   if(!isFinite(s)) return '0:00';
   const m = Math.floor(s/60);
@@ -143,6 +163,7 @@ fileInput.addEventListener('change', async (e)=>{
 
 async function loadFile(file){
   setStatus('Cargando archivo…');
+  showLoading('Cargando archivo…');
   stopPlayback();
   const isVideo = file.type.startsWith('video');
   mediaType = isVideo ? 'video' : 'audio';
@@ -182,6 +203,8 @@ async function loadFile(file){
   }catch(err){
     console.error(err);
     setStatus('No se pudo decodificar el audio de este archivo');
+  } finally {
+    hideLoading();
   }
 }
 
@@ -277,6 +300,7 @@ btnOverdub.addEventListener('click', ()=> beginRecording(true));
 // que va desde overdubStartSec hasta donde alcance la nueva grabación.
 async function applyOverdub(file){
   setStatus('Procesando grabación…');
+  showLoading('Procesando grabación…');
   try{
     const arrayBuf = await file.arrayBuffer();
     const ctx = ensureAudioCtx();
@@ -313,6 +337,8 @@ async function applyOverdub(file){
   }catch(err){
     console.error(err);
     setStatus('Error al procesar la grabación encima');
+  } finally {
+    hideLoading();
   }
 }
 
@@ -1087,6 +1113,7 @@ async function doExport(format, kbps){
   }
 
   setStatus('Exportando…');
+  showLoading('Exportando…');
   try{
     const rendered = await renderToBuffer();
     let blob, ext;
@@ -1108,6 +1135,8 @@ async function doExport(format, kbps){
   }catch(err){
     console.error(err);
     setStatus('Error al exportar');
+  } finally {
+    hideLoading();
   }
 }
 

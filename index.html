@@ -338,6 +338,16 @@ input[type=range]::-webkit-slider-thumb{
   to{ transform: rotate(360deg); }
 }
 
+.loading-overlay{
+  position:fixed; inset:0; z-index:500;
+  background:rgba(40,24,10,0.55);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.loading-overlay .appa-spinner{ width:130px; height:130px; margin-bottom:18px; }
+.loading-overlay-text{
+  color:var(--white); font-weight:800; font-size:1.05rem; text-align:center; padding:0 24px;
+}
+
 /* PIE: marca, ayuda y créditos */
 .app-footer{
   margin-top:40px; padding-top:24px; border-top:2px solid var(--cream-2);
@@ -652,6 +662,12 @@ input[type=range]::-webkit-slider-thumb{
     </div>
   </footer>
 
+</div>
+
+<!-- Overlay genérico de carga (aparece en cualquier operación: subir, exportar, etc.) -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <img src="appa-loading.png" alt="" class="appa-spinner">
+  <div class="loading-overlay-text" id="loadingOverlayText">Cargando…</div>
 </div>
 
 <script src="lamejs.js"></script>
