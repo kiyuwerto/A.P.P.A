@@ -575,6 +575,21 @@ function computePlaybackRate(){
   }
 }
 
+// Para video: procesa el audio aplicando el pitch (y velocidad si pitch-lock),
+// porque el video se reproduce por separado y maneja su propia velocidad visual.
+function buildPlaybackBufferForVideo(){
+  let buf = getEffectiveBuffer();
+  const pitchFactor = semitonesToRate(pitchSemis);
+  // tempo del audio: si pitch-lock, la velocidad la pone el video y el audio debe
+  // estirarse/comprimirse igual (speedRate) para mantener sincronía manteniendo pitch;
+  // si no pitch-lock, igual aplicamos speedRate al tempo del audio para que dure lo mismo
+  // que el video (que va a speedRate), pero con el pitch del slider aplicado aparte.
+  setStatus('Procesando audio del video…');
+  buf = processWithSoundTouch(buf, pitchFactor, speedRate);
+  setStatus('');
+  return buf;
+}
+
 function stopPlayback(){
   if(sourceNode){
     try{ sourceNode.stop(); }catch(e){}
@@ -604,9 +619,48 @@ function startPlayback(){
   if(ctx.state==='suspended') ctx.resume();
 
   if(mediaType==='video'){
-    videoEl.playbackRate = Math.min(16, Math.max(0.0625, speedRate * (pitchLockOn?1:semitonesToRate(pitchSemis))));
+    // El elemento <video> nativo solo puede cambiar velocidad+pitch juntos (como cinta).
+    // Para soportar pitch independiente (igual que en audio), silenciamos el audio del
+    // video y reproducimos el audio procesado con SoundTouch en paralelo, sincronizado.
+    const needsProcessedAudio = pitchLockOn || Math.abs(pitchSemis) > 0.001;
+
+    if(needsProcessedAudio && workingBuffer){
+      // video solo muestra imagen (sin sonido), a velocidad acorde
+      videoEl.muted = true;
+      // la velocidad visual del video debe igualar la del audio procesado
+      let videoRate;
+      if(pitchLockOn){
+        videoRate = speedRate; // pitch-lock: la velocidad es speedRate puro
+      } else {
+        // vari-speed pero con pitch independiente: el audio procesado dura según speedRate,
+        // así que el video va a speedRate (el pitch se aplica solo al audio)
+        videoRate = speedRate;
+      }
+      videoEl.playbackRate = Math.min(16, Math.max(0.0625, videoRate));
+      try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
+
+      // audio procesado en paralelo
+      const buf = buildPlaybackBufferForVideo();
+      sourceNode = ctx.createBufferSource();
+      sourceNode.buffer = buf;
+      sourceNode.playbackRate.value = pitchLockOn ? 1.0 : 1.0; // el pitch ya está en el buffer
+      sourceNode.connect(ctx.destination);
+      let bufOffset = playStartOffset;
+      if(Math.abs(speedRate-1) > 0.001) bufOffset = playStartOffset / speedRate;
+      bufOffset = Math.max(0, Math.min(bufOffset, buf.duration - 0.01));
+      sourceNode.start(0, bufOffset);
+      playStartCtxTime = ctx.currentTime;
+      videoEl.play();
+      isPlaying = true;
+      btnPlayPause.textContent = '❚❚';
+      tickVideo();
+      return;
+    }
+
+    // Sin cambios de pitch: reproducción nativa normal (con su audio)
+    videoEl.muted = false;
+    videoEl.playbackRate = Math.min(16, Math.max(0.0625, speedRate));
     try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
-    // Nota: video nativo no soporta pitch-lock real sin pipeline adicional; el audio del <video> sigue su pitch natural según rate.
     videoEl.play();
     isPlaying = true;
     btnPlayPause.textContent = '❚❚';
@@ -712,10 +766,13 @@ function clamp(v,min,max){ return Math.min(max, Math.max(min,v)); }
 pitchSlider.addEventListener('input', ()=>{
   pitchSemis = parseFloat(pitchSlider.value);
   pitchValue.value = pitchSemis.toFixed(3);
-  if(!pitchLockOn) restartPlaybackIfPlaying(); // vari-speed es instantáneo
+  // En vivo solo si es audio sin pitch-lock (vari-speed instantáneo).
+  // Para video, o con pitch-lock, reprocesar es caro -> se hace al soltar (change).
+  if(!pitchLockOn && mediaType !== 'video') restartPlaybackIfPlaying();
 });
 pitchSlider.addEventListener('change', ()=>{
-  if(pitchLockOn) restartPlaybackIfPlaying(); // pitch-lock reprocesa al soltar
+  // pitch-lock (audio) o cualquier caso de video requiere reprocesar al soltar
+  if(pitchLockOn || mediaType === 'video') restartPlaybackIfPlaying();
   pushHistory();
 });
 
@@ -731,10 +788,10 @@ pitchValue.addEventListener('change', ()=>{
 speedSlider.addEventListener('input', ()=>{
   speedRate = parseFloat(speedSlider.value);
   speedValue.value = speedRate.toFixed(3);
-  if(!pitchLockOn) restartPlaybackIfPlaying(); // vari-speed es instantáneo
+  if(!pitchLockOn && mediaType !== 'video') restartPlaybackIfPlaying();
 });
 speedSlider.addEventListener('change', ()=>{
-  if(pitchLockOn) restartPlaybackIfPlaying(); // pitch-lock reprocesa al soltar
+  if(pitchLockOn || mediaType === 'video') restartPlaybackIfPlaying();
   pushHistory();
 });
 
@@ -803,6 +860,21 @@ async function renderToBuffer(){
   src.start(0);
   const rendered = await offlineCtx.startRendering();
   return rendered;
+}
+
+// Render del audio para exportación de VIDEO: aplica pitch independiente de la velocidad
+// (el video maneja su propia velocidad visual), igual que la reproducción de video.
+async function renderToBufferForVideo(){
+  const buf = buildPlaybackBufferForVideo(); // pitch + tempo ya aplicados
+  // el buffer ya tiene pitch y tempo (speedRate) aplicados, se reproduce a rate 1.0
+  const outLength = buf.length;
+  const offlineCtx = new OfflineAudioContext(buf.numberOfChannels, outLength, buf.sampleRate);
+  const src = offlineCtx.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = 1.0;
+  src.connect(offlineCtx.destination);
+  src.start(0);
+  return await offlineCtx.startRendering();
 }
 
 function bufferToWav(buffer){
@@ -1012,9 +1084,9 @@ async function exportVideoWithFfmpeg(){
   try{
     const ff = await getFfmpeg();
 
-    // 1) renderizar el audio procesado (pitch/velocidad/pitch-lock) a WAV
+    // 1) renderizar el audio procesado con pitch independiente (igual que la reproducción de video)
     showFfmpegProgress(true, 'Procesando audio…');
-    const renderedAudio = await renderToBuffer();
+    const renderedAudio = await renderToBufferForVideo();
     const wavBlob = bufferToWav(renderedAudio);
     const wavData = new Uint8Array(await wavBlob.arrayBuffer());
 
@@ -1024,15 +1096,14 @@ async function exportVideoWithFfmpeg(){
     await ff.writeFile(inName, videoData);
     await ff.writeFile('new_audio.wav', wavData);
 
-    // 3) determinar el filtro de video. La velocidad de reproducción del video
-    // (vari-speed sin pitch-lock) ya se refleja en cuánto dura el audio nuevo,
-    // así que ajustamos el video para que coincida en duración usando setpts.
+    // 3) filtros de video: reversa si aplica, y ajuste de velocidad visual.
+    // El audio nuevo ya dura (duración_original / speedRate) porque se procesó con
+    // tempo=speedRate, así que el video debe acelerarse/desacelerarse por speedRate.
     const videoFilters = [];
     if(isReversed) videoFilters.push('reverse');
-    // ajustar duración del video a la del audio nuevo (vari-speed o pitch-lock)
-    const speedFactorForVideo = renderedAudio.duration > 0 ? (originalBuffer.duration / renderedAudio.duration) : 1;
-    if(Math.abs(speedFactorForVideo - 1) > 0.01){
-      videoFilters.push(`setpts=PTS/${speedFactorForVideo}`);
+    if(Math.abs(speedRate - 1) > 0.01){
+      // setpts=PTS/speedRate: speedRate=2 => video al doble de rápido
+      videoFilters.push(`setpts=PTS/${speedRate}`);
     }
     const vf = videoFilters.length ? videoFilters.join(',') : null;
 
@@ -1932,6 +2003,17 @@ function startLiveToneTracking(){
   }
   track();
 }
+
+// ============================================================
+// Desplegable "Cómo usar la app"
+// ============================================================
+$('helpToggle').addEventListener('click', ()=>{
+  const content = $('helpContent');
+  const toggle = $('helpToggle');
+  const isHidden = content.classList.contains('hidden');
+  content.classList.toggle('hidden');
+  toggle.classList.toggle('open', isHidden);
+});
 
 // Registrar service worker para uso offline (PWA)
 if('serviceWorker' in navigator){

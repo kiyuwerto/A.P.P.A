@@ -305,6 +305,31 @@ input[type=range]::-webkit-slider-thumb{
 .ffmpeg-progress-bar{width:100%; height:14px; background:var(--brown); border-radius:10px; overflow:hidden;}
 .ffmpeg-progress-fill{height:100%; width:0%; background:var(--green); transition:width 0.3s;}
 .ffmpeg-progress-label{text-align:center; font-weight:700; font-size:0.85rem; color:var(--brown-light); margin-top:8px;}
+
+/* PIE: marca, ayuda y créditos */
+.app-footer{
+  margin-top:40px; padding-top:24px; border-top:2px solid var(--cream-2);
+  text-align:center;
+}
+.footer-brand{font-size:1.8rem; font-weight:800; color:var(--brown-dark); letter-spacing:2px;}
+.footer-sub{font-size:0.95rem; font-weight:600; color:var(--brown-light); margin-top:2px; margin-bottom:20px;}
+.help-toggle{
+  width:100%; background:var(--brown); color:var(--white); border:none; border-radius:14px;
+  padding:14px; font-weight:800; font-size:1.05rem; display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.help-toggle #helpChevron{transition:transform 0.2s; display:inline-block;}
+.help-toggle.open #helpChevron{transform:rotate(180deg);}
+.help-content{
+  margin-top:12px; text-align:left;
+}
+.help-item{
+  background:var(--cream-2); border-radius:12px; padding:12px 14px; margin-bottom:8px;
+}
+.help-item b{display:block; color:var(--brown-dark); font-size:0.98rem; margin-bottom:3px;}
+.help-item span{display:block; color:var(--brown-light); font-size:0.86rem; line-height:1.4; font-weight:500;}
+.credits{margin-top:24px; padding-bottom:8px;}
+.credit-line{font-size:0.9rem; color:var(--brown-dark); font-weight:700; margin:3px 0;}
+.credit-line span{color:var(--brown-light); font-weight:600;}
 </style>
 </head>
 <body>
@@ -502,6 +527,39 @@ input[type=range]::-webkit-slider-thumb{
       </div>
     </div>
   </div>
+
+  <!-- PIE: marca, ayuda desplegable y créditos -->
+  <footer class="app-footer">
+    <div class="footer-brand">A.P.P.A</div>
+    <div class="footer-sub">Audio Pitch Perfect Assistant</div>
+
+    <button class="help-toggle" id="helpToggle">Cómo usar la app <span id="helpChevron">▾</span></button>
+    <div class="help-content hidden" id="helpContent">
+      <div class="help-item"><b>Subir archivo / Grabar mic</b><span>Carga un audio o video desde tu dispositivo, o graba directamente con el micrófono. La app detecta sola si es audio o video.</span></div>
+      <div class="help-item"><b>Grabar encima</b><span>Graba nuevo audio desde la posición actual de la línea central, reemplazando ese tramo. Útil para corregir o añadir partes sin empezar de cero.</span></div>
+      <div class="help-item"><b>Limpiar todo</b><span>Borra el audio cargado y reinicia todos los controles a su estado inicial.</span></div>
+      <div class="help-item"><b>La pista (timeline)</b><span>El trazado del audio se desplaza bajo la línea central mientras suena. Arrastra con un dedo para moverte por el audio. Pellizca con dos dedos para acercar o alejar el zoom (la línea central queda fija).</span></div>
+      <div class="help-item"><b>Pitch (±48 st)</b><span>Cambia el tono. La unidad son semitonos: poner "1" sube un semitono, "12" sube una octava completa, "-12" baja una octava. El rango va de -48 a +48 semitonos (cuatro octavas arriba o abajo).</span></div>
+      <div class="help-item"><b>Velocidad (0.050x – 10.000x)</b><span>Cambia qué tan rápido suena. 1.000x es la velocidad normal, 2x el doble de rápido, 0.5x la mitad. Por defecto, cambiar la velocidad también cambia el tono (como un disco de vinilo a distinta RPM) — salvo que actives Pitch-lock.</span></div>
+      <div class="help-item"><b>Pitch-lock</b><span>Cuando está activo (verde), cambiar la velocidad NO altera el tono, y el pitch lo controlas solo con su slider. Es lo que usan las apps tipo InShot para acelerar sin que las voces suenen "de ardilla".</span></div>
+      <div class="help-item"><b>Detectar tono</b><span>Analiza el audio que tienes cargado y muestra la nota musical predominante, además de las 3 notas más frecuentes. Si reproduces el audio, también va mostrando la nota en tiempo real.</span></div>
+      <div class="help-item"><b>Afinador</b><span>Afinador en tiempo real con el micrófono. Modos guitarra, ukelele y cromático. Muestra la nota, los Hz y un indicador que se pone verde cuando estás afinado. En guitarra/ukelele resalta la cuerda más cercana.</span></div>
+      <div class="help-item"><b>Reversa</b><span>Invierte el audio para que suene al revés. Si es video, también puede invertir la imagen al exportar.</span></div>
+      <div class="help-item"><b>Loop</b><span>Reproduce el audio en bucle: al terminar, vuelve a empezar automáticamente.</span></div>
+      <div class="help-item"><b>Recortar</b><span>Marca un inicio y un fin (usando la posición de la línea central) y quédate solo con ese fragmento. El recorte pasa a ser el nuevo audio base.</span></div>
+      <div class="help-item"><b>Velocidad (atajos)</b><span>Botones rápidos de velocidad (0.25x hasta 4x) sin tener que usar el slider.</span></div>
+      <div class="help-item"><b>Export Rápi</b><span>Exporta el audio al instante en formato WAV (sin pérdida de calidad).</span></div>
+      <div class="help-item"><b>Export Pro</b><span>Abre opciones de formato: WAV, MP3 (320/192/128 kbps), MP4 solo-audio, y —si cargaste un video— exportar el video completo con el audio editado. La exportación de video usa un motor que se descarga la primera vez y puede tardar varios minutos.</span></div>
+      <div class="help-item"><b>Tocar "A.P.P.A" (arriba)</b><span>Abre el menú de personalización: cambia el color de los botones y del fondo por separado, invierte ambos, y consulta el registro de archivos que has exportado.</span></div>
+      <div class="help-item"><b>Deshacer / Rehacer</b><span>Las flechas de arriba a la derecha deshacen o rehacen los últimos cambios de pitch, velocidad y efectos.</span></div>
+    </div>
+
+    <div class="credits">
+      <div class="credit-line"><span>Mastermind:</span> Kiyuwerto</div>
+      <div class="credit-line"><span>El que hizo la pega:</span> Claude</div>
+      <div class="credit-line"><span>Auspiciador:</span> Paposo supremo</div>
+    </div>
+  </footer>
 
 </div>
 
