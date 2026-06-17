@@ -632,6 +632,18 @@ function startPlayback(){
       sourceNode.buffer = buf;
       sourceNode.playbackRate.value = 1.0; // el pitch y tempo ya están en el buffer
       sourceNode.connect(ctx.destination);
+      sourceNode.onended = ()=>{
+        if(isPlaying){
+          if(loopEnabled){
+            playStartOffset = 0;
+            TL.pos = 0;
+            stopPlayback();
+            startPlayback();
+          } else {
+            stopPlayback();
+          }
+        }
+      };
       let bufOffset = playStartOffset;
       if(Math.abs(speedRate-1) > 0.001) bufOffset = playStartOffset / speedRate;
       bufOffset = Math.max(0, Math.min(bufOffset, buf.duration - 0.01));
@@ -733,7 +745,17 @@ function tickVideo(){
   function step(){
     if(!isPlaying) return;
     timeLabel.textContent = `${fmtTime(videoEl.currentTime)} / ${fmtTime(videoEl.duration)}`;
-    if(videoEl.ended){ stopPlayback(); return; }
+    if(videoEl.ended){
+      if(loopEnabled){
+        playStartOffset = 0;
+        TL.pos = 0;
+        stopPlayback();
+        startPlayback();
+      } else {
+        stopPlayback();
+      }
+      return;
+    }
     rafId = requestAnimationFrame(step);
   }
   step();
