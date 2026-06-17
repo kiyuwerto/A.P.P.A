@@ -575,15 +575,11 @@ function computePlaybackRate(){
   }
 }
 
-// Para video: procesa el audio aplicando el pitch (y velocidad si pitch-lock),
-// porque el video se reproduce por separado y maneja su propia velocidad visual.
+// Para video CON pitch-lock: procesa el audio con pitch y velocidad independientes,
+// porque el video se reproduce silenciado y el audio procesado suena por separado.
 function buildPlaybackBufferForVideo(){
   let buf = getEffectiveBuffer();
   const pitchFactor = semitonesToRate(pitchSemis);
-  // tempo del audio: si pitch-lock, la velocidad la pone el video y el audio debe
-  // estirarse/comprimirse igual (speedRate) para mantener sincronía manteniendo pitch;
-  // si no pitch-lock, igual aplicamos speedRate al tempo del audio para que dure lo mismo
-  // que el video (que va a speedRate), pero con el pitch del slider aplicado aparte.
   setStatus('Procesando audio del video…');
   buf = processWithSoundTouch(buf, pitchFactor, speedRate);
   setStatus('');
@@ -619,31 +615,22 @@ function startPlayback(){
   if(ctx.state==='suspended') ctx.resume();
 
   if(mediaType==='video'){
-    // El elemento <video> nativo solo puede cambiar velocidad+pitch juntos (como cinta).
-    // Para soportar pitch independiente (igual que en audio), silenciamos el audio del
-    // video y reproducimos el audio procesado con SoundTouch en paralelo, sincronizado.
-    const needsProcessedAudio = pitchLockOn || Math.abs(pitchSemis) > 0.001;
-
-    if(needsProcessedAudio && workingBuffer){
-      // video solo muestra imagen (sin sonido), a velocidad acorde
+    // CON pitch-lock: el <video> nativo no puede separar pitch de velocidad, así que
+    // se silencia y se reproduce el audio procesado (pitch independiente) en paralelo.
+    // SIN pitch-lock: vari-speed clásico, igual que el audio puro — el pitch y la
+    // velocidad están acoplados, así que el <video> nativo con su playbackRate ya
+    // logra el efecto correcto (acelerar = más agudo) sin necesitar SoundTouch.
+    if(pitchLockOn && workingBuffer){
+      // video solo muestra imagen (sin sonido), a la velocidad pura de speedRate
       videoEl.muted = true;
-      // la velocidad visual del video debe igualar la del audio procesado
-      let videoRate;
-      if(pitchLockOn){
-        videoRate = speedRate; // pitch-lock: la velocidad es speedRate puro
-      } else {
-        // vari-speed pero con pitch independiente: el audio procesado dura según speedRate,
-        // así que el video va a speedRate (el pitch se aplica solo al audio)
-        videoRate = speedRate;
-      }
-      videoEl.playbackRate = Math.min(16, Math.max(0.0625, videoRate));
+      videoEl.playbackRate = Math.min(16, Math.max(0.0625, speedRate));
       try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
 
-      // audio procesado en paralelo
+      // audio procesado en paralelo (pitch fijo, tempo = speedRate)
       const buf = buildPlaybackBufferForVideo();
       sourceNode = ctx.createBufferSource();
       sourceNode.buffer = buf;
-      sourceNode.playbackRate.value = pitchLockOn ? 1.0 : 1.0; // el pitch ya está en el buffer
+      sourceNode.playbackRate.value = 1.0; // el pitch y tempo ya están en el buffer
       sourceNode.connect(ctx.destination);
       let bufOffset = playStartOffset;
       if(Math.abs(speedRate-1) > 0.001) bufOffset = playStartOffset / speedRate;
@@ -657,9 +644,10 @@ function startPlayback(){
       return;
     }
 
-    // Sin cambios de pitch: reproducción nativa normal (con su audio)
+    // Sin pitch-lock: reproducción nativa con su propio audio, acoplando pitch+velocidad
     videoEl.muted = false;
-    videoEl.playbackRate = Math.min(16, Math.max(0.0625, speedRate));
+    const variSpeedRate = speedRate * semitonesToRate(pitchSemis);
+    videoEl.playbackRate = Math.min(16, Math.max(0.0625, variSpeedRate));
     try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
     videoEl.play();
     isPlaying = true;
@@ -763,16 +751,29 @@ btnPlayPause.addEventListener('click', ()=>{
 // ============================================================
 function clamp(v,min,max){ return Math.min(max, Math.max(min,v)); }
 
+// Actualiza solo la velocidad de reproducción en caliente, sin reiniciar nada.
+// Para video sin pitch-lock y audio sin pitch-lock, esto es instantáneo y fluido
+// (evita el parpadeo de detener/reiniciar el <video> en cada pixel del slider).
+function updatePlaybackRateLive(){
+  if(!isPlaying) return;
+  if(pitchLockOn) return; // con pitch-lock el cambio requiere reprocesar; se maneja aparte
+  if(mediaType === 'video'){
+    const variSpeedRate = speedRate * semitonesToRate(pitchSemis);
+    videoEl.playbackRate = Math.min(16, Math.max(0.0625, variSpeedRate));
+  } else if(sourceNode){
+    sourceNode.playbackRate.value = computePlaybackRate();
+  }
+}
+
 pitchSlider.addEventListener('input', ()=>{
   pitchSemis = parseFloat(pitchSlider.value);
   pitchValue.value = pitchSemis.toFixed(3);
-  // En vivo solo si es audio sin pitch-lock (vari-speed instantáneo).
-  // Para video, o con pitch-lock, reprocesar es caro -> se hace al soltar (change).
-  if(!pitchLockOn && mediaType !== 'video') restartPlaybackIfPlaying();
+  // En vivo solo si NO hay pitch-lock: tanto audio como video usan playbackRate nativo,
+  // que es instantáneo. Con pitch-lock hay que reprocesar con SoundTouch -> se hace al soltar.
+  if(!pitchLockOn) updatePlaybackRateLive();
 });
 pitchSlider.addEventListener('change', ()=>{
-  // pitch-lock (audio) o cualquier caso de video requiere reprocesar al soltar
-  if(pitchLockOn || mediaType === 'video') restartPlaybackIfPlaying();
+  if(pitchLockOn) restartPlaybackIfPlaying(); // pitch-lock reprocesa al soltar (caro)
   pushHistory();
 });
 
@@ -788,10 +789,10 @@ pitchValue.addEventListener('change', ()=>{
 speedSlider.addEventListener('input', ()=>{
   speedRate = parseFloat(speedSlider.value);
   speedValue.value = speedRate.toFixed(3);
-  if(!pitchLockOn && mediaType !== 'video') restartPlaybackIfPlaying();
+  if(!pitchLockOn) updatePlaybackRateLive();
 });
 speedSlider.addEventListener('change', ()=>{
-  if(pitchLockOn || mediaType === 'video') restartPlaybackIfPlaying();
+  if(pitchLockOn) restartPlaybackIfPlaying();
   pushHistory();
 });
 
