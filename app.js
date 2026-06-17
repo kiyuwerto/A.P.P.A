@@ -644,7 +644,14 @@ function startPlayback(){
       return;
     }
 
-    // Sin pitch-lock: reproducción nativa con su propio audio, acoplando pitch+velocidad
+    // Sin pitch-lock: reproducción nativa con su propio audio, acoplando pitch+velocidad.
+    // CLAVE: los navegadores por defecto activan "preservesPitch" (corrigen el tono
+    // automáticamente al cambiar playbackRate, para que no suene "a ardilla"). Hay que
+    // desactivarlo explícitamente para que el cambio de pitch sea audible, como se espera
+    // en este modo vari-speed clásico.
+    videoEl.preservesPitch = false;
+    videoEl.mozPreservesPitch = false;
+    videoEl.webkitPreservesPitch = false;
     videoEl.muted = false;
     const variSpeedRate = speedRate * semitonesToRate(pitchSemis);
     videoEl.playbackRate = Math.min(16, Math.max(0.0625, variSpeedRate));
@@ -758,6 +765,9 @@ function updatePlaybackRateLive(){
   if(!isPlaying) return;
   if(pitchLockOn) return; // con pitch-lock el cambio requiere reprocesar; se maneja aparte
   if(mediaType === 'video'){
+    videoEl.preservesPitch = false;
+    videoEl.mozPreservesPitch = false;
+    videoEl.webkitPreservesPitch = false;
     const variSpeedRate = speedRate * semitonesToRate(pitchSemis);
     videoEl.playbackRate = Math.min(16, Math.max(0.0625, variSpeedRate));
   } else if(sourceNode){
@@ -801,6 +811,44 @@ speedValue.addEventListener('change', ()=>{
   speedRate = v;
   speedValue.value = v.toFixed(3);
   speedSlider.value = v;
+  restartPlaybackIfPlaying();
+  pushHistory();
+});
+
+// ============================================================
+// Botones +1 / -1 y "0" (reset) para pitch y velocidad
+// ============================================================
+document.querySelectorAll('.step-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const delta = parseFloat(btn.dataset.delta);
+    if(btn.dataset.target === 'pitch'){
+      let v = clamp(pitchSemis + delta, -48, 48);
+      pitchSemis = v;
+      pitchValue.value = v.toFixed(3);
+      pitchSlider.value = v;
+    } else {
+      let v = clamp(speedRate + delta, 0.05, 10);
+      speedRate = v;
+      speedValue.value = v.toFixed(3);
+      speedSlider.value = v;
+    }
+    restartPlaybackIfPlaying();
+    pushHistory();
+  });
+});
+
+$('pitchZeroBtn').addEventListener('click', ()=>{
+  pitchSemis = 0;
+  pitchValue.value = '0.000';
+  pitchSlider.value = 0;
+  restartPlaybackIfPlaying();
+  pushHistory();
+});
+
+$('speedZeroBtn').addEventListener('click', ()=>{
+  speedRate = 1;
+  speedValue.value = '1.000';
+  speedSlider.value = 1;
   restartPlaybackIfPlaying();
   pushHistory();
 });
@@ -1134,7 +1182,7 @@ async function exportVideoWithFfmpeg(){
 }
 
 // Export Rápido = WAV directo. Export Pro = elegir formato/calidad.
-btnExportFast.addEventListener('click', ()=> doExport('wav'));
+btnExportFast.addEventListener('click', ()=> doExport('m4a'));
 btnExportPro.addEventListener('click', openExportDialog);
 btnExportarTop.addEventListener('click', openExportDialog);
 
@@ -1798,7 +1846,7 @@ try{
 // Handlers del menú Appa
 const appaMenu = $('appaMenu');
 
-document.querySelector('.brand').addEventListener('click', ()=>{
+$('appaMenuBtn').addEventListener('click', ()=>{
   applyColors(colorBrown, colorCream); // sincroniza swatches/pickers con el estado actual
   renderExportLog();
   appaMenu.classList.remove('hidden');

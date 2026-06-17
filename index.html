@@ -39,7 +39,11 @@ button{font-family:inherit;}
   display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
 }
 .topbar .left{display:flex; gap:18px; align-items:center;}
-.brand{font-weight:800; font-size:1.3rem; color:var(--brown-dark);}
+.brand{
+  font-weight:800; font-size:1.15rem; color:var(--white); background:var(--brown);
+  border:none; border-radius:12px; padding:9px 14px; cursor:pointer; letter-spacing:0.5px;
+}
+.brand:active{filter:brightness(0.92);}
 .menu-link{font-weight:800; font-size:1.05rem; color:var(--brown); background:none; border:none; padding:0;}
 .topbar .right{display:flex; gap:14px; align-items:center;}
 .icon-btn{
@@ -82,8 +86,9 @@ button{font-family:inherit;}
   flex:1; background:var(--brown); color:var(--white); border:none; border-radius:16px;
   padding:13px 8px; font-weight:800; font-size:0.92rem; text-align:center;
 }
-.upload-btn.secondary{background:var(--brown-light);}
+.upload-btn.secondary{background:var(--brown-dark);}
 .upload-btn.recording{background:var(--red);}
+.upload-btn.gray{background:#9a9a92; color:#fff;}
 input[type=file]{display:none;}
 
 /* SLIDERS */
@@ -109,6 +114,19 @@ input[type=range]::-webkit-slider-thumb{
 }
 .value-box::-webkit-outer-spin-button, .value-box::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0;}
 
+.zero-btn{
+  width:42px; height:42px; border-radius:50%; border:2.5px solid var(--brown);
+  background:var(--cream-2); color:var(--brown-dark); font-weight:800; font-size:1rem;
+  flex-shrink:0;
+}
+.zero-btn:active{filter:brightness(0.92);}
+.step-row{display:flex; gap:10px; margin-top:10px; justify-content:flex-end;}
+.step-btn{
+  width:44px; height:44px; border-radius:50%; border:none; background:var(--brown);
+  color:var(--white); font-weight:800; font-size:1.05rem;
+}
+.step-btn:active{filter:brightness(0.92);}
+
 /* GRID BUTTONS */
 .grid-buttons{
   display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:6px;
@@ -119,7 +137,7 @@ input[type=range]::-webkit-slider-thumb{
   display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.2;
 }
 .tile-btn.active{background:var(--green);}
-.tile-btn.export{background:var(--orange);}
+.tile-btn.export{background:var(--brown-dark);}
 .tile-btn.export.pro{background:var(--brown-dark);}
 .tile-btn:active{filter:brightness(0.92);}
 .tile-btn.full{grid-column:1 / -1;}
@@ -213,8 +231,7 @@ input[type=range]::-webkit-slider-thumb{
   pointer-events:none;
 }
 
-/* MENU-LINK clickable (Appa) */
-.brand{cursor:pointer;}
+/* (estilo de .brand definido arriba) */
 
 /* MODALES */
 .modal-overlay{
@@ -262,6 +279,9 @@ input[type=range]::-webkit-slider-thumb{
   width:100%; background:var(--brown-light); color:var(--white); border:none;
   border-radius:12px; padding:11px; font-weight:800; font-size:0.95rem; margin-top:4px;
 }
+.menu-brand-info{text-align:center; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid var(--cream-2);}
+.menu-sub{font-size:0.95rem; font-weight:600; color:var(--brown-light); margin-bottom:10px;}
+.menu-credits .credit-line{font-size:0.85rem; margin:2px 0;}
 .menu-toggle-btn.danger{background:var(--red);}
 .menu-toggle-btn:active{filter:brightness(0.92);}
 
@@ -337,7 +357,7 @@ input[type=range]::-webkit-slider-thumb{
 
   <div class="topbar">
     <div class="left">
-      <span class="brand">APPA</span>
+      <button class="brand" id="appaMenuBtn">A.P.P.A.</button>
       <button class="menu-link" id="btnExportarTop">Exportar</button>
     </div>
     <div class="appa-arrow" aria-hidden="true">
@@ -382,7 +402,7 @@ input[type=range]::-webkit-slider-thumb{
   </div>
   <div class="upload-row">
     <button class="upload-btn secondary" id="btnOverdub">Grabar encima</button>
-    <button class="upload-btn" id="btnClearAll" style="background:var(--red);">Limpiar todo</button>
+    <button class="upload-btn gray" id="btnClearAll">Limpiar todo</button>
   </div>
 
   <div class="status-bar" id="statusBar"></div>
@@ -400,6 +420,11 @@ input[type=range]::-webkit-slider-thumb{
     <div class="control-row">
       <input type="range" id="pitchSlider" min="-48" max="48" step="0.01" value="0">
       <input type="number" class="value-box" id="pitchValue" step="0.001" value="0.000">
+      <button class="zero-btn" id="pitchZeroBtn" title="Restablecer a 0">0</button>
+    </div>
+    <div class="step-row">
+      <button class="step-btn" data-target="pitch" data-delta="-1">-1</button>
+      <button class="step-btn" data-target="pitch" data-delta="1">+1</button>
     </div>
   </div>
 
@@ -408,6 +433,11 @@ input[type=range]::-webkit-slider-thumb{
     <div class="control-row">
       <input type="range" id="speedSlider" min="0.05" max="10" step="0.001" value="1">
       <input type="number" class="value-box" id="speedValue" step="0.001" value="1.000">
+      <button class="zero-btn" id="speedZeroBtn" title="Restablecer a 1x">0</button>
+    </div>
+    <div class="step-row">
+      <button class="step-btn" data-target="speed" data-delta="-1">-1</button>
+      <button class="step-btn" data-target="speed" data-delta="1">+1</button>
     </div>
   </div>
 
@@ -498,8 +528,17 @@ input[type=range]::-webkit-slider-thumb{
   <div class="modal-overlay hidden" id="appaMenu">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>APPA</h3>
+        <h3>A.P.P.A.</h3>
         <button class="modal-close" id="menuClose">&times;</button>
+      </div>
+
+      <div class="menu-brand-info">
+        <div class="menu-sub">Audio Pitch Perfect Assistant</div>
+        <div class="menu-credits">
+          <div class="credit-line"><span>Mastermind:</span> Kiyuwerto</div>
+          <div class="credit-line"><span>El que hizo la pega:</span> Claude</div>
+          <div class="credit-line"><span>Auspiciador:</span> Paposo supremo</div>
+        </div>
       </div>
 
       <div class="menu-section">
@@ -539,8 +578,8 @@ input[type=range]::-webkit-slider-thumb{
       <div class="help-item"><b>Grabar encima</b><span>Graba nuevo audio desde la posición actual de la línea central, reemplazando ese tramo. Útil para corregir o añadir partes sin empezar de cero.</span></div>
       <div class="help-item"><b>Limpiar todo</b><span>Borra el audio cargado y reinicia todos los controles a su estado inicial.</span></div>
       <div class="help-item"><b>La pista (timeline)</b><span>El trazado del audio se desplaza bajo la línea central mientras suena. Arrastra con un dedo para moverte por el audio. Pellizca con dos dedos para acercar o alejar el zoom (la línea central queda fija).</span></div>
-      <div class="help-item"><b>Pitch (±48 st)</b><span>Cambia el tono. La unidad son semitonos: poner "1" sube un semitono, "12" sube una octava completa, "-12" baja una octava. El rango va de -48 a +48 semitonos (cuatro octavas arriba o abajo).</span></div>
-      <div class="help-item"><b>Velocidad (0.050x – 10.000x)</b><span>Cambia qué tan rápido suena. 1.000x es la velocidad normal, 2x el doble de rápido, 0.5x la mitad. Por defecto, cambiar la velocidad también cambia el tono (como un disco de vinilo a distinta RPM) — salvo que actives Pitch-lock.</span></div>
+      <div class="help-item"><b>Pitch (±48 st)</b><span>Cambia el tono. La unidad son semitonos: poner "1" sube un semitono, "12" sube una octava completa, "-12" baja una octava. El rango va de -48 a +48 semitonos (cuatro octavas arriba o abajo). Los botones circulares +1/-1 ajustan de a un semitono, y el botón "0" al lado de la caja vuelve el pitch a cero.</span></div>
+      <div class="help-item"><b>Velocidad (0.050x – 10.000x)</b><span>Cambia qué tan rápido suena. 1.000x es la velocidad normal, 2x el doble de rápido, 0.5x la mitad. Por defecto, cambiar la velocidad también cambia el tono (como un disco de vinilo a distinta RPM) — salvo que actives Pitch-lock. Los botones +1/-1 suman o restan velocidad de a una unidad, y el botón "0" la vuelve a 1x.</span></div>
       <div class="help-item"><b>Pitch-lock</b><span>Cuando está activo (verde), cambiar la velocidad NO altera el tono, y el pitch lo controlas solo con su slider. Es lo que usan las apps tipo InShot para acelerar sin que las voces suenen "de ardilla".</span></div>
       <div class="help-item"><b>Detectar tono</b><span>Analiza el audio que tienes cargado y muestra la nota musical predominante, además de las 3 notas más frecuentes. Si reproduces el audio, también va mostrando la nota en tiempo real.</span></div>
       <div class="help-item"><b>Afinador</b><span>Afinador en tiempo real con el micrófono. Modos guitarra, ukelele y cromático. Muestra la nota, los Hz y un indicador que se pone verde cuando estás afinado. En guitarra/ukelele resalta la cuerda más cercana.</span></div>
@@ -548,9 +587,9 @@ input[type=range]::-webkit-slider-thumb{
       <div class="help-item"><b>Loop</b><span>Reproduce el audio en bucle: al terminar, vuelve a empezar automáticamente.</span></div>
       <div class="help-item"><b>Recortar</b><span>Marca un inicio y un fin (usando la posición de la línea central) y quédate solo con ese fragmento. El recorte pasa a ser el nuevo audio base.</span></div>
       <div class="help-item"><b>Velocidad (atajos)</b><span>Botones rápidos de velocidad (0.25x hasta 4x) sin tener que usar el slider.</span></div>
-      <div class="help-item"><b>Export Rápi</b><span>Exporta el audio al instante en formato WAV (sin pérdida de calidad).</span></div>
+      <div class="help-item"><b>Export Rápi</b><span>Exporta el audio al instante en formato MP4 (solo audio, AAC), liviano y compatible con iPhone.</span></div>
       <div class="help-item"><b>Export Pro</b><span>Abre opciones de formato: WAV, MP3 (320/192/128 kbps), MP4 solo-audio, y —si cargaste un video— exportar el video completo con el audio editado. La exportación de video usa un motor que se descarga la primera vez y puede tardar varios minutos.</span></div>
-      <div class="help-item"><b>Tocar "A.P.P.A" (arriba)</b><span>Abre el menú de personalización: cambia el color de los botones y del fondo por separado, invierte ambos, y consulta el registro de archivos que has exportado.</span></div>
+      <div class="help-item"><b>Tocar "A.P.P.A." (arriba)</b><span>Abre el menú de personalización: cambia el color de los botones y del fondo por separado, los invierte entre sí, y consulta el registro de archivos que has exportado.</span></div>
       <div class="help-item"><b>Deshacer / Rehacer</b><span>Las flechas de arriba a la derecha deshacen o rehacen los últimos cambios de pitch, velocidad y efectos.</span></div>
     </div>
 
