@@ -1,4 +1,4 @@
-const CACHE_NAME = 'appa-cache-v10';
+const CACHE_NAME = 'appa-cache-v11';
 // Nota: los archivos de ffmpeg (ffmpeg.js, 814.ffmpeg.js, ffmpeg-core.js, ffmpeg-core.wasm)
 // NO se precachean aquí a propósito: el .wasm pesa ~32MB y si su descarga falla durante
 // la instalación, todo el service worker fallaría y la app dejaría de funcionar offline.

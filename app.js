@@ -70,6 +70,7 @@ let historyIndex = -1;
 let tunerActive = false;
 let tunerStream = null;
 let tunerAudioCtx = null;
+let liveToneRaf = null; // seguimiento de tono en vivo durante reproducción
 let tunerAnalyser = null;
 let tunerRafId = null;
 let tunerMode = 'guitar';
@@ -229,7 +230,10 @@ async function beginRecording(overdub){
     };
 
     // --- visualización en vivo ---
-    recAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    // Reutilizamos el AudioContext compartido (no crear uno nuevo): Safari/iOS limita
+    // a muy pocas instancias de AudioContext por página, y crear/cerrar varios deja
+    // el audio de toda la app roto tras unos pocos usos.
+    recAudioCtx = ensureAudioCtx();
     const src = recAudioCtx.createMediaStreamSource(stream);
     recAnalyser = recAudioCtx.createAnalyser();
     recAnalyser.fftSize = 1024;
@@ -314,7 +318,9 @@ async function applyOverdub(file){
 function stopRecVisualization(){
   if(recRafId) cancelAnimationFrame(recRafId);
   recRafId = null;
-  if(recAudioCtx){ try{ recAudioCtx.close(); }catch(e){} recAudioCtx = null; }
+  // NO cerramos recAudioCtx: es el contexto compartido de toda la app (ensureAudioCtx).
+  // Cerrarlo aquí dejaría sin audio al resto de la app (reproducción, etc.).
+  recAudioCtx = null;
   recAnalyser = null;
 }
 
@@ -1224,10 +1230,12 @@ function openExportDialog(){
 // Analiza el buffer ya grabado/subido y muestra la nota predominante.
 // ============================================================
 btnDetectTone.addEventListener('click', async ()=>{
-  // Si el panel está abierto en modo "audio", lo cerramos
+  // Si el panel está abierto en modo "audio", lo cerramos y limpiamos su estado
   if(!tunerPanel.classList.contains('hidden') && tunerMode === 'audiofile'){
     tunerPanel.classList.add('hidden');
     btnDetectTone.classList.remove('active');
+    tunerMode = null; // detiene el tracking en vivo (su condición de salida lo revisa)
+    if(liveToneRaf){ cancelAnimationFrame(liveToneRaf); liveToneRaf = null; }
     return;
   }
   if(!workingBuffer){
@@ -1396,7 +1404,9 @@ async function startTuner(){
     tunerStatus.textContent = 'No se pudo acceder al micrófono';
     return;
   }
-  tunerAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  // Reutilizamos el AudioContext compartido (ver nota en grabación: Safari/iOS limita
+  // muy pocas instancias de AudioContext por página).
+  tunerAudioCtx = ensureAudioCtx();
   const src = tunerAudioCtx.createMediaStreamSource(tunerStream);
   tunerAnalyser = tunerAudioCtx.createAnalyser();
   tunerAnalyser.fftSize = 2048;
@@ -1410,7 +1420,10 @@ function stopTuner(){
   tunerActive = false;
   if(tunerRafId) cancelAnimationFrame(tunerRafId);
   if(tunerStream) tunerStream.getTracks().forEach(t=>t.stop());
-  if(tunerAudioCtx) tunerAudioCtx.close();
+  // NO cerramos tunerAudioCtx: es el contexto compartido de toda la app (ensureAudioCtx).
+  // Cerrarlo aquí rompería el audio del resto de la app (este era el bug reportado:
+  // tras activar/desactivar el afinador o detectar tono, dejaba de sonar la reproducción).
+  tunerAudioCtx = null;
   tunerNote.textContent = '—';
   tunerFreq.textContent = '0.0 Hz';
   tunerStatus.textContent = 'Detenido';
@@ -2043,7 +2056,6 @@ function clearTrimMarkers(){
 // (además del análisis estático). Mientras el audio suena en modo
 // 'audiofile', mostramos la nota del instante actual.
 // ============================================================
-let liveToneRaf = null;
 function startLiveToneTracking(){
   if(liveToneRaf) return;
   function track(){
