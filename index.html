@@ -180,6 +180,7 @@ input[type=range]::-webkit-slider-thumb{
 }
 .string-chip small{display:block; font-weight:600; font-size:0.65rem; opacity:.8;}
 .string-chip.match{background:var(--green);}
+.string-chip.pressed{background:var(--orange); transform:scale(0.94);}
 .mic-hint{font-size:0.82rem; color:var(--brown-light); text-align:center; margin-top:10px; font-weight:600;}
 
 .status-bar{
@@ -338,14 +339,21 @@ input[type=range]::-webkit-slider-thumb{
   to{ transform: rotate(360deg); }
 }
 
-.loading-overlay{
-  position:fixed; inset:0; z-index:500;
-  background:rgba(40,24,10,0.55);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
+/* Panel de carga inline (entre las perillas y los botones, empuja el contenido) */
+.inline-loading{
+  background:var(--cream-2); border-radius:16px; padding:18px 14px; margin-bottom:18px;
+  text-align:center;
 }
-.loading-overlay .appa-spinner{ width:130px; height:130px; margin-bottom:18px; }
-.loading-overlay-text{
-  color:var(--white); font-weight:800; font-size:1.05rem; text-align:center; padding:0 24px;
+.inline-loading .appa-spinner{ width:90px; height:90px; margin:0 auto 10px; }
+.inline-loading-text{font-weight:800; font-size:0.92rem; color:var(--brown-dark); margin-bottom:10px;}
+.inline-loading-bar{width:100%; height:10px; background:var(--brown); border-radius:8px; overflow:hidden;}
+.inline-loading-bar-fill{
+  height:100%; width:40%; background:var(--green); border-radius:8px;
+  animation: inline-loading-slide 1.3s ease-in-out infinite;
+}
+@keyframes inline-loading-slide{
+  0%{ transform: translateX(-100%); }
+  100%{ transform: translateX(250%); }
 }
 
 /* PIE: marca, ayuda y créditos */
@@ -486,6 +494,14 @@ input[type=range]::-webkit-slider-thumb{
       <button class="step-btn" data-target="speed" data-delta="-1">-1</button>
       <button class="step-btn" data-target="speed" data-delta="1">+1</button>
     </div>
+  </div>
+
+  <!-- Panel de carga inline: aparece entre las perillas y los botones, empujando
+       el contenido de abajo hacia abajo (igual que el desplegable de ayuda). -->
+  <div class="inline-loading hidden" id="inlineLoading">
+    <img src="appa-loading.png" alt="" class="appa-spinner">
+    <div class="inline-loading-text" id="inlineLoadingText">Cargando…</div>
+    <div class="inline-loading-bar"><div class="inline-loading-bar-fill" id="inlineLoadingBarFill"></div></div>
   </div>
 
   <div class="grid-buttons">
@@ -662,12 +678,6 @@ input[type=range]::-webkit-slider-thumb{
     </div>
   </footer>
 
-</div>
-
-<!-- Overlay genérico de carga (aparece en cualquier operación: subir, exportar, etc.) -->
-<div class="loading-overlay hidden" id="loadingOverlay">
-  <img src="appa-loading.png" alt="" class="appa-spinner">
-  <div class="loading-overlay-text" id="loadingOverlayText">Cargando…</div>
 </div>
 
 <script src="lamejs.js"></script>

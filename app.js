@@ -93,22 +93,22 @@ function setStatus(msg, timeout){
 }
 
 // ============================================================
-// Overlay de carga genérico (Appa girando) — se muestra en cualquier
-// operación que tome tiempo: subir archivo, decodificar audio, exportar, etc.
-// Usa un contador por si hay llamadas anidadas (ej. exportar llama a renderToBuffer
-// que también podría mostrar loading) para no ocultar antes de tiempo.
+// Panel de carga inline (Appa girando) — aparece entre las perillas y los
+// botones, empujando el contenido de abajo, durante cualquier operación que
+// tome tiempo: subir archivo, decodificar audio, exportar, grabar, etc.
+// Usa un contador por si hay llamadas anidadas, para no ocultar antes de tiempo.
 // ============================================================
 let loadingDepth = 0;
 function showLoading(text){
   loadingDepth++;
-  const overlay = $('loadingOverlay');
-  $('loadingOverlayText').textContent = text || 'Cargando…';
-  overlay.classList.remove('hidden');
+  const panel = $('inlineLoading');
+  $('inlineLoadingText').textContent = text || 'Cargando…';
+  panel.classList.remove('hidden');
 }
 function hideLoading(){
   loadingDepth = Math.max(0, loadingDepth-1);
   if(loadingDepth === 0){
-    $('loadingOverlay').classList.add('hidden');
+    $('inlineLoading').classList.add('hidden');
   }
 }
 
@@ -1436,10 +1436,73 @@ function renderStrings(){
     chip.className = 'string-chip';
     chip.dataset.freq = s.freq;
     chip.innerHTML = `${s.name}<small>${s.label}</small>`;
+    attachStringTonePress(chip, s.freq);
     stringsRow.appendChild(chip);
   });
 }
 renderStrings();
+
+// ============================================================
+// Tono puro al tocar una cuerda en el afinador (guitarra/ukelele).
+// Suena mientras se mantenga presionado, con un mínimo de 1 segundo aunque
+// se suelte antes (lo que sea más largo entre ambos).
+// ============================================================
+const MIN_STRING_TONE_MS = 1000;
+
+function attachStringTonePress(chip, freq){
+  let osc = null, gainNode = null;
+  let pressStartTime = 0;
+  let releasedEarly = false;
+  let stopTimer = null;
+
+  function startTone(){
+    const ctx = ensureAudioCtx();
+    osc = ctx.createOscillator();
+    gainNode = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gainNode.gain.value = 0;
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    osc.start();
+    // fade-in corto para evitar "click" al iniciar
+    gainNode.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+    pressStartTime = performance.now();
+    releasedEarly = false;
+    chip.classList.add('pressed');
+  }
+
+  function stopToneNow(){
+    if(!osc) return;
+    const ctx = ensureAudioCtx();
+    const o = osc, g = gainNode;
+    g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.04);
+    setTimeout(()=>{ try{ o.stop(); o.disconnect(); g.disconnect(); }catch(e){} }, 60);
+    osc = null; gainNode = null;
+    chip.classList.remove('pressed');
+  }
+
+  function requestStop(){
+    const elapsed = performance.now() - pressStartTime;
+    if(elapsed >= MIN_STRING_TONE_MS){
+      stopToneNow();
+    } else {
+      // todavía no llegó al segundo mínimo: programar el corte para cuando se cumpla
+      releasedEarly = true;
+      if(stopTimer) clearTimeout(stopTimer);
+      stopTimer = setTimeout(()=>{ if(releasedEarly) stopToneNow(); }, MIN_STRING_TONE_MS - elapsed);
+    }
+  }
+
+  chip.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    if(stopTimer){ clearTimeout(stopTimer); stopTimer = null; }
+    if(!osc) startTone();
+  });
+  chip.addEventListener('pointerup', requestStop);
+  chip.addEventListener('pointerleave', requestStop);
+  chip.addEventListener('pointercancel', requestStop);
+}
 
 // ---- Motor de detección de pitch (autocorrelación) ----
 async function startTuner(){
