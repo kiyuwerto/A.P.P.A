@@ -109,6 +109,7 @@ function pushHistory(){
   history.push({ pitchSemis, speedRate, pitchLockOn, isReversed });
   historyIndex = history.length-1;
   updateUndoRedoButtons();
+  scheduleSaveSession();
 }
 
 function updateUndoRedoButtons(){
@@ -383,6 +384,21 @@ function drawRollingWave(canvas, container, amps, centerLine){
 // ============================================================
 $('btnClearAll').addEventListener('click', ()=>{
   if(!workingBuffer && !originalBuffer){ setStatus('No hay nada que limpiar', 1500); return; }
+  $('confirmClearDialog').classList.remove('hidden');
+});
+
+$('confirmClearNo').addEventListener('click', ()=>{
+  $('confirmClearDialog').classList.add('hidden');
+});
+$('confirmClearYes').addEventListener('click', ()=>{
+  $('confirmClearDialog').classList.add('hidden');
+  doClearAll();
+});
+$('confirmClearDialog').addEventListener('click', (e)=>{
+  if(e.target.id === 'confirmClearDialog') $('confirmClearDialog').classList.add('hidden');
+});
+
+function doClearAll(){
   stopPlayback();
   originalBuffer = null;
   workingBuffer = null;
@@ -422,8 +438,9 @@ $('btnClearAll').addEventListener('click', ()=>{
   wCtx.clearRect(0,0,waveCanvas.width,waveCanvas.height);
   timeLabel.textContent = '0:00 / 0:00';
 
+  clearSavedSession(); // ya no hay nada que restaurar
   setStatus('Campo de trabajo limpiado ✓', 2000);
-});
+}
 
 // ============================================================
 // Waveform
@@ -2098,9 +2115,163 @@ $('helpToggle').addEventListener('click', ()=>{
   toggle.classList.toggle('open', isHidden);
 });
 
+// ============================================================
+// SESIÓN GUARDADA (IndexedDB): recuerda el último audio/video cargado
+// y el estado de los controles, para restaurarlo si cierras Safari.
+// Usamos IndexedDB en vez de localStorage porque permite guardar archivos
+// grandes (localStorage limita a ~5-10MB; IndexedDB da mucho más espacio).
+// ============================================================
+const SESSION_DB_NAME = 'appa-session-db';
+const SESSION_STORE = 'session';
+const SESSION_KEY = 'last';
+let sessionDB = null;
+let sessionSaveTimer = null;
+
+function openSessionDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(SESSION_DB_NAME, 1);
+    req.onupgradeneeded = ()=>{
+      req.result.createObjectStore(SESSION_STORE);
+    };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+
+async function ensureSessionDB(){
+  if(sessionDB) return sessionDB;
+  // Safari/iOS tiene un bug conocido donde IndexedDB falla en el primer intento
+  // de la sesión del navegador; reintentamos una vez antes de rendirnos.
+  for(let attempt=0; attempt<2; attempt++){
+    try{
+      sessionDB = await openSessionDB();
+      return sessionDB;
+    }catch(e){
+      console.warn('IndexedDB intento', attempt+1, 'falló', e);
+    }
+  }
+  console.warn('IndexedDB no disponible tras reintentos; la sesión no se guardará');
+  return null;
+}
+
+// Guarda el estado actual (con debounce para no escribir en cada pixel de un slider)
+function scheduleSaveSession(){
+  if(sessionSaveTimer) clearTimeout(sessionSaveTimer);
+  sessionSaveTimer = setTimeout(saveSessionNow, 600);
+}
+
+async function saveSessionNow(){
+  if(!originalVideoFile && !workingBuffer) return; // nada que guardar
+  const db = await ensureSessionDB();
+  if(!db) return;
+
+  // El archivo fuente: si es video, el File original; si es audio, lo reconstruimos
+  // como WAV desde el buffer (no siempre tenemos el File original, ej. tras recortar).
+  let fileBlob = null;
+  let fileName = 'sesion';
+  try{
+    if(mediaType === 'video' && originalVideoFile){
+      fileBlob = originalVideoFile;
+      fileName = originalVideoFile.name || 'video';
+    } else if(originalBuffer){
+      fileBlob = bufferToWav(originalBuffer);
+      fileName = 'audio.wav';
+    }
+  }catch(e){ console.warn('No se pudo preparar el archivo de sesión', e); return; }
+  if(!fileBlob) return;
+
+  const state = {
+    mediaType, fileName, fileBlob,
+    pitchSemis, speedRate, pitchLockOn, isReversed, loopEnabled,
+    savedAt: Date.now()
+  };
+
+  try{
+    await new Promise((resolve, reject)=>{
+      const tx = db.transaction(SESSION_STORE, 'readwrite');
+      tx.objectStore(SESSION_STORE).put(state, SESSION_KEY);
+      tx.oncomplete = resolve;
+      tx.onerror = ()=> reject(tx.error);
+    });
+  }catch(e){
+    console.warn('No se pudo guardar la sesión (puede que el archivo sea muy grande)', e);
+  }
+}
+
+async function loadSavedSession(){
+  const db = await ensureSessionDB();
+  if(!db) return null;
+  try{
+    return await new Promise((resolve, reject)=>{
+      const tx = db.transaction(SESSION_STORE, 'readonly');
+      const req = tx.objectStore(SESSION_STORE).get(SESSION_KEY);
+      req.onsuccess = ()=> resolve(req.result || null);
+      req.onerror = ()=> reject(req.error);
+    });
+  }catch(e){ return null; }
+}
+
+async function clearSavedSession(){
+  const db = await ensureSessionDB();
+  if(!db) return;
+  try{
+    const tx = db.transaction(SESSION_STORE, 'readwrite');
+    tx.objectStore(SESSION_STORE).delete(SESSION_KEY);
+  }catch(e){}
+}
+
+// Al abrir la app: si hay una sesión guardada, ofrecer restaurarla
+async function checkForSavedSession(){
+  const state = await loadSavedSession();
+  if(!state || !state.fileBlob) return;
+  const ageMin = Math.round((Date.now() - (state.savedAt||0)) / 60000);
+  const label = ageMin < 1 ? 'hace un momento' : ageMin < 60 ? `hace ${ageMin} min` : `hace ${Math.round(ageMin/60)} h`;
+  showSessionRestoreBar(state, label);
+}
+
+function showSessionRestoreBar(state, label){
+  const bar = document.createElement('div');
+  bar.className = 'session-restore-bar';
+  bar.innerHTML = `
+    <span>Tienes una sesión guardada (${label}): <b>${state.fileName}</b></span>
+    <div class="session-restore-btns">
+      <button id="sessionRestoreYes">Restaurar</button>
+      <button id="sessionRestoreNo">Descartar</button>
+    </div>`;
+  document.body.appendChild(bar);
+
+  $('sessionRestoreYes') && document.getElementById('sessionRestoreYes').addEventListener('click', async ()=>{
+    bar.remove();
+    await restoreSession(state);
+  });
+  document.getElementById('sessionRestoreNo').addEventListener('click', async ()=>{
+    bar.remove();
+    await clearSavedSession();
+  });
+}
+
+async function restoreSession(state){
+  setStatus('Restaurando sesión…');
+  const file = new File([state.fileBlob], state.fileName, {type: state.fileBlob.type});
+  await loadFile(file);
+  pitchSemis = state.pitchSemis || 0;
+  speedRate = state.speedRate || 1;
+  pitchLockOn = !!state.pitchLockOn;
+  loopEnabled = !!state.loopEnabled;
+  pitchSlider.value = pitchSemis; pitchValue.value = pitchSemis.toFixed(3);
+  speedSlider.value = speedRate; speedValue.value = speedRate.toFixed(3);
+  btnPitchLock.classList.toggle('active', pitchLockOn);
+  btnLoop.classList.toggle('active', loopEnabled);
+  if(state.isReversed){ btnReverse.click(); } // reutiliza la lógica existente de reversa
+  setStatus('Sesión restaurada ✓', 2000);
+}
+
 // Registrar service worker para uso offline (PWA)
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
+
+// Revisar si hay una sesión guardada de una visita anterior
+checkForSavedSession();

@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <style>
 :root{
   --cream:#fbe9cf;
@@ -353,6 +353,31 @@ input[type=range]::-webkit-slider-thumb{
 .credits{margin-top:24px; padding-bottom:8px;}
 .credit-line{font-size:0.9rem; color:var(--brown-dark); font-weight:700; margin:3px 0;}
 .credit-line span{color:var(--brown-light); font-weight:600;}
+
+/* Barra de restaurar sesión guardada */
+.session-restore-bar{
+  position:fixed; left:0; right:0; bottom:0; z-index:200;
+  background:var(--brown-dark); color:var(--white); padding:14px 16px;
+  padding-bottom:calc(14px + env(safe-area-inset-bottom));
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;
+  font-size:0.88rem; font-weight:600; box-shadow:0 -4px 16px rgba(0,0,0,0.25);
+}
+.session-restore-bar b{font-weight:800;}
+.session-restore-btns{display:flex; gap:8px;}
+.session-restore-btns button{
+  border:none; border-radius:10px; padding:9px 14px; font-weight:800; font-size:0.85rem;
+}
+#sessionRestoreYes{background:var(--green); color:#fff;}
+#sessionRestoreNo{background:var(--brown-light); color:#fff;}
+
+/* Confirmación de "Limpiar todo" */
+.confirm-text{font-size:0.95rem; color:var(--brown-dark); font-weight:600; line-height:1.5; margin-bottom:18px; text-align:center;}
+.confirm-buttons{display:flex; gap:12px;}
+.confirm-buttons button{
+  flex:1; border:none; border-radius:14px; padding:14px; font-weight:800; font-size:1rem;
+}
+#confirmClearYes{background:var(--red); color:#fff;}
+#confirmClearNo{background:var(--brown-light); color:#fff;}
 </style>
 </head>
 <body>
@@ -523,6 +548,20 @@ input[type=range]::-webkit-slider-thumb{
       <div class="ffmpeg-progress hidden" id="ffmpegProgress">
         <div class="ffmpeg-progress-bar"><div class="ffmpeg-progress-fill" id="ffmpegProgressFill"></div></div>
         <div class="ffmpeg-progress-label" id="ffmpegProgressLabel">Preparando…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Confirmar limpiar todo -->
+  <div class="modal-overlay hidden" id="confirmClearDialog">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>¿Limpiar todo?</h3>
+      </div>
+      <p class="confirm-text">Se borrará el audio o video cargado y todas las perillas (pitch, velocidad, reversa, etc.) volverán a su valor inicial. Esta acción no se puede deshacer.</p>
+      <div class="confirm-buttons">
+        <button id="confirmClearNo">Cancelar</button>
+        <button id="confirmClearYes">Limpiar</button>
       </div>
     </div>
   </div>
