@@ -315,16 +315,32 @@ input[type=range]::-webkit-slider-thumb{
   position:absolute; top:0; bottom:0; background:rgba(93,138,74,0.25); z-index:1; pointer-events:none;
 }
 
-/* Atajos de velocidad */
-.speed-preset-row{
-  display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; justify-content:center;
+/* Botones de paso de velocidad */
+.speed-step-btns{display:flex; gap:6px;}
+.speed-step-btn{
+  background:var(--brown); color:var(--white); border:none; border-radius:10px;
+  width:36px; height:36px; font-size:1.3rem; font-weight:800; line-height:1;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
-.speed-chip{
-  background:var(--brown); color:var(--white); border:none; border-radius:12px;
-  padding:10px 16px; font-weight:800; font-size:0.95rem; min-width:58px;
+.speed-step-btn:active{filter:brightness(0.85);}
+
+/* Fila de export centrada */
+.export-row{
+  display:flex; gap:10px; margin-top:10px; justify-content:center;
 }
-.speed-chip.active{background:var(--green);}
-.speed-chip:active{filter:brightness(0.92);}
+.export-row .tile-btn{
+  flex:0 0 calc(33.33% - 7px);
+}
+
+/* Spin Appa */
+@keyframes appa-spin{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
+.appa-arrow.spinning svg{
+  animation:appa-spin 1.4s linear infinite;
+  transform-origin:center;
+}
 
 .ffmpeg-progress{margin-top:16px;}
 .ffmpeg-progress-bar{width:100%; height:14px; background:var(--brown); border-radius:10px; overflow:hidden;}
@@ -414,9 +430,8 @@ input[type=range]::-webkit-slider-thumb{
   <div class="topbar">
     <div class="left">
       <button class="brand" id="appaMenuBtn">A.P.P.A.</button>
-      <button class="menu-link" id="btnExportarTop">Exportar</button>
     </div>
-    <div class="appa-arrow" aria-hidden="true">
+    <div class="appa-arrow" id="appaArrow" aria-hidden="true">
       <svg viewBox="0 0 96 96" width="84" height="86">
         <path d="M24 -4
                  L72 -4
@@ -485,7 +500,13 @@ input[type=range]::-webkit-slider-thumb{
   </div>
 
   <div class="control-block">
-    <div class="control-label"><span>Velocidad (0.050x-10.000x)</span></div>
+    <div class="control-label">
+      <span>Velocidad (0.050x-10.000x)</span>
+      <div class="speed-step-btns">
+        <button class="speed-step-btn" id="btnSpeedDown">−</button>
+        <button class="speed-step-btn" id="btnSpeedUp">+</button>
+      </div>
+    </div>
     <div class="control-row">
       <input type="range" id="speedSlider" min="0.05" max="10" step="0.001" value="1">
       <input type="number" class="value-box" id="speedValue" step="0.001" value="1.000">
@@ -511,10 +532,11 @@ input[type=range]::-webkit-slider-thumb{
     <button class="tile-btn" id="btnReverse">Reversa</button>
     <button class="tile-btn" id="btnLoop">Loop</button>
     <button class="tile-btn" id="btnTrim">Recortar</button>
-    <button class="tile-btn" id="btnSpeedPreset">Velocidad &#9660;</button>
+    <button class="tile-btn" id="btnTunerToggle">Afinador &#9660;</button>
+  </div>
+  <div class="export-row">
     <button class="tile-btn export" id="btnExportFast">Export Rápi</button>
     <button class="tile-btn export pro" id="btnExportPro">Export Pro</button>
-    <button class="tile-btn" id="btnTunerToggle">Afinador &#9660;</button>
   </div>
 
   <!-- Panel de recorte (aparece al activar Recortar) -->
@@ -531,19 +553,6 @@ input[type=range]::-webkit-slider-thumb{
       <button class="menu-toggle-btn" id="trimApply" style="background:var(--green);">Aplicar recorte</button>
       <button class="menu-toggle-btn" id="trimCancel" style="background:var(--brown-light);">Cancelar</button>
     </div>
-  </div>
-
-  <!-- Desplegable de velocidad -->
-  <div class="speed-preset-row hidden" id="speedPresetRow">
-    <button class="speed-chip" data-speed="0.25">0.25x</button>
-    <button class="speed-chip" data-speed="0.5">0.5x</button>
-    <button class="speed-chip" data-speed="0.75">0.75x</button>
-    <button class="speed-chip" data-speed="1">1x</button>
-    <button class="speed-chip" data-speed="1.25">1.25x</button>
-    <button class="speed-chip" data-speed="1.5">1.5x</button>
-    <button class="speed-chip" data-speed="2">2x</button>
-    <button class="speed-chip" data-speed="3">3x</button>
-    <button class="speed-chip" data-speed="4">4x</button>
   </div>
 
   <div class="panel hidden" id="tunerPanel">

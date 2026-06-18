@@ -41,7 +41,6 @@ const tunerStatus = $('tunerStatus');
 const stringsRow = $('stringsRow');
 const btnUndo = $('btnUndo');
 const btnRedo = $('btnRedo');
-const btnExportarTop = $('btnExportarTop');
 
 // ---------- Estado global ----------
 let audioCtx = null;
@@ -237,6 +236,7 @@ async function beginRecording(overdub){
     mediaRecorder.ondataavailable = (e)=> recordedChunks.push(e.data);
     mediaRecorder.onstop = async ()=>{
       isRecording = false;
+      updateAppaAnimation();
       btnRecord.textContent = 'Grabar mic';
       btnRecord.classList.remove('recording');
       btnOverdub.textContent = 'Grabar encima';
@@ -276,6 +276,7 @@ async function beginRecording(overdub){
 
     mediaRecorder.start();
     isRecording = true;
+    updateAppaAnimation();
     if(overdub){
       btnOverdub.textContent = 'Detener ■';
       btnOverdub.classList.add('recording');
@@ -449,7 +450,6 @@ function doClearAll(){
   btnTrim.classList.remove('active');
   trimPanel.classList.add('hidden');
   clearTrimMarkers();
-  document.querySelectorAll('.speed-chip').forEach(c=>c.classList.remove('active'));
 
   videoEl.src = '';
   videoEl.classList.add('hidden');
@@ -635,6 +635,11 @@ function buildPlaybackBufferForVideo(){
   return buf;
 }
 
+const appaArrow = $('appaArrow');
+function updateAppaAnimation(){
+  appaArrow.classList.toggle('spinning', isPlaying || isRecording);
+}
+
 function stopPlayback(){
   if(sourceNode){
     try{ sourceNode.stop(); }catch(e){}
@@ -647,6 +652,7 @@ function stopPlayback(){
   isPlaying = false;
   btnPlayPause.textContent = '▶';
   if(rafId) cancelAnimationFrame(rafId);
+  updateAppaAnimation();
 }
 
 function restartPlaybackIfPlaying(){
@@ -701,6 +707,7 @@ function startPlayback(){
       videoEl.play();
       isPlaying = true;
       btnPlayPause.textContent = '❚❚';
+      updateAppaAnimation();
       tickVideo();
       return;
     }
@@ -720,6 +727,7 @@ function startPlayback(){
     videoEl.play();
     isPlaying = true;
     btnPlayPause.textContent = '❚❚';
+    updateAppaAnimation();
     tickVideo();
     return;
   }
@@ -756,6 +764,7 @@ function startPlayback(){
   playStartCtxTime = ctx.currentTime;
   isPlaying = true;
   btnPlayPause.textContent = '❚❚';
+  updateAppaAnimation();
   tickAudio(buf);
   if(tunerMode === 'audiofile' && !tunerPanel.classList.contains('hidden')){
     startLiveToneTracking();
@@ -1258,7 +1267,6 @@ async function exportVideoWithFfmpeg(){
 // Export Rápido = WAV directo. Export Pro = elegir formato/calidad.
 btnExportFast.addEventListener('click', ()=> doExport('m4a'));
 btnExportPro.addEventListener('click', openExportDialog);
-btnExportarTop.addEventListener('click', openExportDialog);
 
 function openExportDialog(){
   if(!workingBuffer){ setStatus('No hay audio cargado'); return; }
@@ -1427,6 +1435,49 @@ function setModeAudioFile(){
   $('reanalyzeBtn').classList.remove('hidden');
 }
 
+let _toneCtx = null;
+let _toneStopFn = null;
+
+function playStringTone(freq){
+  if(_toneStopFn){ _toneStopFn(); _toneStopFn = null; }
+  if(!_toneCtx || _toneCtx.state === 'closed'){
+    _toneCtx = new (window.AudioContext||window.webkitAudioContext)();
+  }
+  const ctx = _toneCtx;
+  const now = ctx.currentTime;
+  const dur = 2.5;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0, now);
+  master.gain.linearRampToValueAtTime(0.8, now + 0.008);
+  master.gain.setValueAtTime(0.8, now + 0.35);
+  master.gain.exponentialRampToValueAtTime(0.001, now + dur);
+  master.connect(ctx.destination);
+
+  // Síntesis aditiva: fundamental + armónicos para que los graves sean audibles
+  const oscs = [];
+  [[1, 1.0], [2, 0.5], [3, 0.25], [4, 0.1]].forEach(([mult, amp])=>{
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq * mult;
+    const g = ctx.createGain();
+    g.gain.value = amp;
+    osc.connect(g);
+    g.connect(master);
+    osc.start(now);
+    osc.stop(now + dur);
+    oscs.push(osc);
+  });
+
+  _toneStopFn = ()=>{
+    const t = ctx.currentTime;
+    master.gain.cancelScheduledValues(t);
+    master.gain.setValueAtTime(master.gain.value, t);
+    master.gain.linearRampToValueAtTime(0, t + 0.04);
+    oscs.forEach(o=>{ try{ o.stop(t + 0.04); }catch(e){} });
+  };
+}
+
 function renderStrings(){
   stringsRow.innerHTML = '';
   if(tunerMode==='chromatic' || tunerMode==='audiofile'){ return; }
@@ -1455,18 +1506,28 @@ function attachStringTonePress(chip, freq){
   let releasedEarly = false;
   let stopTimer = null;
 
+  let _harmonicOscs = [];
+
   function startTone(){
     const ctx = ensureAudioCtx();
-    osc = ctx.createOscillator();
     gainNode = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
     gainNode.gain.value = 0;
-    osc.connect(gainNode);
     gainNode.connect(ctx.destination);
-    osc.start();
-    // fade-in corto para evitar "click" al iniciar
-    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.02);
+    // Síntesis aditiva: fundamental + armónicos para audibilidad en cuerdas graves
+    _harmonicOscs = [];
+    [[1, 1.0], [2, 0.5], [3, 0.25], [4, 0.1]].forEach(([mult, amp])=>{
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = freq * mult;
+      const g = ctx.createGain();
+      g.gain.value = amp;
+      o.connect(g);
+      g.connect(gainNode);
+      o.start();
+      _harmonicOscs.push(o);
+    });
+    osc = _harmonicOscs[0];
+    gainNode.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 0.02);
     pressStartTime = performance.now();
     releasedEarly = false;
     chip.classList.add('pressed');
@@ -1475,10 +1536,11 @@ function attachStringTonePress(chip, freq){
   function stopToneNow(){
     if(!osc) return;
     const ctx = ensureAudioCtx();
-    const o = osc, g = gainNode;
+    const g = gainNode;
+    const oscsToStop = [..._harmonicOscs];
     g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.04);
-    setTimeout(()=>{ try{ o.stop(); o.disconnect(); g.disconnect(); }catch(e){} }, 60);
-    osc = null; gainNode = null;
+    setTimeout(()=>{ oscsToStop.forEach(o=>{ try{ o.stop(); o.disconnect(); }catch(e){} }); try{ g.disconnect(); }catch(e){} }, 60);
+    osc = null; gainNode = null; _harmonicOscs = [];
     chip.classList.remove('pressed');
   }
 
@@ -2032,24 +2094,25 @@ btnLoop.addEventListener('click', ()=>{
 });
 
 // ============================================================
-// ATAJOS DE VELOCIDAD (desplegable)
+// BOTONES DE PASO DE VELOCIDAD (+/-)
 // ============================================================
-const btnSpeedPreset = $('btnSpeedPreset');
-const speedPresetRow = $('speedPresetRow');
-btnSpeedPreset.addEventListener('click', ()=>{
-  speedPresetRow.classList.toggle('hidden');
-});
-document.querySelectorAll('.speed-chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    const v = parseFloat(chip.dataset.speed);
-    speedRate = v;
-    speedSlider.value = v;
-    speedValue.value = v.toFixed(3);
-    document.querySelectorAll('.speed-chip').forEach(c=> c.classList.toggle('active', c===chip));
-    restartPlaybackIfPlaying();
-    pushHistory();
-  });
-});
+const SPEED_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
+
+function setSpeedStep(dir){
+  const cur = speedRate;
+  let idx = SPEED_STEPS.findIndex(s => Math.abs(s - cur) < 0.001);
+  if(idx === -1) idx = SPEED_STEPS.reduce((bi, s, i) => Math.abs(s - cur) < Math.abs(SPEED_STEPS[bi] - cur) ? i : bi, 0);
+  idx = Math.max(0, Math.min(SPEED_STEPS.length - 1, idx + dir));
+  const v = SPEED_STEPS[idx];
+  speedRate = v;
+  speedSlider.value = v;
+  speedValue.value = v.toFixed(3);
+  restartPlaybackIfPlaying();
+  pushHistory();
+}
+
+$('btnSpeedDown').addEventListener('click', ()=> setSpeedStep(-1));
+$('btnSpeedUp').addEventListener('click', ()=> setSpeedStep(1));
 
 // ============================================================
 // RECORTAR (trim)
