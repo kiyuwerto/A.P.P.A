@@ -1626,9 +1626,9 @@ function autoCorrelate(buf, sampleRate){
   let rms = 0;
   for(let i=0;i<SIZE;i++){ rms += buf[i]*buf[i]; }
   rms = Math.sqrt(rms/SIZE);
-  if(rms < 0.01) return -1; // silencio
+  if(rms < 0.004) return -1; // silencio
 
-  let r1=0, r2=SIZE-1, thres=0.2;
+  let r1=0, r2=SIZE-1, thres=0.1;
   for(let i=0;i<SIZE/2;i++){ if(Math.abs(buf[i])<thres){ r1=i; break; } }
   for(let i=1;i<SIZE/2;i++){ if(Math.abs(buf[SIZE-i])<thres){ r2=SIZE-i; break; } }
   buf = buf.slice(r1,r2);

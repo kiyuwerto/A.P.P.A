@@ -334,12 +334,10 @@ input[type=range]::-webkit-slider-thumb{
 
 /* Cara de Appa en topbar */
 .appa-face-wrap{
-  position:absolute; left:50%; top:14px;
-  transform:translateX(-50%);
-  pointer-events:none; z-index:1;
+  display:flex; align-items:center; pointer-events:none;
 }
 .appa-face-wrap img{
-  width:46px; height:46px; object-fit:contain; display:block;
+  width:40px; height:40px; object-fit:contain; display:block;
 }
 .appa-face-wrap.spinning img{
   animation:appa-spin 1.4s linear infinite;
@@ -438,6 +436,9 @@ input[type=range]::-webkit-slider-thumb{
   <div class="topbar">
     <div class="left">
       <button class="brand" id="appaMenuBtn">A.P.P.A.</button>
+      <div class="appa-face-wrap" id="appaFaceWrap" aria-hidden="true">
+        <img src="appa-loading.png" alt="">
+      </div>
     </div>
     <div class="appa-arrow" aria-hidden="true">
       <svg viewBox="0 0 96 96" width="84" height="86">
@@ -455,9 +456,6 @@ input[type=range]::-webkit-slider-thumb{
                  Q24 42 24 40
                  Z" fill="#7a4a26"/>
       </svg>
-    </div>
-    <div class="appa-face-wrap" id="appaFaceWrap" aria-hidden="true">
-      <img src="appa-loading.png" alt="">
     </div>
     <div class="right">
       <button class="icon-btn" id="btnUndo" title="Deshacer">&#8630;</button>
@@ -511,17 +509,15 @@ input[type=range]::-webkit-slider-thumb{
   </div>
 
   <div class="control-block">
-    <div class="control-label">
-      <span>Velocidad (0.050x-10.000x)</span>
-      <div class="speed-step-btns">
-        <button class="speed-step-btn" id="btnSpeedDown">−</button>
-        <button class="speed-step-btn" id="btnSpeedUp">+</button>
-      </div>
-    </div>
+    <div class="control-label"><span>Velocidad (0.050x-10.000x)</span></div>
     <div class="control-row">
       <input type="range" id="speedSlider" min="0.05" max="10" step="0.001" value="1">
       <input type="number" class="value-box" id="speedValue" step="0.001" value="1.000">
       <button class="zero-btn" id="speedZeroBtn" title="Restablecer a 1x">0</button>
+    </div>
+    <div class="step-row">
+      <button class="step-btn" id="btnSpeedDown">−</button>
+      <button class="step-btn" id="btnSpeedUp">+</button>
     </div>
   </div>
 
