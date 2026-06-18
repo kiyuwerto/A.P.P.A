@@ -1,9 +1,9 @@
-const CACHE_NAME = 'appa-cache-v16';
+const CACHE_NAME = 'appa-cache-v17';
 // Nota: los archivos de ffmpeg (ffmpeg.js, 814.ffmpeg.js, ffmpeg-core.js, ffmpeg-core.wasm)
 // NO se precachean aquí a propósito: el .wasm pesa ~32MB y si su descarga falla durante
 // la instalación, todo el service worker fallaría y la app dejaría de funcionar offline.
 // Se cachean de forma perezosa (on-demand) la primera vez que el usuario exporta video.
-const ASSETS = ['./', './index.html', './app.js', './soundtouch.js', './lamejs.js', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './appa-loading.png'];
+const ASSETS = ['./', './index.html', './app.js', './soundtouch.js', './lamejs.js', './manifest.json', './icon-192.png', './icon-512.png', './icon-192-maskable.png', './icon-512-maskable.png', './apple-touch-icon.png', './appa-loading.png'];
 
 self.addEventListener('install', (event)=>{
   event.waitUntil(

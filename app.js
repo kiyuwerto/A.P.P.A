@@ -1466,7 +1466,7 @@ function attachStringTonePress(chip, freq){
     gainNode.connect(ctx.destination);
     osc.start();
     // fade-in corto para evitar "click" al iniciar
-    gainNode.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.02);
     pressStartTime = performance.now();
     releasedEarly = false;
     chip.classList.add('pressed');
