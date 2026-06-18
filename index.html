@@ -384,7 +384,18 @@ input[type=range]::-webkit-slider-thumb{
   margin-top:40px; padding-top:24px; border-top:2px solid var(--cream-2);
   text-align:center;
 }
-.footer-brand{font-size:1.8rem; font-weight:800; color:var(--brown-dark); letter-spacing:2px;}
+.footer-brand{
+  font-size:1.8rem; font-weight:800; color:var(--brown-dark); letter-spacing:2px;
+  display:inline-block; border-radius:8px; padding:2px 10px;
+  border:3px solid transparent;
+}
+@keyframes footer-blink{
+  0%,100%{ color:var(--brown-dark); background:transparent; border-color:transparent; }
+  40%,60%{ color:var(--cream); background:var(--brown-dark); border-color:var(--brown-light); }
+}
+.footer-brand.blinking{
+  animation:footer-blink 0.55s ease-in-out 2;
+}
 .footer-sub{font-size:0.95rem; font-weight:600; color:var(--brown-light); margin-top:2px; margin-bottom:20px;}
 .help-toggle{
   width:100%; background:var(--brown); color:var(--white); border:none; border-radius:14px;
@@ -458,6 +469,7 @@ input[type=range]::-webkit-slider-thumb{
       </svg>
     </div>
     <div class="right">
+      <button class="icon-btn" id="btnInfo" title="Acerca de">ⓘ</button>
       <button class="icon-btn" id="btnUndo" title="Deshacer">&#8630;</button>
       <button class="icon-btn" id="btnRedo" title="Rehacer">&#8631;</button>
     </div>
@@ -660,7 +672,7 @@ input[type=range]::-webkit-slider-thumb{
 
   <!-- PIE: marca, ayuda desplegable y créditos -->
   <footer class="app-footer">
-    <div class="footer-brand">A.P.P.A</div>
+    <div class="footer-brand" id="footerBrand">A.P.P.A</div>
     <div class="footer-sub">Audio Pitch Perfect Assistant</div>
 
     <button class="help-toggle" id="helpToggle">Cómo usar la app <span id="helpChevron">▾</span></button>

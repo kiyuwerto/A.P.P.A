@@ -898,7 +898,7 @@ speedValue.addEventListener('change', ()=>{
 // ============================================================
 // Botones +1 / -1 y "0" (reset) para pitch y velocidad
 // ============================================================
-document.querySelectorAll('.step-btn').forEach(btn=>{
+document.querySelectorAll('.step-btn[data-delta]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     const delta = parseFloat(btn.dataset.delta);
     if(btn.dataset.target === 'pitch'){
@@ -2437,6 +2437,20 @@ async function restoreSession(state){
   if(state.isReversed){ btnReverse.click(); } // reutiliza la lógica existente de reversa
   setStatus('Sesión restaurada ✓', 2000);
 }
+
+// ============================================================
+// BOTÓN ⓘ — scroll al footer + destello de A.P.P.A.
+// ============================================================
+$('btnInfo').addEventListener('click', ()=>{
+  const brand = $('footerBrand');
+  brand.scrollIntoView({behavior:'smooth', block:'center'});
+  setTimeout(()=>{
+    brand.classList.remove('blinking');
+    void brand.offsetWidth; // fuerza reflow para reiniciar animación
+    brand.classList.add('blinking');
+    brand.addEventListener('animationend', ()=> brand.classList.remove('blinking'), {once:true});
+  }, 500);
+});
 
 // Registrar service worker para uso offline (PWA)
 if('serviceWorker' in navigator){
