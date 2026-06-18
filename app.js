@@ -1288,20 +1288,21 @@ btnDetectTone.addEventListener('click', async ()=>{
   if(!tunerPanel.classList.contains('hidden') && tunerMode === 'audiofile'){
     tunerPanel.classList.add('hidden');
     btnDetectTone.classList.remove('active');
-    tunerMode = null; // detiene el tracking en vivo (su condición de salida lo revisa)
+    tunerMode = null;
     if(liveToneRaf){ cancelAnimationFrame(liveToneRaf); liveToneRaf = null; }
+    syncTunerBtn();
     return;
   }
   if(!workingBuffer){
     setStatus('Primero sube o graba un audio', 2500);
     return;
   }
-  // Detener el afinador en vivo si estaba activo
   if(tunerActive) stopTuner();
 
   tunerPanel.classList.remove('hidden');
   setModeAudioFile();
   btnDetectTone.classList.add('active');
+  syncTunerBtn();
   analyzeLoadedAudioTone();
   tunerPanel.scrollIntoView({behavior:'smooth', block:'center'});
 });
@@ -1375,6 +1376,12 @@ function analyzeLoadedAudioTone(){
 // ============================================================
 // Afinador EN TIEMPO REAL con micrófono (botón "Afinador")
 // ============================================================
+function syncTunerBtn(){
+  const open = !tunerPanel.classList.contains('hidden') && tunerMode !== 'audiofile';
+  btnTunerToggle.classList.toggle('active', open);
+  btnTunerToggle.innerHTML = open ? 'Afinador &#9650;' : 'Afinador &#9660;';
+}
+
 btnTunerToggle.addEventListener('click', async ()=>{
   const wasHidden = tunerPanel.classList.contains('hidden');
   const wasAudioMode = tunerMode === 'audiofile';
@@ -1382,11 +1389,13 @@ btnTunerToggle.addEventListener('click', async ()=>{
     // estaba abierto en modo afinador en vivo -> cerrar
     stopTuner();
     tunerPanel.classList.add('hidden');
+    syncTunerBtn();
     return;
   }
   tunerPanel.classList.remove('hidden');
   btnDetectTone.classList.remove('active');
   setMode('guitar', true);
+  syncTunerBtn();
   await startTuner();
   tunerPanel.scrollIntoView({behavior:'smooth', block:'center'});
 });
