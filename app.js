@@ -2469,6 +2469,48 @@ $('btnInfo').addEventListener('click', ()=>{
   }, 500);
 });
 
+// ============================================================
+// EXPLOSIÓN DE CARITAS al tocar la cara de Appa
+// ============================================================
+appaFaceWrap.addEventListener('click', ()=>{
+  const rect = appaFaceWrap.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const count = 18;
+  const gravity = 900; // px/s²
+
+  for(let i = 0; i < count; i++){
+    const img = document.createElement('img');
+    img.src = 'appa-loading.png';
+    const size = 28 + Math.random() * 54;
+    img.style.cssText = `position:fixed;width:${size}px;height:${size}px;` +
+      `left:${cx - size/2}px;top:${cy - size/2}px;` +
+      `pointer-events:none;z-index:9999;object-fit:contain;border-radius:50%;`;
+    document.body.appendChild(img);
+
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 220 + Math.random() * 380;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed - 200; // impulso inicial hacia arriba
+    const spin = (Math.random() - 0.5) * 540;
+    const dur = 1100 + Math.random() * 700;
+    const steps = 24;
+
+    const kfs = [];
+    for(let s = 0; s <= steps; s++){
+      const t = (s / steps) * (dur / 1000);
+      const x = vx * t;
+      const y = vy * t + 0.5 * gravity * t * t;
+      const r = spin * (s / steps);
+      const fade = s < steps * 0.6 ? 1 : 1 - (s / steps - 0.6) / 0.4;
+      kfs.push({ transform: `translate(${x}px,${y}px) rotate(${r}deg)`, opacity: Math.max(0, fade) });
+    }
+
+    img.animate(kfs, { duration: dur, fill: 'forwards' })
+      .addEventListener('finish', ()=> img.remove());
+  }
+});
+
 // Registrar service worker para uso offline (PWA)
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
