@@ -635,9 +635,9 @@ function buildPlaybackBufferForVideo(){
   return buf;
 }
 
-const appaArrow = $('appaArrow');
+const appaFaceWrap = $('appaFaceWrap');
 function updateAppaAnimation(){
-  appaArrow.classList.toggle('spinning', isPlaying || isRecording);
+  appaFaceWrap.classList.toggle('spinning', isPlaying || isRecording);
 }
 
 function stopPlayback(){
@@ -1513,9 +1513,26 @@ function attachStringTonePress(chip, freq){
     gainNode = ctx.createGain();
     gainNode.gain.value = 0;
     gainNode.connect(ctx.destination);
-    // Síntesis aditiva: fundamental + armónicos para audibilidad en cuerdas graves
     _harmonicOscs = [];
-    [[1, 1.0], [2, 0.5], [3, 0.25], [4, 0.1]].forEach(([mult, amp])=>{
+
+    // Truco del fundamental faltante: los parlantes móviles no reproducen < ~150 Hz.
+    // Generamos armónicos que el cerebro interpreta como el tono grave original.
+    let harmonics;
+    if(freq < 130){
+      // E2 (82Hz), A2 (110Hz): solo armónicos audibles, el cerebro pone el bajo
+      harmonics = [[2, 1.0], [3, 0.9], [4, 0.6], [5, 0.3]];
+    } else if(freq < 180){
+      // D3 (147Hz): mezcla fundamental tenue + armónicos fuertes
+      harmonics = [[1, 0.3], [2, 1.0], [3, 0.7], [4, 0.4]];
+    } else if(freq < 260){
+      // G3 (196Hz): fundamental ya audible, armónicos de apoyo
+      harmonics = [[1, 0.8], [2, 0.7], [3, 0.3], [4, 0.1]];
+    } else {
+      // B3 (247Hz), E4 (330Hz): notas agudas, síntesis normal
+      harmonics = [[1, 1.0], [2, 0.5], [3, 0.2]];
+    }
+
+    harmonics.forEach(([mult, amp])=>{
       const o = ctx.createOscillator();
       o.type = 'sine';
       o.frequency.value = freq * mult;
@@ -1527,7 +1544,7 @@ function attachStringTonePress(chip, freq){
       _harmonicOscs.push(o);
     });
     osc = _harmonicOscs[0];
-    gainNode.gain.linearRampToValueAtTime(0.85, ctx.currentTime + 0.02);
+    gainNode.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.02);
     pressStartTime = performance.now();
     releasedEarly = false;
     chip.classList.add('pressed');
