@@ -2443,12 +2443,20 @@ async function restoreSession(state){
 // ============================================================
 $('btnInfo').addEventListener('click', ()=>{
   const brand = $('footerBrand');
+  const help = $('helpToggle');
   brand.scrollIntoView({behavior:'smooth', block:'center'});
   setTimeout(()=>{
     brand.classList.remove('blinking');
-    void brand.offsetWidth; // fuerza reflow para reiniciar animación
+    void brand.offsetWidth;
     brand.classList.add('blinking');
-    brand.addEventListener('animationend', ()=> brand.classList.remove('blinking'), {once:true});
+    brand.addEventListener('animationend', ()=>{
+      brand.classList.remove('blinking');
+      // un solo blink en el botón de ayuda justo después
+      help.classList.remove('blinking');
+      void help.offsetWidth;
+      help.classList.add('blinking');
+      help.addEventListener('animationend', ()=> help.classList.remove('blinking'), {once:true});
+    }, {once:true});
   }, 500);
 });
 

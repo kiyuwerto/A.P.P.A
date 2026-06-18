@@ -396,6 +396,13 @@ input[type=range]::-webkit-slider-thumb{
 .footer-brand.blinking{
   animation:footer-blink 0.55s ease-in-out 2;
 }
+@keyframes help-blink{
+  0%,100%{ background:var(--brown); color:var(--white); box-shadow:none; }
+  40%,60%{ background:var(--white); color:var(--brown); box-shadow:0 0 0 3px var(--brown-dark); }
+}
+.help-toggle.blinking{
+  animation:help-blink 0.55s ease-in-out 1;
+}
 .footer-sub{font-size:0.95rem; font-weight:600; color:var(--brown-light); margin-top:2px; margin-bottom:20px;}
 .help-toggle{
   width:100%; background:var(--brown); color:var(--white); border:none; border-radius:14px;
