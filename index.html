@@ -468,12 +468,28 @@ input[type=range]::-webkit-slider-thumb{
 }
 .perm-activate-btn{
   color:var(--brown-dark); background:var(--cream);
-  border:2px dashed var(--brown-dark); border-radius:10px;
+  border:2.5px solid var(--brown-dark); border-radius:10px;
   padding:9px 28px; font-weight:800; font-size:1rem; cursor:pointer;
-  animation:perm-blink 0.9s ease-in-out infinite;
+  animation:perm-blink 1.8s ease-in-out infinite;
 }
 .perm-note{
-  margin:0; font-size:0.70rem; color:#aaa; line-height:1.4; font-weight:500;
+  margin:0; font-size:0.82rem; color:#aaa; line-height:1.4; font-weight:500;
+}
+
+/* Botón Refrescar micrófono/parlante */
+.refresh-perm-btn{
+  width:100%; margin-top:10px;
+  background:var(--brown); color:var(--white);
+  border:none; border-radius:14px;
+  padding:14px; font-weight:800; font-size:1rem; cursor:pointer;
+  text-align:center;
+}
+.refresh-perm-btn:active{ filter:brightness(0.88); }
+
+/* Separador antes de los export */
+.export-section{
+  margin-top:24px; padding-top:4px;
+  border-top:1.5px solid var(--cream-2);
 }
 </style>
 </head>
@@ -592,9 +608,13 @@ input[type=range]::-webkit-slider-thumb{
     <button class="tile-btn" id="btnTrim">Recortar</button>
     <button class="tile-btn" id="btnTunerToggle">Afinador &#9660;</button>
   </div>
-  <div class="export-row">
-    <button class="tile-btn export" id="btnExportFast">Export Rápi</button>
-    <button class="tile-btn export pro" id="btnExportPro">Export Pro</button>
+  <button class="refresh-perm-btn" id="btnRefreshPerm">Refrescar micrófono/parlante</button>
+
+  <div class="export-section">
+    <div class="export-row">
+      <button class="tile-btn export" id="btnExportFast">Export Rápi</button>
+      <button class="tile-btn export pro" id="btnExportPro">Export Pro</button>
+    </div>
   </div>
 
   <!-- Panel de recorte (aparece al activar Recortar) -->

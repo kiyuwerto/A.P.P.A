@@ -2560,23 +2560,36 @@ async function checkAndShowPermBanner(){
 
 $('btnActivatePerm').addEventListener('click', async ()=>{
   try{
-    // Reanudar AudioContext (parlante)
     if(audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
-    // Pedir acceso al micrófono
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    stream.getTracks().forEach(t=> t.stop()); // solo queríamos el permiso
-    // Éxito: ocultar banner y explotar caritas en toda la pantalla
+    stream.getTracks().forEach(t=> t.stop());
     permBanner.classList.add('hidden');
-    triggerAppaExplosionScreen();
+    triggerAppaExplosionScreen(22);
   }catch(err){
     setStatus('No se pudo obtener acceso. Revisá los permisos del dispositivo.', 3500);
   }
 });
 
-function triggerAppaExplosionScreen(){
+$('btnRefreshPerm').addEventListener('click', async ()=>{
+  try{
+    // Siempre intentar reanudar el AudioContext primero
+    if(audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+    // Verificar / pedir micrófono
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    stream.getTracks().forEach(t=> t.stop());
+    // Todo OK: ocultar banner si estaba visible y celebrar con más appas
+    await checkAndShowPermBanner();
+    triggerAppaExplosionScreen(35);
+    setStatus('Micrófono y parlante activos ✓', 2000);
+  }catch(err){
+    setStatus('Sin acceso al micrófono. Revisá los permisos del dispositivo.', 3500);
+    await checkAndShowPermBanner();
+  }
+});
+
+function triggerAppaExplosionScreen(count = 22){
   const cx = window.innerWidth / 2;
   const cy = window.innerHeight / 2;
-  const count = 22;
   const gravity = 900;
   for(let i = 0; i < count; i++){
     const img = document.createElement('img');
