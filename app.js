@@ -2536,16 +2536,24 @@ async function checkAndShowPermBanner(){
   let needsMic = false;
   let needsAudio = false;
 
-  // Mic: solo banneramos si está explícitamente denegado
+  // Mic: mostrar si no fue concedido (incluye 'prompt' = nunca pedido, y 'denied')
   try{
     const perm = await navigator.permissions.query({name:'microphone'});
-    if(perm.state === 'denied') needsMic = true;
-    // Escuchar cambios futuros (ej: el usuario revoca el permiso desde ajustes)
-    perm.onchange = ()=> checkAndShowPermBanner();
-  }catch(e){ /* Safari no soporta permissions.query para mic, ignorar */ }
+    if(perm.state !== 'granted') needsMic = true;
+    // Escuchar cambios futuros (ej: el usuario revoca desde ajustes del dispositivo)
+    perm.addEventListener('change', ()=> checkAndShowPermBanner(), {once:true});
+  }catch(e){
+    // Safari no soporta permissions.query para mic; los labels solo aparecen si está concedido
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasInput = devices.some(d=> d.kind === 'audioinput');
+      const granted  = devices.some(d=> d.kind === 'audioinput' && d.label !== '');
+      if(hasInput && !granted) needsMic = true;
+    }catch(e2){ needsMic = true; }
+  }
 
-  // Audio/parlante: AudioContext suspendido con audio cargado = no puede reproducir
-  if(audioCtx && audioCtx.state === 'suspended' && workingBuffer) needsAudio = true;
+  // Audio/parlante: AudioContext suspendido = no puede reproducir
+  if(audioCtx && audioCtx.state === 'suspended') needsAudio = true;
 
   permBanner.classList.toggle('hidden', !(needsMic || needsAudio));
 }
