@@ -80,6 +80,7 @@ let tunerMode = 'guitar';
 function ensureAudioCtx(){
   if(!audioCtx){
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.addEventListener('statechange', ()=> checkAndShowPermBanner());
   }
   return audioCtx;
 }
@@ -147,6 +148,15 @@ function applyHistoryState(state){
   speedValue.value = speedRate.toFixed(3);
   btnPitchLock.classList.toggle('active', pitchLockOn);
   restartPlaybackIfPlaying();
+  updatePitchLockHint();
+}
+
+function updatePitchLockHint(){
+  const hint = $('pitchLockHint');
+  if(!pitchLockOn){ hint.classList.add('hidden'); return; }
+  const equiv = Math.pow(2, pitchSemis / 12);
+  hint.textContent = `Este pitch se corresponde con la velocidad ${equiv.toFixed(2)}x`;
+  hint.classList.remove('hidden');
 }
 
 // ============================================================
@@ -861,6 +871,7 @@ pitchSlider.addEventListener('input', ()=>{
   // En vivo solo si NO hay pitch-lock: tanto audio como video usan playbackRate nativo,
   // que es instantáneo. Con pitch-lock hay que reprocesar con SoundTouch -> se hace al soltar.
   if(!pitchLockOn) updatePlaybackRateLive();
+  updatePitchLockHint();
 });
 pitchSlider.addEventListener('change', ()=>{
   if(pitchLockOn) restartPlaybackIfPlaying(); // pitch-lock reprocesa al soltar (caro)
@@ -874,6 +885,7 @@ pitchValue.addEventListener('change', ()=>{
   pitchSlider.value = v;
   restartPlaybackIfPlaying();
   pushHistory();
+  updatePitchLockHint();
 });
 
 speedSlider.addEventListener('input', ()=>{
@@ -906,6 +918,7 @@ document.querySelectorAll('.step-btn[data-delta]').forEach(btn=>{
       pitchSemis = v;
       pitchValue.value = v.toFixed(3);
       pitchSlider.value = v;
+      updatePitchLockHint();
     } else {
       let v = clamp(speedRate + delta, 0.05, 10);
       speedRate = v;
@@ -923,6 +936,7 @@ $('pitchZeroBtn').addEventListener('click', ()=>{
   pitchSlider.value = 0;
   restartPlaybackIfPlaying();
   pushHistory();
+  updatePitchLockHint();
 });
 
 $('speedZeroBtn').addEventListener('click', ()=>{
@@ -942,6 +956,7 @@ btnPitchLock.addEventListener('click', ()=>{
   setStatus(pitchLockOn ? 'Pitch-lock activado: la velocidad no cambiará el tono' : 'Pitch-lock desactivado', 2000);
   restartPlaybackIfPlaying();
   pushHistory();
+  updatePitchLockHint();
 });
 
 btnReverse.addEventListener('click', ()=>{
@@ -2444,6 +2459,7 @@ async function restoreSession(state){
   btnPitchLock.classList.toggle('active', pitchLockOn);
   btnLoop.classList.toggle('active', loopEnabled);
   if(state.isReversed){ btnReverse.click(); } // reutiliza la lógica existente de reversa
+  updatePitchLockHint();
   setStatus('Sesión restaurada ✓', 2000);
 }
 
@@ -2511,6 +2527,83 @@ appaFaceWrap.addEventListener('click', ()=>{
   }
 });
 
+// ============================================================
+// DETECCIÓN DE PERMISOS (micrófono / parlante)
+// ============================================================
+const permBanner = $('permBanner');
+
+async function checkAndShowPermBanner(){
+  let needsMic = false;
+  let needsAudio = false;
+
+  // Mic: solo banneramos si está explícitamente denegado
+  try{
+    const perm = await navigator.permissions.query({name:'microphone'});
+    if(perm.state === 'denied') needsMic = true;
+    // Escuchar cambios futuros (ej: el usuario revoca el permiso desde ajustes)
+    perm.onchange = ()=> checkAndShowPermBanner();
+  }catch(e){ /* Safari no soporta permissions.query para mic, ignorar */ }
+
+  // Audio/parlante: AudioContext suspendido con audio cargado = no puede reproducir
+  if(audioCtx && audioCtx.state === 'suspended' && workingBuffer) needsAudio = true;
+
+  permBanner.classList.toggle('hidden', !(needsMic || needsAudio));
+}
+
+$('btnActivatePerm').addEventListener('click', async ()=>{
+  try{
+    // Reanudar AudioContext (parlante)
+    if(audioCtx && audioCtx.state === 'suspended') await audioCtx.resume();
+    // Pedir acceso al micrófono
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    stream.getTracks().forEach(t=> t.stop()); // solo queríamos el permiso
+    // Éxito: ocultar banner y explotar caritas en toda la pantalla
+    permBanner.classList.add('hidden');
+    triggerAppaExplosionScreen();
+  }catch(err){
+    setStatus('No se pudo obtener acceso. Revisá los permisos del dispositivo.', 3500);
+  }
+});
+
+function triggerAppaExplosionScreen(){
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  const count = 22;
+  const gravity = 900;
+  for(let i = 0; i < count; i++){
+    const img = document.createElement('img');
+    img.src = 'appa-loading.png';
+    const size = 28 + Math.random() * 54;
+    img.style.cssText = `position:fixed;width:${size}px;height:${size}px;` +
+      `left:${cx - size/2}px;top:${cy - size/2}px;` +
+      `pointer-events:none;z-index:9999;object-fit:contain;border-radius:50%;`;
+    document.body.appendChild(img);
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 250 + Math.random() * 400;
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed - 260;
+    const spin = (Math.random() - 0.5) * 540;
+    const dur = 1100 + Math.random() * 700;
+    const steps = 24;
+    const kfs = [];
+    for(let s = 0; s <= steps; s++){
+      const t = (s / steps) * (dur / 1000);
+      const x = vx * t;
+      const y = vy * t + 0.5 * gravity * t * t;
+      const r = spin * (s / steps);
+      const fade = s < steps * 0.6 ? 1 : 1 - (s / steps - 0.6) / 0.4;
+      kfs.push({transform:`translate(${x}px,${y}px) rotate(${r}deg)`, opacity:Math.max(0, fade)});
+    }
+    img.animate(kfs, {duration:dur, fill:'forwards'})
+      .addEventListener('finish', ()=> img.remove());
+  }
+}
+
+// Chequear al cargar y cada vez que el usuario vuelve a la app
+window.addEventListener('load', ()=> setTimeout(checkAndShowPermBanner, 1000));
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') checkAndShowPermBanner();
+});
 // Registrar service worker para uso offline (PWA)
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{

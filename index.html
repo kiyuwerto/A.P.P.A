@@ -446,6 +446,35 @@ input[type=range]::-webkit-slider-thumb{
 }
 #confirmClearYes{background:var(--red); color:#fff;}
 #confirmClearNo{background:var(--brown-light); color:#fff;}
+
+/* Hint de pitch lock */
+.pitch-lock-hint{
+  text-align:center; font-size:0.72rem; color:#aaa; font-weight:600;
+  margin-top:5px; padding:0 4px; line-height:1.3;
+}
+
+/* Banner de permisos */
+.perm-banner{
+  margin:10px 0 4px; background:var(--cream-2); border-radius:14px;
+  padding:14px 14px 12px; text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.perm-title{
+  margin:0; font-size:0.88rem; font-weight:700; color:var(--brown-dark); line-height:1.4;
+}
+@keyframes perm-blink{
+  0%,100%{ color:var(--brown-dark); background:var(--cream); border-color:var(--brown-dark); }
+  45%,55%{ color:var(--cream); background:var(--brown-dark); border-color:var(--cream); }
+}
+.perm-activate-btn{
+  color:var(--brown-dark); background:var(--cream);
+  border:2px dashed var(--brown-dark); border-radius:10px;
+  padding:9px 28px; font-weight:800; font-size:1rem; cursor:pointer;
+  animation:perm-blink 0.9s ease-in-out infinite;
+}
+.perm-note{
+  margin:0; font-size:0.70rem; color:#aaa; line-height:1.4; font-weight:500;
+}
 </style>
 </head>
 <body>
@@ -504,6 +533,12 @@ input[type=range]::-webkit-slider-thumb{
     <button class="upload-btn gray" id="btnClearAll">Limpiar todo</button>
   </div>
 
+  <div class="perm-banner hidden" id="permBanner">
+    <p class="perm-title">Micrófono y/o parlante desactivados!! Para usar la app bien debes dar acceso</p>
+    <button class="perm-activate-btn" id="btnActivatePerm">Activar</button>
+    <p class="perm-note">No te preocupes, sólo se usará este rato, si sales de la app ya no tendré acceso a tu micro/parlante y te lo tendré que volver a pedir si vuelves</p>
+  </div>
+
   <div class="status-bar" id="statusBar"></div>
 
   <div class="timeline-wrap">
@@ -525,6 +560,7 @@ input[type=range]::-webkit-slider-thumb{
       <button class="step-btn" data-target="pitch" data-delta="-1">-1</button>
       <button class="step-btn" data-target="pitch" data-delta="1">+1</button>
     </div>
+    <div class="pitch-lock-hint hidden" id="pitchLockHint"></div>
   </div>
 
   <div class="control-block">
