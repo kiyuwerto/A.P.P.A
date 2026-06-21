@@ -12,6 +12,8 @@
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
   --cream:#fbe9cf;
@@ -27,7 +29,7 @@
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{
   margin:0; padding:0; background:var(--cream); color:var(--brown-dark);
-  font-family:-apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Helvetica Neue", Arial, sans-serif;
+  font-family:'Nunito', -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   overscroll-behavior:none;
   width:100%; min-height:100vh;
 }
@@ -73,48 +75,34 @@ button{font-family:inherit;}
 }
 .video-toggle-btn:active{filter:brightness(0.9);}
 
-/* PREVIEW — compact audio waveform card */
-.preview{
-  background:var(--cream-2);
-  border-radius:18px;
-  height:88px;
-  display:flex; align-items:center; justify-content:center;
-  position:relative; overflow:hidden;
-  margin-bottom:12px;
-  box-shadow:0 3px 16px rgba(0,0,0,0.08);
-  border:1.5px solid rgba(0,0,0,0.05);
-}
-.preview .placeholder{
-  color:var(--brown-light); font-weight:700; font-size:0.92rem; text-align:center; padding:0 20px;
-}
-.preview .placeholder small{display:block; font-weight:500; font-size:0.78rem; margin-top:4px;}
-.preview canvas{width:100%; height:100%; display:block;}
+/* PREVIEW — oculto: el InShot timeline es el único visualizador */
+.preview{ display:none !important; }
 
-/* PLAY ROW */
-.play-row{
-  display:flex; align-items:center; gap:10px; margin-bottom:14px;
-  background:var(--cream-2); border-radius:18px;
-  padding:10px 14px;
-  box-shadow:0 3px 14px rgba(0,0,0,0.07);
+/* TIMELINE CARD — contiene el waveform y los controles de reproducción */
+.tl-controls{
+  display:flex; align-items:center; justify-content:center; gap:12px;
+  padding:8px 14px 10px;
+  background:var(--brown);
 }
+.tl-controls.hidden{ display:none !important; }
 .play-btn-main{
-  width:52px; height:52px; border-radius:50%;
-  background:var(--brown); color:var(--white);
-  border:none; font-size:1.35rem; line-height:1;
+  width:48px; height:48px; border-radius:50%;
+  background:var(--white); color:var(--brown);
+  border:none; font-size:1.3rem; line-height:1;
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
 .play-btn-main:active{filter:brightness(0.88);}
-.skip-btn{
-  height:42px; padding:0 12px; border-radius:12px;
-  background:var(--cream); border:2px solid var(--brown);
-  color:var(--brown-dark); font-weight:800; font-size:0.82rem;
-  display:flex; align-items:center; gap:3px; flex-shrink:0;
-  white-space:nowrap;
+.tl-skip-btn{
+  width:36px; height:36px; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.35);
+  background:rgba(255,255,255,0.12);
+  color:var(--white); font-size:1.1rem; line-height:1;
+  display:flex; align-items:center; justify-content:center;
 }
-.skip-btn:active{background:var(--cream-2);}
-.play-row .time-label{
-  flex:1; text-align:right; font-weight:700; font-size:0.88rem;
-  color:var(--brown-dark); padding-right:2px;
+.tl-skip-btn:active{background:rgba(255,255,255,0.25);}
+.tl-time{
+  color:rgba(255,255,255,0.75); font-weight:700; font-size:0.82rem;
+  min-width:72px; text-align:center;
 }
 .upload-row{display:flex; gap:10px; margin-bottom:18px;}
 .upload-btn{
@@ -126,7 +114,7 @@ button{font-family:inherit;}
 .upload-btn.gray{background:#9a9a92; color:#fff;}
 input[type=file]{display:none;}
 
-/* SLIDERS — card + slot */
+/* SLIDERS */
 .control-block{
   margin-bottom:14px;
   background:var(--cream-2); border-radius:18px;
@@ -137,10 +125,6 @@ input[type=file]{display:none;}
   font-weight:700; font-size:0.72rem; letter-spacing:1px; text-transform:uppercase;
   color:var(--brown-light);
   margin-bottom:10px; display:flex; justify-content:space-between; align-items:baseline;
-}
-.slider-slot{
-  background:var(--cream); border-radius:12px; padding:10px 12px 8px;
-  border:1.5px solid rgba(0,0,0,0.05);
 }
 .control-row{display:flex; gap:12px; align-items:center;}
 input[type=range]{
@@ -178,14 +162,15 @@ input[type=range]::-webkit-slider-thumb{
   display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:6px;
 }
 .tile-btn{
-  background:var(--brown); color:var(--white); border:none; border-radius:16px;
-  padding:10px 4px; font-weight:700; font-size:0.78rem; min-height:68px;
+  background:var(--white); color:var(--brown-dark); border:none; border-radius:16px;
+  padding:10px 4px; font-weight:800; font-size:0.72rem; min-height:68px;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-align:center; line-height:1.2; gap:5px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.10);
+  text-align:center; line-height:1.2; gap:5px; letter-spacing:0.5px;
+  text-transform:uppercase;
+  box-shadow:0 2px 10px rgba(0,0,0,0.09);
 }
-.tile-btn.active{background:var(--green);}
-.tile-btn.export{background:var(--brown-dark);}
+.tile-btn.active{background:var(--brown); color:var(--white);}
+.tile-btn.export{background:var(--brown-dark); color:var(--white); text-transform:none;}
 .tile-btn.export.pro{background:var(--brown-dark);}
 .tile-btn:active{filter:brightness(0.92);}
 .tile-btn.full{grid-column:1 / -1;}
@@ -255,11 +240,13 @@ input[type=range]::-webkit-slider-thumb{
 
 /* TIMELINE TIPO INSHOT */
 .timeline-wrap{
-  margin-bottom:18px;
+  margin-bottom:16px;
+  border-radius:18px; overflow:hidden;
+  box-shadow:0 3px 16px rgba(0,0,0,0.12);
 }
 .timeline{
-  position:relative; height:78px; background:var(--brown);
-  border-radius:16px; overflow:hidden; touch-action:none; cursor:grab;
+  position:relative; height:82px; background:var(--brown);
+  touch-action:none; cursor:grab;
 }
 .timeline.dragging{cursor:grabbing;}
 .timeline canvas{display:block; width:100%; height:100%;}
@@ -334,6 +321,14 @@ input[type=range]::-webkit-slider-thumb{
 .menu-credits .credit-line{font-size:0.85rem; margin:2px 0;}
 .menu-toggle-btn.danger{background:var(--red);}
 .menu-toggle-btn:active{filter:brightness(0.92);}
+.skip-sec-row{display:flex; gap:8px; margin-top:6px;}
+.skip-sec-btn{
+  flex:1; border:2px solid var(--brown); border-radius:12px;
+  background:transparent; color:var(--brown-dark);
+  font-weight:800; font-size:0.95rem; padding:9px 4px; font-family:inherit;
+}
+.skip-sec-btn.active{background:var(--brown); color:var(--white);}
+.skip-sec-btn:active{filter:brightness(0.92);}
 
 .export-log{max-height:240px; overflow-y:auto; margin-bottom:10px;}
 .log-empty{color:var(--brown-light); font-weight:600; font-size:0.9rem; text-align:center; padding:16px 0;}
@@ -571,6 +566,12 @@ input[type=range]::-webkit-slider-thumb{
     </div>
   </div>
 
+  <!-- Canvas oculto (sigue en DOM para que drawWaveform no crashee) -->
+  <div class="preview" id="previewBox" aria-hidden="true">
+    <canvas id="waveCanvas"></canvas>
+    <div id="placeholderText"></div>
+  </div>
+
   <!-- Sección de video (solo visible si se carga video; desplegable) -->
   <div class="video-section hidden" id="videoSection">
     <div class="video-preview-inner" id="videoPrevInner">
@@ -579,21 +580,19 @@ input[type=range]::-webkit-slider-thumb{
     <button class="video-toggle-btn" id="btnVideoToggle">▲ Ocultar video</button>
   </div>
 
-  <!-- Tarjeta visualizador de audio (compacta, fondo claro) -->
-  <div class="preview" id="previewBox">
-    <canvas id="waveCanvas" class="hidden"></canvas>
-    <div class="placeholder" id="placeholderText">
-      Sube un archivo o grabá con el micrófono
-      <small>Audio · Video · Música</small>
+  <!-- InShot timeline + controles de reproducción (todo unido) -->
+  <div class="timeline-wrap">
+    <div class="timeline" id="timeline">
+      <canvas id="tlCanvas"></canvas>
+      <div class="playhead"></div>
+      <div class="tl-empty" id="tlEmpty">Sube un archivo o grabá para ver la pista aquí</div>
     </div>
-  </div>
-
-  <!-- Controles de reproducción (play, saltar −10s/+10s, tiempo) -->
-  <div class="play-row hidden" id="previewControls">
-    <button class="skip-btn" id="btnSkipBack">◀ 10s</button>
-    <button class="play-btn-main" id="btnPlayPause">&#9658;</button>
-    <button class="skip-btn" id="btnSkipFwd">10s ▶</button>
-    <span class="time-label" id="timeLabel">0:00 / 0:00</span>
+    <div class="tl-controls hidden" id="previewControls">
+      <button class="tl-skip-btn" id="btnSkipBack">◀</button>
+      <button class="play-btn-main" id="btnPlayPause">&#9658;</button>
+      <button class="tl-skip-btn" id="btnSkipFwd">▶</button>
+      <span class="tl-time" id="timeLabel">0:00 / 0:00</span>
+    </div>
   </div>
 
   <div class="upload-row">
@@ -614,42 +613,30 @@ input[type=range]::-webkit-slider-thumb{
 
   <div class="status-bar" id="statusBar"></div>
 
-  <div class="timeline-wrap">
-    <div class="timeline" id="timeline">
-      <canvas id="tlCanvas"></canvas>
-      <div class="playhead"></div>
-      <div class="tl-empty" id="tlEmpty">La pista aparecerá aquí</div>
-    </div>
-  </div>
-
   <div class="control-block">
     <div class="control-label"><span>Pitch (±48 st)</span></div>
-    <div class="slider-slot">
-      <div class="control-row">
-        <input type="range" id="pitchSlider" min="-48" max="48" step="0.01" value="0">
-        <input type="number" class="value-box" id="pitchValue" step="0.001" value="0.000">
-        <button class="zero-btn" id="pitchZeroBtn" title="Restablecer a 0">0</button>
-      </div>
-      <div class="step-row">
-        <button class="step-btn" data-target="pitch" data-delta="-1">-1</button>
-        <button class="step-btn" data-target="pitch" data-delta="1">+1</button>
-      </div>
+    <div class="control-row">
+      <input type="range" id="pitchSlider" min="-48" max="48" step="0.01" value="0">
+      <input type="number" class="value-box" id="pitchValue" step="0.001" value="0.000">
+      <button class="zero-btn" id="pitchZeroBtn" title="Restablecer a 0">0</button>
+    </div>
+    <div class="step-row">
+      <button class="step-btn" data-target="pitch" data-delta="-1">-1</button>
+      <button class="step-btn" data-target="pitch" data-delta="1">+1</button>
     </div>
     <div class="pitch-lock-hint hidden" id="pitchLockHint"></div>
   </div>
 
   <div class="control-block">
     <div class="control-label"><span>Velocidad (0.050x–10.000x)</span></div>
-    <div class="slider-slot">
-      <div class="control-row">
-        <input type="range" id="speedSlider" min="0.05" max="10" step="0.001" value="1">
-        <input type="number" class="value-box" id="speedValue" step="0.001" value="1.000">
-        <button class="zero-btn" id="speedZeroBtn" title="Restablecer a 1x">0</button>
-      </div>
-      <div class="step-row">
-        <button class="step-btn" id="btnSpeedDown">−</button>
-        <button class="step-btn" id="btnSpeedUp">+</button>
-      </div>
+    <div class="control-row">
+      <input type="range" id="speedSlider" min="0.05" max="10" step="0.001" value="1">
+      <input type="number" class="value-box" id="speedValue" step="0.001" value="1.000">
+      <button class="zero-btn" id="speedZeroBtn" title="Restablecer a 1x">0</button>
+    </div>
+    <div class="step-row">
+      <button class="step-btn" id="btnSpeedDown">−</button>
+      <button class="step-btn" id="btnSpeedUp">+</button>
     </div>
   </div>
 
@@ -662,28 +649,34 @@ input[type=range]::-webkit-slider-thumb{
   </div>
 
   <div class="grid-buttons">
+    <!-- Pitch-lock: candado con cuerpo redondeado y agujero -->
     <button class="tile-btn" id="btnPitchLock">
-      <span class="tile-icon"><svg viewBox="0 0 22 22" width="22" height="22" fill="currentColor"><rect x="4" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7a3 3 0 016 0v3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="4" y="11" width="16" height="11" rx="3.5"/><path d="M8 11V8a4 4 0 018 0v3" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.6"/></svg></span>
       <span>Pitch-lock</span>
     </button>
+    <!-- Tono: barras de forma de onda de audio (tipo ecualizador) -->
     <button class="tile-btn" id="btnDetectTone">
-      <span class="tile-icon"><svg viewBox="0 0 22 22" width="22" height="22" fill="currentColor"><ellipse cx="6.5" cy="17" rx="2.5" ry="2"/><ellipse cx="15.5" cy="15" rx="2.5" ry="2"/><path d="M9 17V7.5l9-2V13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="9" y1="7.5" x2="18" y2="5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-      <span>Detectar tono</span>
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="1.5" y="8.5" width="3" height="7" rx="1.5"/><rect x="6" y="5.5" width="3" height="13" rx="1.5"/><rect x="10.5" y="3" width="3" height="18" rx="1.5"/><rect x="15" y="5.5" width="3" height="13" rx="1.5"/><rect x="19.5" y="8.5" width="3" height="7" rx="1.5"/></svg></span>
+      <span>Tono</span>
     </button>
+    <!-- Reversa: barra vertical izquierda + dos triángulos apuntando izquierda -->
     <button class="tile-btn" id="btnReverse">
-      <span class="tile-icon"><svg viewBox="0 0 22 22" width="22" height="22" fill="currentColor"><polygon points="17,5 8,11 17,17"/><polygon points="10,5 1,11 10,17"/><rect x="18" y="5" width="3" height="12" rx="1.2"/></svg></span>
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="2" y="4" width="3.5" height="16" rx="1.8"/><polygon points="7.5,12 14.5,4.5 14.5,19.5"/><polygon points="15,12 22,4.5 22,19.5"/></svg></span>
       <span>Reversa</span>
     </button>
+    <!-- Loop: dos flechas formando loop rectangular -->
     <button class="tile-btn" id="btnLoop">
-      <span class="tile-icon"><svg viewBox="0 0 22 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 2l3.5 3.5L16 9"/><path d="M3 11V9a6 6 0 016-6h10.5"/><path d="M6 20l-3.5-3.5L6 13"/><path d="M19 11v2a6 6 0 01-6 6H2.5"/></svg></span>
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 2 21 6 17 10"/><path d="M3 12V8a4 4 0 014-4h14"/><polyline points="7 22 3 18 7 14"/><path d="M21 12v4a4 4 0 01-4 4H3"/></svg></span>
       <span>Loop</span>
     </button>
+    <!-- Recortar: tijeras con círculos de agarre y hojas cruzadas -->
     <button class="tile-btn" id="btnTrim">
-      <span class="tile-icon"><svg viewBox="0 0 22 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="5.5" cy="5.5" r="2.5" fill="currentColor" stroke="none"/><circle cx="5.5" cy="16.5" r="2.5" fill="currentColor" stroke="none"/><line x1="7.5" y1="7" x2="19" y2="4"/><line x1="7.5" y1="15" x2="19" y2="18"/><line x1="8" y1="8" x2="13" y2="11.5"/><line x1="13" y1="11.5" x2="8" y2="15"/></svg></span>
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span>
       <span>Recortar</span>
     </button>
+    <!-- Afinador: guitarra con cuerpo tipo figura-8 y agujero de sonido -->
     <button class="tile-btn" id="btnTunerToggle">
-      <span class="tile-icon"><svg viewBox="0 0 22 22" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="11" y1="8" x2="11" y2="20"/><path d="M8 20h6"/><path d="M8 2h6v5a3 3 0 01-6 0V2z" fill="currentColor" stroke="none"/><path d="M8 2h6"/><path d="M8 5h6"/></svg></span>
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="10.5" y="1" width="3" height="6.5" rx="1.5"/><path fill-rule="evenodd" d="M12 7.5c-3.5 0-5 2-5 4 0 1 .5 2 1 2.5-.5.8-1 2-1 3C7 19.8 9.2 22 12 22s5-2.2 5-5c0-1-.5-2.2-1-3 .5-.5 1-1.5 1-2.5 0-2-1.5-4-5-4zM14 17.5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></span>
       <span>Afinador <span id="tunerChevron">▼</span></span>
     </button>
   </div>
@@ -802,6 +795,15 @@ input[type=range]::-webkit-slider-thumb{
         </div>
         <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir</button>
         <button class="menu-toggle-btn" id="resetColorsBtn">Restablecer colores originales</button>
+      </div>
+
+      <div class="menu-section">
+        <h4>Salto rápido (◀ / ▶)</h4>
+        <div class="skip-sec-row" id="skipSecRow">
+          <button class="skip-sec-btn active" data-sec="5">5s</button>
+          <button class="skip-sec-btn" data-sec="10">10s</button>
+          <button class="skip-sec-btn" data-sec="30">30s</button>
+        </div>
       </div>
 
       <div class="menu-section">

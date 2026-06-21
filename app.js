@@ -892,6 +892,26 @@ function skipBy(delta){
 $('btnSkipBack').addEventListener('click', ()=> skipBy(-skipSec));
 $('btnSkipFwd').addEventListener('click', ()=> skipBy(+skipSec));
 
+// Restaurar skipSec guardado
+try{
+  const saved = parseInt(localStorage.getItem('appa_skip_sec'));
+  if([5,10,30].includes(saved)){
+    skipSec = saved;
+    document.querySelectorAll('.skip-sec-btn').forEach(b=>{
+      b.classList.toggle('active', parseInt(b.dataset.sec)===skipSec);
+    });
+  }
+}catch(e){}
+
+document.querySelectorAll('.skip-sec-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    skipSec = parseInt(btn.dataset.sec);
+    document.querySelectorAll('.skip-sec-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    try{ localStorage.setItem('appa_skip_sec', skipSec); }catch(e){}
+  });
+});
+
 // ============================================================
 // Toggle video desplegable
 // ============================================================
