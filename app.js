@@ -379,12 +379,20 @@ function drawRecVisualization(){
   const rms = Math.sqrt(sum/buf.length);
   recWaveform.push(rms);
 
-  // dibujar la onda acumulada, desplazándose tipo "rolling" en el preview y timeline
+  // dibujar la onda acumulada en el canvas de preview (oculto)
   drawRollingWave(waveCanvas, previewBox, recWaveform);
-  drawRollingWave(tlCanvas, timeline, recWaveform, true);
 
-  // actualizar contador de tiempo
   const elapsed = (performance.now() - recStartTime)/1000;
+
+  if(isOverdub){
+    // Avanzar el playhead según el tiempo grabado para que tlDraw muestre el progreso
+    TL.pos = Math.min(overdubStartSec + elapsed, tlGetDuration());
+    // tlDraw() dibuja el waveform original + barras rojas superpuestas (vía tlAnimate)
+  } else {
+    // Grabación nueva: dibujar rolling wave directamente en el timeline
+    drawRollingWave(tlCanvas, timeline, recWaveform, true);
+  }
+
   setStatus('Grabando… ' + fmtTime(elapsed));
 
   recRafId = requestAnimationFrame(drawRecVisualization);
@@ -1899,6 +1907,27 @@ function tlDraw(){
   // velo sobre la parte ya reproducida (izquierda del centro)
   ctx.fillStyle = 'rgba(255,255,255,0.42)';
   ctx.fillRect(0, 0, centerX, h);
+
+  // superposición de grabación en vivo (overdub): barras rojas sobre la región grabada
+  if(isRecording && isOverdub && recWaveform.length > 0){
+    const startPx = (overdubStartSec - TL.pos) * TL.pxPerSec + centerX;
+    const regionW = centerX - startPx;
+    if(regionW > 0){
+      const n = recWaveform.length;
+      const barW = regionW / n;
+      const mid = h / 2;
+      const cs = getComputedStyle(document.documentElement);
+      ctx.fillStyle = cs.getPropertyValue('--red').trim() || '#c03020';
+      ctx.globalAlpha = 0.85;
+      for(let i = 0; i < n; i++){
+        const amp = Math.min(1, recWaveform[i] * 4);
+        const bH = Math.max(2, amp * h * 0.85);
+        const x = startPx + i * barW;
+        if(x >= 0 && x <= w) ctx.fillRect(x, mid - bH/2, Math.max(1, barW - 0.5), bH);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
 }
 
 let tlRaf = null;
