@@ -82,26 +82,26 @@ button{font-family:inherit;}
 .tl-controls{
   display:flex; align-items:center; justify-content:center; gap:12px;
   padding:8px 14px 10px;
-  background:var(--brown);
+  background:var(--white);
 }
 .tl-controls.hidden{ display:none !important; }
 .play-btn-main{
   width:48px; height:48px; border-radius:50%;
-  background:var(--white); color:var(--brown);
+  background:var(--brown); color:var(--white);
   border:none; font-size:1.3rem; line-height:1;
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
 .play-btn-main:active{filter:brightness(0.88);}
 .tl-skip-btn{
   width:36px; height:36px; border-radius:50%;
-  border:2px solid rgba(255,255,255,0.35);
-  background:rgba(255,255,255,0.12);
-  color:var(--white); font-size:1.1rem; line-height:1;
+  border:2px solid var(--brown);
+  background:transparent;
+  color:var(--brown); font-size:1.1rem; line-height:1;
   display:flex; align-items:center; justify-content:center;
 }
-.tl-skip-btn:active{background:rgba(255,255,255,0.25);}
+.tl-skip-btn:active{background:rgba(0,0,0,0.07);}
 .tl-time{
-  color:rgba(255,255,255,0.75); font-weight:700; font-size:0.82rem;
+  color:var(--brown-dark); font-weight:700; font-size:0.82rem;
   min-width:72px; text-align:center;
 }
 .upload-row{display:flex; gap:10px; margin-bottom:18px;}
@@ -117,7 +117,7 @@ input[type=file]{display:none;}
 /* SLIDERS */
 .control-block{
   margin-bottom:14px;
-  background:var(--cream-2); border-radius:18px;
+  background:var(--white); border-radius:18px;
   padding:14px 14px 10px;
   box-shadow:0 3px 14px rgba(0,0,0,0.07);
 }
@@ -129,13 +129,24 @@ input[type=file]{display:none;}
 .control-row{display:flex; gap:12px; align-items:center;}
 input[type=range]{
   -webkit-appearance:none; appearance:none;
-  flex:1; height:18px; background:var(--brown); border-radius:12px;
-  outline:none;
+  flex:1; height:34px; background:transparent;
+  outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:3px; background:var(--brown); border-radius:2px;
+}
+input[type=range]::-moz-range-track{
+  height:3px; background:var(--brown); border-radius:2px; border:none;
 }
 input[type=range]::-webkit-slider-thumb{
   -webkit-appearance:none; appearance:none;
-  width:34px; height:34px; border-radius:50%; background:var(--white);
-  border:3px solid var(--brown); box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  width:32px; height:32px; border-radius:50%; background:var(--cream);
+  border:2.5px solid var(--brown); box-shadow:0 2px 6px rgba(0,0,0,0.2);
+  margin-top:-14.5px;
+}
+input[type=range]::-moz-range-thumb{
+  width:32px; height:32px; border-radius:50%; background:var(--cream);
+  border:2.5px solid var(--brown); box-shadow:0 2px 6px rgba(0,0,0,0.2);
 }
 .value-box{
   border:2.5px solid var(--brown); border-radius:12px; background:var(--cream);
@@ -162,14 +173,17 @@ input[type=range]::-webkit-slider-thumb{
   display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:6px;
 }
 .tile-btn{
-  background:var(--white); color:var(--brown-dark); border:none; border-radius:16px;
+  background:var(--brown); color:var(--white); border:none; border-radius:16px;
   padding:10px 4px; font-weight:800; font-size:0.72rem; min-height:68px;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   text-align:center; line-height:1.2; gap:5px; letter-spacing:0.5px;
   text-transform:uppercase;
   box-shadow:0 2px 10px rgba(0,0,0,0.09);
 }
-.tile-btn.active{background:var(--brown); color:var(--white);}
+.tile-btn.active{
+  background:#3ab6d8; color:#fff;
+  box-shadow:0 0 14px rgba(58,182,216,0.6), 0 0 5px rgba(58,182,216,0.35), 0 2px 10px rgba(0,0,0,0.08);
+}
 .tile-btn.export{background:var(--brown-dark); color:var(--white); text-transform:none;}
 .tile-btn.export.pro{background:var(--brown-dark);}
 .tile-btn:active{filter:brightness(0.92);}
@@ -245,14 +259,14 @@ input[type=range]::-webkit-slider-thumb{
   box-shadow:0 3px 16px rgba(0,0,0,0.12);
 }
 .timeline{
-  position:relative; height:82px; background:var(--brown);
+  position:relative; height:82px; background:var(--white);
   touch-action:none; cursor:grab;
 }
 .timeline.dragging{cursor:grabbing;}
 .timeline canvas{display:block; width:100%; height:100%;}
 .timeline .playhead{
   position:absolute; top:0; bottom:0; left:50%; width:3px;
-  background:var(--white); transform:translateX(-50%);
+  background:var(--brown); transform:translateX(-50%);
   box-shadow:0 0 0 1px rgba(0,0,0,0.15);
   pointer-events:none; z-index:2;
 }
@@ -260,11 +274,11 @@ input[type=range]::-webkit-slider-thumb{
   content:''; position:absolute; left:50%; transform:translateX(-50%);
   width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent;
 }
-.timeline .playhead::before{top:0; border-top:8px solid var(--white);}
-.timeline .playhead::after{bottom:0; border-bottom:8px solid var(--white);}
+.timeline .playhead::before{top:0; border-top:8px solid var(--brown);}
+.timeline .playhead::after{bottom:0; border-bottom:8px solid var(--brown);}
 .timeline .tl-empty{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  color:var(--white); font-weight:700; font-size:0.95rem; opacity:.65;
+  color:var(--brown-light); font-weight:700; font-size:0.95rem; opacity:.75;
   pointer-events:none;
 }
 
@@ -459,8 +473,10 @@ input[type=range]::-webkit-slider-thumb{
 .help-item b{display:block; color:var(--brown-dark); font-size:0.98rem; margin-bottom:3px;}
 .help-item span{display:block; color:var(--brown-light); font-size:0.86rem; line-height:1.4; font-weight:500;}
 .credits{margin-top:24px; padding-bottom:8px;}
-.credit-line{font-size:0.9rem; color:var(--brown-dark); font-weight:700; margin:3px 0;}
-.credit-line span{color:var(--brown-light); font-weight:600;}
+.credit-line{font-size:0.9rem; color:var(--brown-dark); font-weight:800; margin:3px 0;}
+.credit-line span{color:var(--brown-light); font-weight:800;}
+.menu-credits .credit-line{font-weight:800;}
+.menu-credits .credit-line span{font-weight:800;}
 
 /* Barra de restaurar sesión guardada */
 .session-restore-bar{

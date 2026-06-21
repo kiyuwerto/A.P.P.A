@@ -409,9 +409,7 @@ function drawRollingWave(canvas, container, amps, centerLine){
   const slice = amps.slice(-totalBars); // las más recientes
   const mid = h/2;
   const cs = getComputedStyle(document.documentElement);
-  ctx.fillStyle = (canvas === tlCanvas)
-    ? (cs.getPropertyValue('--white').trim() || '#fdf3e3')
-    : (cs.getPropertyValue('--brown').trim() || '#7a4a26');
+  ctx.fillStyle = cs.getPropertyValue('--brown').trim() || '#7a4a26';
 
   for(let i=0;i<slice.length;i++){
     const amp = Math.min(1, slice[i]*4); // escalar para que se vea
@@ -1855,7 +1853,7 @@ function tlBuildWaveImage(){
 
   const data = buffer.getChannelData(0);
   const step = Math.max(1, Math.floor(data.length / totalW));
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--white').trim() || '#fdf3e3';
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--brown').trim() || '#7a4a26';
   const mid = h/2;
   for(let x=0; x<totalW; x++){
     let min=1, max=-1;
@@ -1898,8 +1896,8 @@ function tlDraw(){
   // dibujar regiones fuera de la pista con un tono más oscuro (antes del inicio / después del fin)
   ctx.drawImage(TL.waveImg, drawX, 0, TL.waveImg.width/dpr, h);
 
-  // velo semitransparente sobre la parte ya reproducida (izquierda del centro)
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  // velo sobre la parte ya reproducida (izquierda del centro)
+  ctx.fillStyle = 'rgba(255,255,255,0.42)';
   ctx.fillRect(0, 0, centerX, h);
 }
 
