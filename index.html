@@ -82,7 +82,7 @@ button{font-family:inherit;}
 .tl-controls{
   display:flex; align-items:center; justify-content:center; gap:12px;
   padding:8px 14px 10px;
-  background:var(--white);
+  background:rgba(255,255,255,0.88);
 }
 .tl-controls.hidden{ display:none !important; }
 .play-btn-main{
@@ -108,6 +108,7 @@ button{font-family:inherit;}
 .upload-btn{
   flex:1; background:var(--brown); color:var(--white); border:none; border-radius:16px;
   padding:13px 8px; font-weight:800; font-size:0.92rem; text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,0.12);
 }
 .upload-btn.secondary{background:var(--brown-dark);}
 .upload-btn.recording{background:var(--red);}
@@ -117,7 +118,7 @@ input[type=file]{display:none;}
 /* SLIDERS */
 .control-block{
   margin-bottom:14px;
-  background:var(--white); border-radius:18px;
+  background:rgba(255,255,255,0.88); border-radius:18px;
   padding:14px 14px 10px;
   box-shadow:0 3px 14px rgba(0,0,0,0.07);
 }
@@ -158,13 +159,14 @@ input[type=range]::-moz-range-thumb{
 .zero-btn{
   width:42px; height:42px; border-radius:50%; border:2.5px solid var(--brown);
   background:var(--cream-2); color:var(--brown-dark); font-weight:800; font-size:1rem;
-  flex-shrink:0;
+  flex-shrink:0; box-shadow:0 1px 5px rgba(0,0,0,0.10);
 }
 .zero-btn:active{filter:brightness(0.92);}
 .step-row{display:flex; gap:10px; margin-top:10px; justify-content:flex-end;}
 .step-btn{
   width:42px; height:42px; border-radius:10px; border:none; background:var(--brown);
   color:var(--white); font-weight:800; font-size:1.05rem;
+  box-shadow:0 1px 5px rgba(0,0,0,0.12);
 }
 .step-btn:active{filter:brightness(0.92);}
 
@@ -183,6 +185,10 @@ input[type=range]::-moz-range-thumb{
 .tile-btn.active{
   background:#3ab6d8; color:#fff;
   box-shadow:0 0 14px rgba(58,182,216,0.6), 0 0 5px rgba(58,182,216,0.35), 0 2px 10px rgba(0,0,0,0.08);
+  text-shadow:0 0 8px rgba(255,255,255,0.9), 0 0 16px rgba(255,255,255,0.5);
+}
+.tile-btn.active .tile-icon{
+  filter:drop-shadow(0 0 5px rgba(255,255,255,0.85));
 }
 .tile-btn.export{background:var(--brown-dark); color:var(--white); text-transform:none;}
 .tile-btn.export.pro{background:var(--brown-dark);}
@@ -259,7 +265,7 @@ input[type=range]::-moz-range-thumb{
   box-shadow:0 3px 16px rgba(0,0,0,0.12);
 }
 .timeline{
-  position:relative; height:82px; background:var(--white);
+  position:relative; height:82px; background:rgba(255,255,255,0.88);
   touch-action:none; cursor:grab;
 }
 .timeline.dragging{cursor:grabbing;}
@@ -355,8 +361,8 @@ input[type=range]::-moz-range-thumb{
 
 /* Panel de recorte */
 .trim-panel{
-  background:var(--cream-2); border-radius:16px; padding:14px; margin-top:12px;
-  border:2px solid var(--brown-light);
+  background:rgba(255,255,255,0.88); border-radius:18px; padding:14px; margin-bottom:16px;
+  box-shadow:0 3px 14px rgba(0,0,0,0.07); border:1.5px solid rgba(0,0,0,0.06);
 }
 .trim-row{display:flex; justify-content:space-around; font-weight:700; color:var(--brown-dark); margin-bottom:12px; font-size:1rem;}
 .trim-row b{color:var(--brown);}
@@ -474,9 +480,8 @@ input[type=range]::-moz-range-thumb{
 .help-item span{display:block; color:var(--brown-light); font-size:0.86rem; line-height:1.4; font-weight:500;}
 .credits{margin-top:24px; padding-bottom:8px;}
 .credit-line{font-size:0.9rem; color:var(--brown-dark); font-weight:800; margin:3px 0;}
-.credit-line span{color:var(--brown-light); font-weight:800;}
-.menu-credits .credit-line{font-weight:800;}
-.menu-credits .credit-line span{font-weight:800;}
+.credit-line span{color:var(--brown-light); font-weight:600;}
+.menu-credits .credit-line{font-size:0.85rem; margin:2px 0;}
 
 /* Barra de restaurar sesión guardada */
 .session-restore-bar{
@@ -601,13 +606,29 @@ input[type=range]::-moz-range-thumb{
     <div class="timeline" id="timeline">
       <canvas id="tlCanvas"></canvas>
       <div class="playhead"></div>
-      <div class="tl-empty" id="tlEmpty">Sube un archivo o grabá para ver la pista aquí</div>
+      <div class="tl-empty" id="tlEmpty">Sube un archivo o graba para ver la pista aquí</div>
     </div>
     <div class="tl-controls hidden" id="previewControls">
       <button class="tl-skip-btn" id="btnSkipBack">◀</button>
       <button class="play-btn-main" id="btnPlayPause">&#9658;</button>
       <button class="tl-skip-btn" id="btnSkipFwd">▶</button>
       <span class="tl-time" id="timeLabel">0:00 / 0:00</span>
+    </div>
+  </div>
+
+  <!-- Panel de recorte (aparece al activar Recortar, encima de los botones de subir) -->
+  <div class="trim-panel hidden" id="trimPanel">
+    <div class="trim-row">
+      <span>Inicio: <b id="trimStartLabel">0:00</b></span>
+      <span>Fin: <b id="trimEndLabel">0:00</b></span>
+    </div>
+    <div class="trim-buttons">
+      <button class="menu-toggle-btn" id="trimSetStart">Marcar inicio aquí</button>
+      <button class="menu-toggle-btn" id="trimSetEnd">Marcar fin aquí</button>
+    </div>
+    <div class="trim-buttons">
+      <button class="menu-toggle-btn" id="trimApply" style="background:var(--green);">Aplicar recorte</button>
+      <button class="menu-toggle-btn" id="trimCancel" style="background:var(--brown-light);">Cancelar</button>
     </div>
   </div>
 
@@ -702,22 +723,6 @@ input[type=range]::-moz-range-thumb{
     <div class="export-row">
       <button class="tile-btn export" id="btnExportFast">Export Rápi</button>
       <button class="tile-btn export pro" id="btnExportPro">Export Pro</button>
-    </div>
-  </div>
-
-  <!-- Panel de recorte (aparece al activar Recortar) -->
-  <div class="trim-panel hidden" id="trimPanel">
-    <div class="trim-row">
-      <span>Inicio: <b id="trimStartLabel">0:00</b></span>
-      <span>Fin: <b id="trimEndLabel">0:00</b></span>
-    </div>
-    <div class="trim-buttons">
-      <button class="menu-toggle-btn" id="trimSetStart">Marcar inicio aquí</button>
-      <button class="menu-toggle-btn" id="trimSetEnd">Marcar fin aquí</button>
-    </div>
-    <div class="trim-buttons">
-      <button class="menu-toggle-btn" id="trimApply" style="background:var(--green);">Aplicar recorte</button>
-      <button class="menu-toggle-btn" id="trimCancel" style="background:var(--brown-light);">Cancelar</button>
     </div>
   </div>
 
