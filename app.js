@@ -11,6 +11,7 @@ const btnUpload = $('btnUpload');
 const btnRecord = $('btnRecord');
 const previewBox = $('previewBox');
 const placeholderText = $('placeholderText');
+const videoSection = $('videoSection');
 const videoEl = $('videoEl');
 const waveCanvas = $('waveCanvas');
 const previewControls = $('previewControls');
@@ -60,6 +61,7 @@ let rafId = null;
 
 let pitchSemis = 0;     // -48..48
 let speedRate = 1.0;    // 0.05..10
+let videoCollapsed = false;
 
 // historial simple para undo/redo (guarda snapshots de estado de controles)
 let history = [];
@@ -182,15 +184,20 @@ async function loadFile(file){
 
   if(isVideo){
     videoEl.src = url;
-    videoEl.classList.remove('hidden');
-    waveCanvas.classList.add('hidden');
+    videoSection.classList.remove('hidden');
+    videoCollapsed = false;
+    const prevInner = $('videoPrevInner');
+    if(prevInner) prevInner.style.display = '';
+    const vToggle = $('btnVideoToggle');
+    if(vToggle) vToggle.textContent = '▲ Ocultar video';
+    waveCanvas.classList.remove('hidden');
     placeholderText.classList.add('hidden');
     videoEl.onloadedmetadata = ()=>{
       previewControls.classList.remove('hidden');
       timeLabel.textContent = `0:00 / ${fmtTime(videoEl.duration)}`;
     };
   } else {
-    videoEl.classList.add('hidden');
+    videoSection.classList.add('hidden');
     waveCanvas.classList.remove('hidden');
     placeholderText.classList.add('hidden');
     previewControls.classList.remove('hidden');
@@ -276,7 +283,7 @@ async function beginRecording(overdub){
     if(!overdub){
       // preparar el timeline para mostrar la grabación en curso desde cero
       mediaType = 'audio';
-      videoEl.classList.add('hidden');
+      videoSection.classList.add('hidden');
       waveCanvas.classList.remove('hidden');
       placeholderText.classList.add('hidden');
       previewControls.classList.add('hidden');
@@ -401,7 +408,10 @@ function drawRollingWave(canvas, container, amps, centerLine){
   const totalBars = Math.floor(w/(barW+gap));
   const slice = amps.slice(-totalBars); // las más recientes
   const mid = h/2;
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--white').trim() || '#fdf3e3';
+  const cs = getComputedStyle(document.documentElement);
+  ctx.fillStyle = (canvas === tlCanvas)
+    ? (cs.getPropertyValue('--white').trim() || '#fdf3e3')
+    : (cs.getPropertyValue('--brown').trim() || '#7a4a26');
 
   for(let i=0;i<slice.length;i++){
     const amp = Math.min(1, slice[i]*4); // escalar para que se vea
@@ -462,7 +472,7 @@ function doClearAll(){
   clearTrimMarkers();
 
   videoEl.src = '';
-  videoEl.classList.add('hidden');
+  videoSection.classList.add('hidden');
   waveCanvas.classList.add('hidden');
   placeholderText.classList.remove('hidden');
   previewControls.classList.add('hidden');
@@ -495,7 +505,7 @@ function drawWaveform(buffer){
   const data = buffer.getChannelData(0);
   const w = rect.width, h = rect.height;
   const step = Math.ceil(data.length/w);
-  ctx.fillStyle = '#fdf3e3';
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--brown').trim() || '#7a4a26';
   ctx.beginPath();
   for(let x=0; x<w; x++){
     let min=1, max=-1;
@@ -841,6 +851,55 @@ btnPlayPause.addEventListener('click', ()=>{
   } else {
     startPlayback();
   }
+});
+
+// ============================================================
+// Saltar −10s / +10s
+// ============================================================
+let skipSec = 10; // configurable en el futuro
+
+function seekTo(newPos){
+  const dur = originalBuffer ? originalBuffer.duration : (videoEl.duration || 0);
+  newPos = Math.max(0, Math.min(newPos, dur - 0.01));
+  if(mediaType === 'video'){
+    try{ videoEl.currentTime = newPos; }catch(e){}
+    playStartOffset = newPos;
+    TL.pos = newPos;
+    timeLabel.textContent = `${fmtTime(newPos)} / ${fmtTime(videoEl.duration)}`;
+  } else {
+    playStartOffset = newPos;
+    TL.pos = newPos;
+    if(originalBuffer) timeLabel.textContent = `${fmtTime(newPos)} / ${fmtTime(originalBuffer.duration)}`;
+  }
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+}
+
+function skipBy(delta){
+  if(!workingBuffer && !originalBuffer) return;
+  let cur = playStartOffset;
+  if(isPlaying){
+    if(mediaType === 'audio' && sourceNode){
+      const ctx = ensureAudioCtx();
+      const rate = sourceNode.playbackRate.value;
+      cur = playStartOffset + (ctx.currentTime - playStartCtxTime)*rate;
+    } else if(mediaType === 'video'){
+      cur = videoEl.currentTime;
+    }
+  }
+  seekTo(cur + delta);
+}
+
+$('btnSkipBack').addEventListener('click', ()=> skipBy(-skipSec));
+$('btnSkipFwd').addEventListener('click', ()=> skipBy(+skipSec));
+
+// ============================================================
+// Toggle video desplegable
+// ============================================================
+$('btnVideoToggle').addEventListener('click', ()=>{
+  videoCollapsed = !videoCollapsed;
+  const inner = $('videoPrevInner');
+  inner.style.display = videoCollapsed ? 'none' : '';
+  $('btnVideoToggle').textContent = videoCollapsed ? '▼ Mostrar video' : '▲ Ocultar video';
 });
 
 // ============================================================
@@ -1394,7 +1453,8 @@ function analyzeLoadedAudioTone(){
 function syncTunerBtn(){
   const open = !tunerPanel.classList.contains('hidden') && tunerMode !== 'audiofile';
   btnTunerToggle.classList.toggle('active', open);
-  btnTunerToggle.innerHTML = open ? 'Afinador &#9650;' : 'Afinador &#9660;';
+  const chevron = $('tunerChevron');
+  if(chevron) chevron.textContent = open ? '▲' : '▼';
 }
 
 btnTunerToggle.addEventListener('click', async ()=>{
@@ -1775,7 +1835,7 @@ function tlBuildWaveImage(){
 
   const data = buffer.getChannelData(0);
   const step = Math.max(1, Math.floor(data.length / totalW));
-  ctx.fillStyle = '#fdf3e3';
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--white').trim() || '#fdf3e3';
   const mid = h/2;
   for(let x=0; x<totalW; x++){
     let min=1, max=-1;
