@@ -2099,9 +2099,11 @@ function applyColors(brownHex, creamHex){
   // "white" es el color de texto/elementos sobre el botón café: debe contrastar con --brown,
   // así que se deriva de su luminosidad (no de la del fondo), llevándolo casi a blanco u oscuro extremo.
   const white = lBrown < 0.5 ? shade(brownHex, 0.85 - lBrown) : shade(brownHex, -(lBrown - 0.08));
+  // "card" es el fondo de tarjetas: siempre más claro que el crema, empujado a ~96% luminosidad.
+  const card = shade(creamHex, Math.max(0.04, 0.96 - lCream));
 
   const map = {
-    '--cream': creamHex, '--cream-2': cream2,
+    '--cream': creamHex, '--cream-2': cream2, '--card': card,
     '--brown': brownHex, '--brown-dark': brownDark,
     '--brown-light': brownLight, '--white': white
   };
