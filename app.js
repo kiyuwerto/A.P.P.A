@@ -386,7 +386,7 @@ function drawRecVisualization(){
 
   if(isOverdub){
     // Avanzar el playhead según el tiempo grabado para que tlDraw muestre el progreso
-    TL.pos = Math.min(overdubStartSec + elapsed, tlGetDuration());
+    TL.pos = overdubStartSec + elapsed;
     // tlDraw() dibuja el waveform original + barras rojas superpuestas (vía tlAnimate)
   } else {
     // Grabación nueva: dibujar rolling wave directamente en el timeline
@@ -1908,6 +1908,20 @@ function tlDraw(){
   ctx.fillStyle = 'rgba(255,255,255,0.42)';
   ctx.fillRect(0, 0, centerX, h);
 
+  // marcadores de recorte dibujados sobre el canvas (scroll-corrected)
+  if(trimMode){
+    const green = getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#5d8a4a';
+    const sX = (trimStart - TL.pos) * TL.pxPerSec + centerX;
+    const eX = (trimEnd   - TL.pos) * TL.pxPerSec + centerX;
+    // región sombreada
+    const rL = Math.max(0, sX), rR = Math.min(w, eX);
+    if(rR > rL){ ctx.fillStyle = 'rgba(93,138,74,0.22)'; ctx.fillRect(rL, 0, rR - rL, h); }
+    // línea de inicio centrada en el px exacto
+    ctx.fillStyle = green;
+    if(sX >= 0 && sX <= w) ctx.fillRect(sX - 1.5, 0, 3, h);
+    if(eX >= 0 && eX <= w) ctx.fillRect(eX - 1.5, 0, 3, h);
+  }
+
   // superposición de grabación en vivo (overdub): barras rojas sobre la región grabada
   if(isRecording && isOverdub && recWaveform.length > 0){
     const startPx = (overdubStartSec - TL.pos) * TL.pxPerSec + centerX;
@@ -1947,7 +1961,7 @@ function tlAnimate(){
       }
     }
     const dur = tlGetDuration();
-    if(TL.pos > dur) TL.pos = dur;
+    if(!(isRecording && isOverdub) && TL.pos > dur) TL.pos = dur;
     if(TL.pos < 0) TL.pos = 0;
   }
   tlDraw();
@@ -2344,30 +2358,7 @@ $('trimApply').addEventListener('click', ()=>{
 });
 
 function drawTrimMarkers(){
-  clearTrimMarkers();
-  if(!trimMode) return;
-  const dur = getEffectiveBuffer().duration;
-  const rect = timeline.getBoundingClientRect();
-  const w = rect.width;
-  const centerX = w/2;
-  // Los marcadores se posicionan relativos a la ventana visible centrada en TL.pos.
-  // Como el timeline hace scroll, los dibujamos como overlay fijo proporcional simple:
-  // marca de inicio y fin como porcentaje del total, en una mini-barra superpuesta.
-  const startPct = (trimStart/dur)*100;
-  const endPct = (trimEnd/dur)*100;
-  const region = document.createElement('div');
-  region.className = 'trim-region';
-  region.style.left = startPct + '%';
-  region.style.width = (endPct-startPct) + '%';
-  region.dataset.trim = '1';
-  timeline.appendChild(region);
-  ['start','end'].forEach((which)=>{
-    const m = document.createElement('div');
-    m.className = 'trim-marker';
-    m.style.left = (which==='start'?startPct:endPct) + '%';
-    m.dataset.trim = '1';
-    timeline.appendChild(m);
-  });
+  clearTrimMarkers(); // los marcadores ahora se dibujan en canvas en tlDraw()
 }
 function clearTrimMarkers(){
   timeline.querySelectorAll('[data-trim]').forEach(el=> el.remove());
