@@ -604,14 +604,13 @@ body.fondo-especial .appa-arrow{
 .opacity-row{ display:flex; align-items:center; gap:12px; margin-top:8px; }
 .opacity-row input[type=range]{ flex:1; accent-color:var(--brown); height:6px; }
 .opacity-val{ font-weight:800; font-size:0.9rem; color:var(--brown-dark); min-width:42px; text-align:right; }
-/* Nota musical en tiempo real durante reproducción */
-.tl-note{
-  font-size:0.78rem; font-weight:900; color:var(--brown-dark);
-  background:var(--cream); border-radius:8px; padding:2px 8px;
-  min-width:36px; text-align:center; letter-spacing:0.5px;
-  display:none;
+/* Nota musical en tiempo real — dentro del botón Tono */
+.tile-live-note{
+  font-size:0.88rem; font-weight:900; color:var(--celeste,#7ecfd4);
+  letter-spacing:0.5px; line-height:1; min-height:1.1em;
+  display:block;
 }
-.tl-note:not(:empty){ display:inline-block; }
+.tile-live-note:empty{ display:none; }
 /* Toggle modo recorte vs eliminar trozo */
 .trim-mode-row{ display:flex; gap:8px; margin-bottom:10px; }
 .trim-mode-btn{
@@ -698,7 +697,6 @@ body.fondo-especial .appa-arrow{
       <button class="play-btn-main" id="btnPlayPause">&#9658;</button>
       <button class="tl-skip-btn" id="btnSkipFwd">▶</button>
       <span class="tl-time" id="timeLabel">0:00 / 0:00</span>
-      <span class="tl-note" id="tlNote"></span>
     </div>
   </div>
 
@@ -785,6 +783,7 @@ body.fondo-especial .appa-arrow{
     <button class="tile-btn" id="btnDetectTone">
       <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="1.5" y="8.5" width="3" height="7" rx="1.5"/><rect x="6" y="5.5" width="3" height="13" rx="1.5"/><rect x="10.5" y="3" width="3" height="18" rx="1.5"/><rect x="15" y="5.5" width="3" height="13" rx="1.5"/><rect x="19.5" y="8.5" width="3" height="7" rx="1.5"/></svg></span>
       <span>Tono</span>
+      <span class="tile-live-note" id="btnToneNote"></span>
     </button>
     <!-- Reversa: barra vertical izquierda + dos triángulos apuntando izquierda -->
     <button class="tile-btn" id="btnReverse">
@@ -978,23 +977,22 @@ body.fondo-especial .appa-arrow{
 
     <button class="help-toggle" id="helpToggle">Cómo usar la app <span id="helpChevron">▾</span></button>
     <div class="help-content hidden" id="helpContent">
-      <div class="help-item"><b>Subir archivo / Grabar mic</b><span>Carga un audio o video desde tu dispositivo, o graba directamente con el micrófono. La app detecta sola si es audio o video.</span></div>
-      <div class="help-item"><b>Grabar encima</b><span>Graba nuevo audio desde la posición actual de la línea central, reemplazando ese tramo. Útil para corregir o añadir partes sin empezar de cero.</span></div>
-      <div class="help-item"><b>Limpiar todo</b><span>Borra el audio cargado y reinicia todos los controles a su estado inicial.</span></div>
-      <div class="help-item"><b>La pista (timeline)</b><span>El trazado del audio se desplaza bajo la línea central mientras suena. Arrastra con un dedo para moverte por el audio. Pellizca con dos dedos para acercar o alejar el zoom (la línea central queda fija).</span></div>
-      <div class="help-item"><b>Pitch (±48 st)</b><span>Cambia el tono. La unidad son semitonos: poner "1" sube un semitono, "12" sube una octava completa, "-12" baja una octava. El rango va de -48 a +48 semitonos (cuatro octavas arriba o abajo). Los botones circulares +1/-1 ajustan de a un semitono, y el botón "0" al lado de la caja vuelve el pitch a cero.</span></div>
-      <div class="help-item"><b>Velocidad (0.050x – 10.000x)</b><span>Cambia qué tan rápido suena. 1.000x es la velocidad normal, 2x el doble de rápido, 0.5x la mitad. Por defecto, cambiar la velocidad también cambia el tono (como un disco de vinilo a distinta RPM) — salvo que actives Pitch-lock. Los botones +1/-1 suman o restan velocidad de a una unidad, y el botón "0" la vuelve a 1x.</span></div>
-      <div class="help-item"><b>Pitch-lock</b><span>Cuando está activo (verde), cambiar la velocidad NO altera el tono, y el pitch lo controlas solo con su slider. Es lo que usan las apps tipo InShot para acelerar sin que las voces suenen "de ardilla".</span></div>
-      <div class="help-item"><b>Detectar tono</b><span>Analiza el audio que tienes cargado y muestra la nota musical predominante, además de las 3 notas más frecuentes. Si reproduces el audio, también va mostrando la nota en tiempo real.</span></div>
-      <div class="help-item"><b>Afinador</b><span>Afinador en tiempo real con el micrófono. Modos guitarra, ukelele y cromático. Muestra la nota, los Hz y un indicador que se pone verde cuando estás afinado. En guitarra/ukelele resalta la cuerda más cercana.</span></div>
-      <div class="help-item"><b>Reversa</b><span>Invierte el audio para que suene al revés. Si es video, también puede invertir la imagen al exportar.</span></div>
-      <div class="help-item"><b>Loop</b><span>Reproduce el audio en bucle: al terminar, vuelve a empezar automáticamente.</span></div>
-      <div class="help-item"><b>Recortar</b><span>Marca un inicio y un fin (usando la posición de la línea central) y quédate solo con ese fragmento. El recorte pasa a ser el nuevo audio base.</span></div>
-      <div class="help-item"><b>Velocidad (atajos)</b><span>Botones rápidos de velocidad (0.25x hasta 4x) sin tener que usar el slider.</span></div>
-      <div class="help-item"><b>Export Rápi</b><span>Exporta el audio al instante en formato MP4 (solo audio, AAC), liviano y compatible con iPhone.</span></div>
-      <div class="help-item"><b>Export Pro</b><span>Abre opciones de formato: WAV, MP3 (320/192/128 kbps), MP4 solo-audio, y —si cargaste un video— exportar el video completo con el audio editado. La exportación de video usa un motor que se descarga la primera vez y puede tardar varios minutos.</span></div>
-      <div class="help-item"><b>Tocar "A.P.P.A." (arriba)</b><span>Abre el menú de personalización: cambia el color de los botones y del fondo por separado, los invierte entre sí, y consulta el registro de archivos que has exportado.</span></div>
-      <div class="help-item"><b>Deshacer / Rehacer</b><span>Las flechas de arriba a la derecha deshacen o rehacen los últimos cambios de pitch, velocidad y efectos.</span></div>
+      <div class="help-item"><b>Subir archivo / Grabar mic</b><span>Cargá un audio o video desde tu celular o computador, o grabá directo con el micrófono. La app detecta sola si es audio o video — no tenés que hacer nada extra.</span></div>
+      <div class="help-item"><b>Grabar encima <u>(Overdub)</u></b><span>Grabá nuevo audio desde donde está el cursor, <b>mezclado sobre lo que ya hay</b>. Genial para corregir una parte sin borrar todo o para agregar capas.</span></div>
+      <div class="help-item"><b>La pista (timeline)</b><span>El audio se desplaza bajo la línea central mientras suena. <b>Arrastrá con un dedo</b> para moverte por el audio. <b>Pellizca con dos dedos</b> para acercar o alejar el zoom — la línea central queda siempre fija.</span></div>
+      <div class="help-item"><b>Pitch — cambio de tono <u>(±48 semitonos)</u></b><span><b>Los semitonos son como mover la cejilla en la guitarra:</b> +1 es subir un traste, +12 es subir una octava entera (como ir del traste 1 al 13), −12 es bajar una octava. Los botones <b>+1 / −1</b> ajustan de a un traste, y el <b>"0"</b> vuelve el pitch al original. El rango total es de 4 octavas arriba o abajo.</span></div>
+      <div class="help-item"><b>Velocidad <u>(0.05x – 10x)</u></b><span><b>Qué tan rápido suena.</b> 1x = normal, 2x = doble de rápido, 0.5x = la mitad. Por defecto, cambiar la velocidad también arrastra el tono (como un casete a distinta velocidad). Para separarlos, activá <b>Pitch-lock</b>.</span></div>
+      <div class="help-item"><b>Pitch-lock 🔒</b><span>Desacopla el tono de la velocidad. Con esto activo, podés <b>acelerar sin que las voces suenen "a ardilla"</b>, o bajar el tono sin que el audio se arrastre. Es el modo que usan apps como InShot.</span></div>
+      <div class="help-item"><b>Tono — detección en tiempo real</b><span>Al tocar, abre el análisis del audio: te muestra la <b>nota predominante</b> y las más frecuentes con su porcentaje. <b>Si el audio está reproduciéndose, el propio botón muestra la nota del momento en tiempo real</b>, como si fuera un afinador para el audio.</span></div>
+      <div class="help-item"><b>Afinador 🎸</b><span>Afinador en tiempo real <b>usando el micrófono</b>. Modos guitarra, ukelele y cromático. La aguja se pone <b>verde cuando estás afinado</b>; en guitarra/ukelele también resalta la cuerda más cercana.</span></div>
+      <div class="help-item"><b>Efectos — Reverb y Distorsión</b><span>Panel con dos efectos combinables: <b>Reverb</b> agrega espacio y eco (slider Seco→Húmedo). <b>Distorsión</b> va desde una saturación suave y cálida hasta el <b>clipping bestial estilo TikTok</b> (slider Suave→Bestial). Cada uno tiene su toggle ON/OFF independiente.</span></div>
+      <div class="help-item"><b>Reversa</b><span>Invierte el audio para que <b>suene al revés</b>.</span></div>
+      <div class="help-item"><b>Loop</b><span>El audio se <b>repite solo</b> al terminar, sin que tengas que hacer nada.</span></div>
+      <div class="help-item"><b>Recortar — dos modos</b><span>Poné la línea central donde querés y marcá inicio/fin. Modo <b>"Conservar selección"</b>: te quedás solo con ese fragmento. Modo <b>"Eliminar trozo"</b>: borrás esa parte del medio y la app une lo que queda antes y después. Ideal para sacar silencios o partes que no querés.</span></div>
+      <div class="help-item"><b>Export Rápi</b><span>Exporta al instante en <b>MP4 (audio AAC)</b>, liviano y compatible con iPhone sin instalar nada.</span></div>
+      <div class="help-item"><b>Export Pro</b><span>Elegís el formato: <b>WAV</b> (sin pérdida), <b>MP3</b> (320/192/128 kbps), <b>MP4 solo-audio</b>, o si cargaste un video, exportarlo <b>con el audio editado</b>. El motor de video se descarga la primera vez y puede tardar unos minutos.</span></div>
+      <div class="help-item"><b>Menú A.P.P.A. (tocá el logo arriba)</b><span>Personalización: <b>fondo especial</b>, transparencia de botones, fondo móvil con efecto parallax, y el historial de archivos exportados.</span></div>
+      <div class="help-item"><b>Deshacer / Rehacer ↩↪</b><span>Las flechas de arriba a la derecha deshacen o rehacen los últimos cambios de pitch, velocidad, cortes y efectos.</span></div>
     </div>
 
     <div class="credits">

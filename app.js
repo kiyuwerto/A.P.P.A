@@ -739,7 +739,12 @@ let liveToneRafSimple = null;
 function startLiveToneSimple(){
   if(liveToneRafSimple) return;
   function track(){
-    if(!isPlaying){ liveToneRafSimple = null; const n=$('tlNote'); if(n) n.textContent=''; return; }
+    if(!isPlaying){
+      liveToneRafSimple = null;
+      const n = $('btnToneNote');
+      if(n) n.textContent = '';
+      return;
+    }
     const buffer = getEffectiveBuffer && getEffectiveBuffer();
     if(buffer && buffer.getChannelData){
       const sr = buffer.sampleRate;
@@ -752,7 +757,7 @@ function startLiveToneSimple(){
         const freq = autoCorrelate(slice, sr);
         if(freq > 40 && freq < 2000 && isFinite(freq)){
           const {name, octave} = freqToNote(freq);
-          const n = $('tlNote');
+          const n = $('btnToneNote');
           if(n) n.textContent = name + octave;
         }
       }
