@@ -586,6 +586,18 @@ body.fondo-especial .tl-controls{
   background:color-mix(in srgb, var(--card) calc(var(--btn-opacity) * 100%), transparent);
 }
 
+/* Franjas de borde permanentes (imagen 4, mitad superior/inferior) */
+#fondoBorderTop, #fondoBorderBottom{
+  position:fixed; left:0; right:0; z-index:2;
+  pointer-events:none; display:none;
+  background-image:url('fondo4.jfif');
+  background-size:cover; background-repeat:no-repeat;
+}
+#fondoBorderTop{ top:0; height:60px; background-position:top center; }
+#fondoBorderBottom{ bottom:0; height:60px; background-position:bottom center; }
+body.fondo-especial #fondoBorderTop,
+body.fondo-especial #fondoBorderBottom{ display:block; }
+
 /* Cajas beige en elementos sueltos cuando hay fondo especial */
 body.fondo-especial .icon-btn{
   background:var(--cream);
@@ -594,7 +606,8 @@ body.fondo-especial .footer-brand,
 body.fondo-especial .footer-sub,
 body.fondo-especial .credit-line{
   background:color-mix(in srgb, var(--cream) calc(var(--btn-opacity) * 100%), transparent);
-  border-radius:10px; padding:3px 10px; display:inline-block;
+  border-radius:10px; padding:3px 10px;
+  display:block; width:fit-content; margin-left:auto; margin-right:auto;
 }
 body.fondo-especial .appa-arrow{
   background:color-mix(in srgb, var(--cream) calc(var(--btn-opacity) * 100%), transparent);
@@ -612,6 +625,8 @@ body.fondo-especial .appa-arrow{
 </head>
 <body>
 <div id="fondoLayer"></div>
+<div id="fondoBorderTop"></div>
+<div id="fondoBorderBottom"></div>
 <div class="app">
 
   <div class="topbar">
