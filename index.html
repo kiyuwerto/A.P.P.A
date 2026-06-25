@@ -38,7 +38,7 @@ button{font-family:inherit;}
 .app{
   max-width:520px; margin:0 auto; padding:0 16px calc(24px + env(safe-area-inset-bottom));
   padding-top:env(safe-area-inset-top);
-  position:relative;
+  position:relative; z-index:1;
 }
 
 /* HEADER */
@@ -564,13 +564,7 @@ input[type=range]::-moz-range-thumb{
 @media (min-width:600px){
   #fondoLayer{ background-image:url('fondo2.jfif'); }
 }
-html.fondo-especial{
-  background-image:url('fondo.jfif');
-  background-size:cover; background-position:center;
-}
-@media(min-width:600px){
-  html.fondo-especial{ background-image:url('fondo2.jfif'); }
-}
+html.fondo-especial{ background:var(--brown-dark); }
 body.fondo-especial{ background:transparent; }
 body.fondo-especial #fondoLayer{ display:block; }
 
@@ -588,13 +582,13 @@ body.fondo-especial .tl-controls{
 
 /* Franjas de borde permanentes (imagen 4, mitad superior/inferior) */
 #fondoBorderTop, #fondoBorderBottom{
-  position:fixed; left:0; right:0; z-index:2;
+  position:fixed; left:0; right:0; z-index:0;
   pointer-events:none; display:none;
   background-image:url('fondo4.jfif');
   background-size:cover; background-repeat:no-repeat;
 }
-#fondoBorderTop{ top:0; height:60px; background-position:top center; }
-#fondoBorderBottom{ bottom:0; height:60px; background-position:bottom center; }
+#fondoBorderTop{ top:0; height:120px; background-position:top center; }
+#fondoBorderBottom{ bottom:0; height:120px; background-position:bottom center; }
 body.fondo-especial #fondoBorderTop,
 body.fondo-especial #fondoBorderBottom{ display:block; }
 
