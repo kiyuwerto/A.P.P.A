@@ -688,7 +688,28 @@ function getReverbIR(audioCtx){
   return buf;
 }
 
+function createDistortionCurve(amount){
+  const n = 512;
+  const curve = new Float32Array(n);
+  const k = amount * 200 + 1; // 1 (suave) → 201 (bestial)
+  for(let i=0; i<n; i++){
+    const x = (i * 2) / n - 1;
+    curve[i] = Math.tanh(k * x);
+  }
+  return curve;
+}
+
 function connectToOutput(source, audioCtx){
+  let signal = source;
+  // Distorsión (antes del reverb en la cadena)
+  if(distortionOn){
+    const ws = audioCtx.createWaveShaper();
+    ws.curve = createDistortionCurve(distortionAmount);
+    ws.oversample = '4x';
+    source.connect(ws);
+    signal = ws;
+  }
+  // Reverb (wet/dry)
   if(reverbOn){
     const conv = audioCtx.createConvolver();
     conv.buffer = getReverbIR(audioCtx);
@@ -696,13 +717,13 @@ function connectToOutput(source, audioCtx){
     const dry = audioCtx.createGain();
     wet.gain.value = reverbMix;
     dry.gain.value = 1 - reverbMix;
-    source.connect(dry);
-    source.connect(conv);
+    signal.connect(dry);
+    signal.connect(conv);
     conv.connect(wet);
     wet.connect(audioCtx.destination);
     dry.connect(audioCtx.destination);
   } else {
-    source.connect(audioCtx.destination);
+    signal.connect(audioCtx.destination);
   }
 }
 
@@ -2412,29 +2433,48 @@ $('trimModeCut').addEventListener('click', ()=>{
 });
 
 // ============================================================
-// REVERB
+// EFECTOS (Reverb + Distorsión) — panel desplegable unificado
 // ============================================================
-const btnReverb = $('btnReverb');
-const reverbPanel = $('reverbPanel');
+let distortionOn = false;
+let distortionAmount = 0.5;
 
-btnReverb.addEventListener('click', ()=>{
-  const open = !reverbPanel.classList.contains('hidden');
-  if(open){
-    reverbPanel.classList.add('hidden');
-    reverbOn = false;
-    btnReverb.classList.remove('active');
-  } else {
-    reverbPanel.classList.remove('hidden');
-    reverbOn = true;
-    btnReverb.classList.add('active');
-    reverbPanel.scrollIntoView({behavior:'smooth', block:'nearest'});
-  }
+const btnEfectos = $('btnEfectos');
+const efectosPanel = $('efectosPanel');
+
+btnEfectos.addEventListener('click', ()=>{
+  const open = !efectosPanel.classList.contains('hidden');
+  efectosPanel.classList.toggle('hidden', open);
+  btnEfectos.classList.toggle('active', !open);
+  if(!open) efectosPanel.scrollIntoView({behavior:'smooth', block:'nearest'});
+});
+
+$('reverbToggle').addEventListener('click', ()=>{
+  reverbOn = !reverbOn;
+  const btn = $('reverbToggle');
+  btn.textContent = reverbOn ? 'ON' : 'OFF';
+  btn.classList.toggle('active', reverbOn);
+  $('reverbCtrl').classList.toggle('hidden', !reverbOn);
   if(isPlaying){ stopPlayback(); startPlayback(); }
 });
 
 $('reverbMixSlider').addEventListener('input', (e)=>{
   reverbMix = parseInt(e.target.value) / 100;
   $('reverbMixLabel').textContent = e.target.value + '%';
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+
+$('distortionToggle').addEventListener('click', ()=>{
+  distortionOn = !distortionOn;
+  const btn = $('distortionToggle');
+  btn.textContent = distortionOn ? 'ON' : 'OFF';
+  btn.classList.toggle('active', distortionOn);
+  $('distortionCtrl').classList.toggle('hidden', !distortionOn);
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+
+$('distortionSlider').addEventListener('input', (e)=>{
+  distortionAmount = parseInt(e.target.value) / 100;
+  $('distortionLabel').textContent = e.target.value + '%';
   if(isPlaying){ stopPlayback(); startPlayback(); }
 });
 
