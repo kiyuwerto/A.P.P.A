@@ -2246,6 +2246,7 @@ let btnOpacity = 100;
 function applyFondoEspecial(on){
   fondoEspecial = on;
   document.body.classList.toggle('fondo-especial', on);
+  document.documentElement.classList.toggle('fondo-especial', on);
   const btn = $('fondoEspecialBtn');
   if(btn) btn.classList.toggle('btn-active', on);
   const mobileBtn = $('fondoMobileBtn');

@@ -561,13 +561,26 @@ input[type=range]::-moz-range-thumb{
   transition:transform 0.12s ease-out;
   will-change:transform;
 }
+html.fondo-especial,
 body.fondo-especial{ background:transparent; }
 body.fondo-especial #fondoLayer{ display:block; }
 
-/* Transparencia de botones */
+/* Transparencia de botones y sliders */
 :root{ --btn-opacity:1; }
-button{ opacity:var(--btn-opacity); }
+button, input[type=range]{ opacity:var(--btn-opacity); }
 #appaMenu{ --btn-opacity:1; }
+
+/* Contorno de texto cuando hay fondo especial */
+body.fondo-especial .icon-btn,
+body.fondo-especial .footer-brand,
+body.fondo-especial .footer-sub,
+body.fondo-especial .credit-line,
+body.fondo-especial .credit-line span{
+  text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.7);
+}
+body.fondo-especial .appa-arrow{
+  filter:drop-shadow(0 1px 4px rgba(0,0,0,0.85));
+}
 
 /* Controles de apariencia en el menú */
 .fondo-toggle-row{ display:flex; flex-direction:column; gap:8px; margin-top:6px; }
