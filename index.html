@@ -604,13 +604,6 @@ body.fondo-especial .appa-arrow{
 .opacity-row{ display:flex; align-items:center; gap:12px; margin-top:8px; }
 .opacity-row input[type=range]{ flex:1; accent-color:var(--brown); height:6px; }
 .opacity-val{ font-weight:800; font-size:0.9rem; color:var(--brown-dark); min-width:42px; text-align:right; }
-/* Nota musical en tiempo real — dentro del botón Tono */
-.tile-live-note{
-  font-size:0.88rem; font-weight:900; color:var(--celeste,#7ecfd4);
-  letter-spacing:0.5px; line-height:1; min-height:1.1em;
-  display:block;
-}
-.tile-live-note:empty{ display:none; }
 /* Toggle modo recorte vs eliminar trozo */
 .trim-mode-row{ display:flex; gap:8px; margin-bottom:10px; }
 .trim-mode-btn{
@@ -783,7 +776,6 @@ body.fondo-especial .appa-arrow{
     <button class="tile-btn" id="btnDetectTone">
       <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="1.5" y="8.5" width="3" height="7" rx="1.5"/><rect x="6" y="5.5" width="3" height="13" rx="1.5"/><rect x="10.5" y="3" width="3" height="18" rx="1.5"/><rect x="15" y="5.5" width="3" height="13" rx="1.5"/><rect x="19.5" y="8.5" width="3" height="7" rx="1.5"/></svg></span>
       <span>Tono</span>
-      <span class="tile-live-note" id="btnToneNote"></span>
     </button>
     <!-- Reversa: barra vertical izquierda + dos triángulos apuntando izquierda -->
     <button class="tile-btn" id="btnReverse">

@@ -775,40 +775,6 @@ function connectToOutput(source, audioCtx){
 }
 
 // ============================================================
-// NOTA EN TIEMPO REAL durante la reproducción
-// ============================================================
-let liveToneRafSimple = null;
-
-function startLiveToneSimple(){
-  if(liveToneRafSimple) return;
-  function track(){
-    if(!isPlaying){
-      liveToneRafSimple = null;
-      const n = $('btnToneNote');
-      if(n) n.textContent = '';
-      return;
-    }
-    const buffer = getEffectiveBuffer && getEffectiveBuffer();
-    if(buffer && buffer.getChannelData){
-      const sr = buffer.sampleRate;
-      const data = buffer.getChannelData(0);
-      const center = Math.floor(TL.pos * sr);
-      const winSize = 4096;
-      const start = Math.max(0, center - winSize/2);
-      if(start + winSize < data.length){
-        const slice = data.slice(start, start + winSize);
-        const freq = autoCorrelate(slice, sr);
-        if(freq > 40 && freq < 2000 && isFinite(freq)){
-          const {name, octave} = freqToNote(freq);
-          const n = $('btnToneNote');
-          if(n) n.textContent = name + octave;
-        }
-      }
-    }
-    liveToneRafSimple = requestAnimationFrame(track);
-  }
-  track();
-}
 
 function stopPlayback(){
   if(sourceNode){
@@ -882,7 +848,35 @@ function startPlayback(){
       btnPlayPause.textContent = '❚❚';
       updateAppaAnimation();
       tickVideo();
-      startLiveToneSimple();
+      return;
+    }
+
+    // Reversa sin pitch-lock: mute video, tocar buffer revertido por Web Audio.
+    // (El video nativo no puede reproducirse al revés; el audio SÍ puede desde el buffer.)
+    if(isReversed && workingBuffer){
+      videoEl.muted = true;
+      const variSpeedRate = speedRate * semitonesToRate(pitchSemis);
+      videoEl.playbackRate = Math.min(16, Math.max(0.0625, variSpeedRate));
+      try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
+      const buf = getEffectiveBuffer(); // buffer ya revertido
+      sourceNode = ctx.createBufferSource();
+      sourceNode.buffer = buf;
+      sourceNode.playbackRate.value = Math.min(16, Math.max(0.0625, variSpeedRate));
+      connectToOutput(sourceNode, ctx);
+      sourceNode.onended = ()=>{
+        if(isPlaying){
+          if(loopEnabled){ playStartOffset=0; TL.pos=0; stopPlayback(); startPlayback(); }
+          else stopPlayback();
+        }
+      };
+      const bufOffset = Math.max(0, Math.min(playStartOffset, buf.duration - 0.01));
+      sourceNode.start(0, bufOffset);
+      playStartCtxTime = ctx.currentTime;
+      videoEl.play();
+      isPlaying = true;
+      btnPlayPause.textContent = '❚❚';
+      updateAppaAnimation();
+      tickVideo();
       return;
     }
 
@@ -909,7 +903,6 @@ function startPlayback(){
     btnPlayPause.textContent = '❚❚';
     updateAppaAnimation();
     tickVideo();
-    startLiveToneSimple();
     return;
   }
 
@@ -950,7 +943,6 @@ function startPlayback(){
   if(tunerMode === 'audiofile' && !tunerPanel.classList.contains('hidden')){
     startLiveToneTracking();
   }
-  startLiveToneSimple();
 }
 
 function tickAudio(buf){
