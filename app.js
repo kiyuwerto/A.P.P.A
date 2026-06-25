@@ -212,21 +212,16 @@ async function loadFile(file){
     const ctx = ensureAudioCtx();
     let decoded = null;
     try{
-      // Intento directo: funciona para audio puro y algunos videos en Chrome
+      // Intento directo: funciona para audio puro y muchos videos en Chrome
       decoded = await ctx.decodeAudioData(arrayBuf.slice(0));
     }catch(decErr){
       if(!isVideo) throw decErr;
-      // Fallback para video: extraer pista de audio con FFmpeg
-      // (Safari/iOS no soporta decodeAudioData en contenedores MP4/MOV)
-      setStatus('Extrayendo audio del video…');
-      showLoading('Extrayendo audio del video…');
-      const ff = await getFfmpeg();
-      await ff.writeFile('appa_vin', new Uint8Array(arrayBuf));
-      await ff.exec(['-i','appa_vin','-vn','-acodec','pcm_s16le','-ar','44100','appa_vout.wav']);
-      const wavData = await ff.readFile('appa_vout.wav');
-      ff.deleteFile('appa_vin').catch(()=>{});
-      ff.deleteFile('appa_vout.wav').catch(()=>{});
-      decoded = await ctx.decodeAudioData(wavData.buffer.slice(0));
+      // Safari/iOS: decodeAudioData no soporta contenedores de video (MP4/MOV).
+      // Extraer audio con FFmpeg en BACKGROUND — el video ya es reproducible
+      // mientras tanto, y la onda/edición aparecen cuando termina.
+      // (finally de afuera llama hideLoading al salir con return)
+      extractVideoAudioBackground(arrayBuf, ctx);
+      return;
     }
     originalBuffer = decoded;
     workingBuffer = originalBuffer;
@@ -242,6 +237,36 @@ async function loadFile(file){
     setStatus('No se pudo decodificar el audio de este archivo');
   } finally {
     hideLoading();
+  }
+}
+
+async function extractVideoAudioBackground(arrayBuf, audioCtx){
+  setStatus('Extrayendo audio del video… (si es la primera vez puede tardar)');
+  try{
+    showFfmpegProgress(true, 'Cargando motor… (primera vez descarga ~25 MB)');
+    const ff = await getFfmpeg();
+    showFfmpegProgress(true, 'Extrayendo pista de audio…');
+    await ff.writeFile('appa_vin', new Uint8Array(arrayBuf));
+    await ff.exec(['-i','appa_vin','-vn','-acodec','pcm_s16le','-ar','44100','appa_vout.wav']);
+    const wavData = await ff.readFile('appa_vout.wav');
+    ff.deleteFile('appa_vin').catch(()=>{});
+    ff.deleteFile('appa_vout.wav').catch(()=>{});
+    const decoded = await audioCtx.decodeAudioData(wavData.buffer.slice(0));
+    originalBuffer = decoded;
+    workingBuffer = decoded;
+    isReversed = false;
+    drawWaveform(workingBuffer);
+    tlInit();
+    playStartOffset = 0;
+    if(videoEl && !videoEl.classList.contains('hidden'))
+      timeLabel.textContent = `0:00 / ${fmtTime(videoEl.duration || originalBuffer.duration)}`;
+    setStatus('Audio extraído ✓ — ya podés editar el audio', 3000);
+    pushHistory();
+  }catch(err){
+    console.error('Extracción de audio de video falló:', err);
+    setStatus('No se pudo extraer el audio. El video se puede reproducir, pero no editar.');
+  } finally {
+    showFfmpegProgress(false);
   }
 }
 
