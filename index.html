@@ -38,7 +38,7 @@ button{font-family:inherit;}
 .app{
   max-width:520px; margin:0 auto; padding:0 16px calc(24px + env(safe-area-inset-bottom));
   padding-top:env(safe-area-inset-top);
-  position:relative; z-index:1;
+  position:relative;
 }
 
 /* HEADER */
@@ -580,17 +580,6 @@ body.fondo-especial .tl-controls{
   background:color-mix(in srgb, var(--card) calc(var(--btn-opacity) * 100%), transparent);
 }
 
-/* Franjas de borde permanentes (imagen 4, mitad superior/inferior) */
-#fondoBorderTop, #fondoBorderBottom{
-  position:fixed; left:0; right:0; z-index:0;
-  pointer-events:none; display:none;
-  background-image:url('fondo4.jfif');
-  background-size:cover; background-repeat:no-repeat;
-}
-#fondoBorderTop{ top:0; height:120px; background-position:top center; }
-#fondoBorderBottom{ bottom:0; height:120px; background-position:bottom center; }
-body.fondo-especial #fondoBorderTop,
-body.fondo-especial #fondoBorderBottom{ display:block; }
 
 /* Cajas beige en elementos sueltos cuando hay fondo especial */
 body.fondo-especial .icon-btn{
@@ -619,8 +608,6 @@ body.fondo-especial .appa-arrow{
 </head>
 <body>
 <div id="fondoLayer"></div>
-<div id="fondoBorderTop"></div>
-<div id="fondoBorderBottom"></div>
 <div class="app">
 
   <div class="topbar">
