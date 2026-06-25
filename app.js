@@ -59,6 +59,7 @@ let trimStart = 0;   // segundos (audio original)
 let trimEnd = 0;     // segundos
 let trimAction = 'keep'; // 'keep' conserva selección, 'cut' elimina trozo del medio
 let videoMediaSource = null; // MediaElementAudioSourceNode (creado una sola vez, reutilizado)
+let activeEffectNodes = []; // nodos de efectos activos, para desconectar al parar
 let rafId = null;
 
 let pitchSemis = 0;     // -48..48
@@ -700,6 +701,7 @@ function createDistortionCurve(amount){
 }
 
 function connectToOutput(source, audioCtx){
+  activeEffectNodes = [];
   let signal = source;
   // Distorsión (antes del reverb en la cadena)
   if(distortionOn){
@@ -708,6 +710,7 @@ function connectToOutput(source, audioCtx){
     ws.oversample = '4x';
     source.connect(ws);
     signal = ws;
+    activeEffectNodes.push(ws);
   }
   // Reverb (wet/dry)
   if(reverbOn){
@@ -722,6 +725,7 @@ function connectToOutput(source, audioCtx){
     conv.connect(wet);
     wet.connect(audioCtx.destination);
     dry.connect(audioCtx.destination);
+    activeEffectNodes.push(conv, wet, dry);
   } else {
     signal.connect(audioCtx.destination);
   }
@@ -764,6 +768,8 @@ function stopPlayback(){
     sourceNode.disconnect();
     sourceNode = null;
   }
+  activeEffectNodes.forEach(n=>{ try{ n.disconnect(); }catch(e){} });
+  activeEffectNodes = [];
   if(videoMediaSource){ try{ videoMediaSource.disconnect(); }catch(e){} }
   if(videoEl && !videoEl.classList.contains('hidden')){
     videoEl.pause();
