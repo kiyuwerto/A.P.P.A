@@ -28,18 +28,11 @@
   --orange:#c97b2e;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-html{
-  margin:0; padding:0; width:100%; height:100%;
-  overflow:hidden; /* html fijo = su background no se mueve */
-  background:var(--cream);
+html,body{
+  margin:0; padding:0; background:var(--cream); color:var(--brown-dark);
   font-family:'Nunito', -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-  color:var(--brown-dark);
-}
-body{
-  margin:0; padding:0; width:100%; min-height:100%;
-  overflow-y:auto; -webkit-overflow-scrolling:touch;
-  background:var(--cream);
-  overscroll-behavior-y:auto; /* permite rebote para revelar el html fijo */
+  overscroll-behavior:none;
+  width:100%; min-height:100vh;
 }
 button{font-family:inherit;}
 .app{
@@ -571,15 +564,8 @@ input[type=range]::-moz-range-thumb{
 @media (min-width:600px){
   #fondoLayer{ background-image:url('fondo2.jfif'); }
 }
-html.fondo-especial{
-  background-image:url('fondo.jfif');
-  background-size:cover; background-position:center;
-}
-@media(min-width:600px){
-  html.fondo-especial{ background-image:url('fondo2.jfif'); }
-}
+html.fondo-especial{ background:var(--brown-dark); }
 body.fondo-especial{ background:transparent; }
-/* html no scrollea → su background queda fijo aunque el body rebote */
 body.fondo-especial #fondoLayer{ display:block; }
 
 /* Transparencia de botones, sliders y cajas de texto */
