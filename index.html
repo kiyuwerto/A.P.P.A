@@ -552,9 +552,34 @@ input[type=range]::-moz-range-thumb{
   margin-top:24px; padding-top:4px;
   border-top:1.5px solid var(--cream-2);
 }
+
+/* Capa de fondo especial */
+#fondoLayer{
+  position:fixed; inset:0; z-index:-1; display:none;
+  background-image:url('fondo.jfif');
+  background-size:cover; background-position:center;
+  transition:transform 0.12s ease-out;
+  will-change:transform;
+}
+body.fondo-especial{ background:transparent; }
+body.fondo-especial #fondoLayer{ display:block; }
+
+/* Transparencia de botones */
+:root{ --btn-opacity:1; }
+button{ opacity:var(--btn-opacity); }
+#appaMenu{ --btn-opacity:1; }
+
+/* Controles de apariencia en el menú */
+.fondo-toggle-row{ display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+.menu-toggle-btn.btn-active{ background:var(--green); }
+.menu-toggle-btn.btn-sub{ background:var(--brown-light); }
+.opacity-row{ display:flex; align-items:center; gap:12px; margin-top:8px; }
+.opacity-row input[type=range]{ flex:1; accent-color:var(--brown); height:6px; }
+.opacity-val{ font-weight:800; font-size:0.9rem; color:var(--brown-dark); min-width:42px; text-align:right; }
 </style>
 </head>
 <body>
+<div id="fondoLayer"></div>
 <div class="app">
 
   <div class="topbar">
@@ -817,6 +842,21 @@ input[type=range]::-moz-range-thumb{
         </div>
         <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir</button>
         <button class="menu-toggle-btn" id="resetColorsBtn">Restablecer colores originales</button>
+      </div>
+
+      <div class="menu-section">
+        <h4>Apariencia</h4>
+        <div class="fondo-toggle-row">
+          <button class="menu-toggle-btn" id="fondoEspecialBtn">Fondo especial</button>
+          <button class="menu-toggle-btn btn-sub hidden" id="fondoMobileBtn">&#128247; Fondo móvil (parallax)</button>
+        </div>
+        <div style="margin-top:14px;">
+          <div style="font-weight:800;font-size:0.9rem;color:var(--brown-dark);margin-bottom:4px;">Transparencia de botones</div>
+          <div class="opacity-row">
+            <input type="range" id="btnOpacitySlider" min="10" max="100" value="100" step="5">
+            <span class="opacity-val" id="btnOpacityVal">100%</span>
+          </div>
+        </div>
       </div>
 
       <div class="menu-section">

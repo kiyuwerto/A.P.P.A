@@ -2235,6 +2235,84 @@ $('clearLogBtn').addEventListener('click', ()=>{
   renderExportLog();
 });
 
+// ──────────────────────────────────────────────
+// APARIENCIA: Fondo especial + Fondo móvil + Transparencia
+// ──────────────────────────────────────────────
+let fondoEspecial = false;
+let fondoMobile = false;
+let fondoOrientHandler = null;
+let btnOpacity = 100;
+
+function applyFondoEspecial(on){
+  fondoEspecial = on;
+  document.body.classList.toggle('fondo-especial', on);
+  const btn = $('fondoEspecialBtn');
+  if(btn) btn.classList.toggle('btn-active', on);
+  const mobileBtn = $('fondoMobileBtn');
+  if(mobileBtn) mobileBtn.classList.toggle('hidden', !on);
+  if(!on && fondoMobile) applyFondoMobile(false);
+  try{ localStorage.setItem('appa_fondo', on ? '1' : '0'); }catch(e){}
+}
+
+function applyFondoMobile(on){
+  fondoMobile = on;
+  const btn = $('fondoMobileBtn');
+  if(btn) btn.classList.toggle('btn-active', on);
+  const layer = $('fondoLayer');
+  if(!layer) return;
+
+  if(on){
+    layer.style.inset = '-55px';
+    fondoOrientHandler = function(e){
+      const x = Math.max(-1, Math.min(1, (e.gamma || 0) / 25));
+      const y = Math.max(-1, Math.min(1, ((e.beta || 45) - 45) / 25));
+      layer.style.transform = `translate(${x*40}px,${y*40}px)`;
+    };
+    const start = ()=> window.addEventListener('deviceorientation', fondoOrientHandler);
+    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      DeviceOrientationEvent.requestPermission().then(state=>{
+        if(state === 'granted') start();
+        else applyFondoMobile(false);
+      }).catch(()=> applyFondoMobile(false));
+    } else {
+      start();
+    }
+    try{ localStorage.setItem('appa_fondo_mobile', '1'); }catch(e){}
+  } else {
+    layer.style.inset = '0';
+    layer.style.transform = '';
+    if(fondoOrientHandler){
+      window.removeEventListener('deviceorientation', fondoOrientHandler);
+      fondoOrientHandler = null;
+    }
+    try{ localStorage.removeItem('appa_fondo_mobile'); }catch(e){}
+  }
+}
+
+function applyBtnOpacity(val){
+  btnOpacity = val;
+  document.documentElement.style.setProperty('--btn-opacity', val / 100);
+  const v = $('btnOpacityVal');
+  if(v) v.textContent = val + '%';
+  const s = $('btnOpacitySlider');
+  if(s) s.value = val;
+  try{ localStorage.setItem('appa_btn_opacity', val); }catch(e){}
+}
+
+// Restaurar ajustes de apariencia
+try{
+  const sf = localStorage.getItem('appa_fondo');
+  if(sf === '1') applyFondoEspecial(true);
+  const sm = localStorage.getItem('appa_fondo_mobile');
+  if(sm === '1' && fondoEspecial) applyFondoMobile(true);
+  const so = localStorage.getItem('appa_btn_opacity');
+  if(so !== null) applyBtnOpacity(parseInt(so));
+}catch(e){}
+
+$('fondoEspecialBtn').addEventListener('click', ()=> applyFondoEspecial(!fondoEspecial));
+$('fondoMobileBtn').addEventListener('click', ()=> applyFondoMobile(!fondoMobile));
+$('btnOpacitySlider').addEventListener('input', (e)=> applyBtnOpacity(parseInt(e.target.value)));
+
 // Handlers del diálogo de exportación
 $('exportClose').addEventListener('click', ()=> exportDialog.classList.add('hidden'));
 exportDialog.addEventListener('click', (e)=>{ if(e.target===exportDialog) exportDialog.classList.add('hidden'); });
