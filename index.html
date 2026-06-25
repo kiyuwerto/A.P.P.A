@@ -565,10 +565,17 @@ html.fondo-especial,
 body.fondo-especial{ background:transparent; }
 body.fondo-especial #fondoLayer{ display:block; }
 
-/* Transparencia de botones y sliders */
+/* Transparencia de botones, sliders y cajas de texto */
 :root{ --btn-opacity:1; }
-button, input[type=range]{ opacity:var(--btn-opacity); }
+button, input[type=range], input[type=number]{ opacity:var(--btn-opacity); }
 #appaMenu{ --btn-opacity:1; }
+
+/* Fondos de tarjetas responden a la transparencia cuando hay fondo especial */
+body.fondo-especial .control-block,
+body.fondo-especial .timeline,
+body.fondo-especial .tl-controls{
+  background:color-mix(in srgb, var(--card) calc(var(--btn-opacity) * 100%), transparent);
+}
 
 /* Contorno de texto cuando hay fondo especial */
 body.fondo-especial .icon-btn,
