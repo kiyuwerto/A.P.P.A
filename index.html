@@ -604,6 +604,22 @@ body.fondo-especial .appa-arrow{
 .opacity-row{ display:flex; align-items:center; gap:12px; margin-top:8px; }
 .opacity-row input[type=range]{ flex:1; accent-color:var(--brown); height:6px; }
 .opacity-val{ font-weight:800; font-size:0.9rem; color:var(--brown-dark); min-width:42px; text-align:right; }
+/* Nota musical en tiempo real durante reproducción */
+.tl-note{
+  font-size:0.78rem; font-weight:900; color:var(--brown-dark);
+  background:var(--cream); border-radius:8px; padding:2px 8px;
+  min-width:36px; text-align:center; letter-spacing:0.5px;
+  display:none;
+}
+.tl-note:not(:empty){ display:inline-block; }
+/* Toggle modo recorte vs eliminar trozo */
+.trim-mode-row{ display:flex; gap:8px; margin-bottom:10px; }
+.trim-mode-btn{
+  flex:1; background:var(--cream); color:var(--brown-dark);
+  border:2px solid var(--brown); border-radius:12px; cursor:pointer;
+  padding:8px 4px; font-weight:800; font-size:0.78rem; font-family:inherit; transition:background 0.15s;
+}
+.trim-mode-btn.active{ background:var(--brown); color:#fff; }
 </style>
 </head>
 <body>
@@ -667,11 +683,16 @@ body.fondo-especial .appa-arrow{
       <button class="play-btn-main" id="btnPlayPause">&#9658;</button>
       <button class="tl-skip-btn" id="btnSkipFwd">▶</button>
       <span class="tl-time" id="timeLabel">0:00 / 0:00</span>
+      <span class="tl-note" id="tlNote"></span>
     </div>
   </div>
 
   <!-- Panel de recorte (aparece al activar Recortar, encima de los botones de subir) -->
   <div class="trim-panel hidden" id="trimPanel">
+    <div class="trim-mode-row">
+      <button class="trim-mode-btn active" id="trimModeKeep">✂ Conservar selección</button>
+      <button class="trim-mode-btn" id="trimModeCut">✂ Eliminar trozo</button>
+    </div>
     <div class="trim-row">
       <span>Inicio: <b id="trimStartLabel">0:00</b></span>
       <span>Fin: <b id="trimEndLabel">0:00</b></span>
@@ -770,6 +791,22 @@ body.fondo-especial .appa-arrow{
       <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="10.5" y="1" width="3" height="6.5" rx="1.5"/><path fill-rule="evenodd" d="M12 7.5c-3.5 0-5 2-5 4 0 1 .5 2 1 2.5-.5.8-1 2-1 3C7 19.8 9.2 22 12 22s5-2.2 5-5c0-1-.5-2.2-1-3 .5-.5 1-1.5 1-2.5 0-2-1.5-4-5-4zM14 17.5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></span>
       <span>Afinador <span id="tunerChevron">▼</span></span>
     </button>
+    <!-- Reverb: barras decrecientes representando el eco -->
+    <button class="tile-btn full" id="btnReverb">
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="2" y="5.5" width="2.5" height="13" rx="1.25"/><rect x="6" y="7.5" width="2.5" height="9" rx="1.25"/><rect x="10" y="9" width="2.5" height="6" rx="1.25"/><rect x="14" y="10" width="2.5" height="4" rx="1.25"/><rect x="18" y="10.5" width="2.5" height="3" rx="1.25"/></svg></span>
+      <span>Reverb</span>
+    </button>
+  </div>
+  <!-- Panel reverb (aparece al activar Reverb) -->
+  <div class="trim-panel hidden" id="reverbPanel">
+    <div class="trim-row">
+      <span>Seco</span>
+      <b id="reverbMixLabel">30%</b>
+      <span>Húmedo</span>
+    </div>
+    <div class="control-row" style="padding:0 4px 6px;">
+      <input type="range" id="reverbMixSlider" min="0" max="100" step="1" value="30">
+    </div>
   </div>
   <button class="refresh-perm-btn" id="btnRefreshPerm">Refrescar micrófono/parlante</button>
 

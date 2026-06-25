@@ -57,6 +57,7 @@ let loopEnabled = false;
 let trimMode = false;
 let trimStart = 0;   // segundos (audio original)
 let trimEnd = 0;     // segundos
+let trimAction = 'keep'; // 'keep' conserva selección, 'cut' elimina trozo del medio
 let rafId = null;
 
 let pitchSemis = 0;     // -48..48
@@ -666,6 +667,75 @@ function updateAppaAnimation(){
   appaFaceWrap.classList.toggle('spinning', isPlaying || isRecording);
 }
 
+// ============================================================
+// REVERB (ConvolverNode con impulso sintético)
+// ============================================================
+let reverbOn = false;
+let reverbMix = 0.30;
+let reverbIR = null; // impulso en caché
+
+function getReverbIR(audioCtx){
+  if(reverbIR) return reverbIR;
+  const sr = audioCtx.sampleRate;
+  const len = Math.floor(sr * 2.5);
+  const buf = audioCtx.createBuffer(2, len, sr);
+  for(let c=0; c<2; c++){
+    const ch = buf.getChannelData(c);
+    for(let i=0; i<len; i++) ch[i] = (Math.random()*2-1) * Math.pow(1-i/len, 2);
+  }
+  reverbIR = buf;
+  return buf;
+}
+
+function connectToOutput(source, audioCtx){
+  if(reverbOn){
+    const conv = audioCtx.createConvolver();
+    conv.buffer = getReverbIR(audioCtx);
+    const wet = audioCtx.createGain();
+    const dry = audioCtx.createGain();
+    wet.gain.value = reverbMix;
+    dry.gain.value = 1 - reverbMix;
+    source.connect(dry);
+    source.connect(conv);
+    conv.connect(wet);
+    wet.connect(audioCtx.destination);
+    dry.connect(audioCtx.destination);
+  } else {
+    source.connect(audioCtx.destination);
+  }
+}
+
+// ============================================================
+// NOTA EN TIEMPO REAL durante la reproducción
+// ============================================================
+let liveToneRafSimple = null;
+
+function startLiveToneSimple(){
+  if(liveToneRafSimple) return;
+  function track(){
+    if(!isPlaying){ liveToneRafSimple = null; const n=$('tlNote'); if(n) n.textContent=''; return; }
+    const buffer = getEffectiveBuffer && getEffectiveBuffer();
+    if(buffer && buffer.getChannelData){
+      const sr = buffer.sampleRate;
+      const data = buffer.getChannelData(0);
+      const center = Math.floor(TL.pos * sr);
+      const winSize = 4096;
+      const start = Math.max(0, center - winSize/2);
+      if(start + winSize < data.length){
+        const slice = data.slice(start, start + winSize);
+        const freq = autoCorrelate(slice, sr);
+        if(freq > 40 && freq < 2000 && isFinite(freq)){
+          const {name, octave} = freqToNote(freq);
+          const n = $('tlNote');
+          if(n) n.textContent = name + octave;
+        }
+      }
+    }
+    liveToneRafSimple = requestAnimationFrame(track);
+  }
+  track();
+}
+
 function stopPlayback(){
   if(sourceNode){
     try{ sourceNode.stop(); }catch(e){}
@@ -712,7 +782,7 @@ function startPlayback(){
       sourceNode = ctx.createBufferSource();
       sourceNode.buffer = buf;
       sourceNode.playbackRate.value = 1.0; // el pitch y tempo ya están en el buffer
-      sourceNode.connect(ctx.destination);
+      connectToOutput(sourceNode, ctx);
       sourceNode.onended = ()=>{
         if(isPlaying){
           if(loopEnabled){
@@ -764,7 +834,7 @@ function startPlayback(){
   sourceNode = ctx.createBufferSource();
   sourceNode.buffer = buf;
   sourceNode.playbackRate.value = computePlaybackRate();
-  sourceNode.connect(ctx.destination);
+  connectToOutput(sourceNode, ctx);
   sourceNode.onended = ()=>{
     if(isPlaying){
       if(loopEnabled){
@@ -795,6 +865,7 @@ function startPlayback(){
   if(tunerMode === 'audiofile' && !tunerPanel.classList.contains('hidden')){
     startLiveToneTracking();
   }
+  startLiveToneSimple();
 }
 
 function tickAudio(buf){
@@ -2314,6 +2385,49 @@ $('fondoEspecialBtn').addEventListener('click', ()=> applyFondoEspecial(!fondoEs
 $('fondoMobileBtn').addEventListener('click', ()=> applyFondoMobile(!fondoMobile));
 $('btnOpacitySlider').addEventListener('input', (e)=> applyBtnOpacity(parseInt(e.target.value)));
 
+// ============================================================
+// MODO RECORTAR: conservar selección vs eliminar trozo del medio
+// ============================================================
+$('trimModeKeep').addEventListener('click', ()=>{
+  trimAction = 'keep';
+  $('trimModeKeep').classList.add('active');
+  $('trimModeCut').classList.remove('active');
+  $('trimApply').textContent = 'Aplicar recorte';
+});
+$('trimModeCut').addEventListener('click', ()=>{
+  trimAction = 'cut';
+  $('trimModeCut').classList.add('active');
+  $('trimModeKeep').classList.remove('active');
+  $('trimApply').textContent = 'Eliminar trozo';
+});
+
+// ============================================================
+// REVERB
+// ============================================================
+const btnReverb = $('btnReverb');
+const reverbPanel = $('reverbPanel');
+
+btnReverb.addEventListener('click', ()=>{
+  const open = !reverbPanel.classList.contains('hidden');
+  if(open){
+    reverbPanel.classList.add('hidden');
+    reverbOn = false;
+    btnReverb.classList.remove('active');
+  } else {
+    reverbPanel.classList.remove('hidden');
+    reverbOn = true;
+    btnReverb.classList.add('active');
+    reverbPanel.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+
+$('reverbMixSlider').addEventListener('input', (e)=>{
+  reverbMix = parseInt(e.target.value) / 100;
+  $('reverbMixLabel').textContent = e.target.value + '%';
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+
 // Handlers del diálogo de exportación
 $('exportClose').addEventListener('click', ()=> exportDialog.classList.add('hidden'));
 exportDialog.addEventListener('click', (e)=>{ if(e.target===exportDialog) exportDialog.classList.add('hidden'); });
@@ -2370,6 +2484,11 @@ btnTrim.addEventListener('click', ()=>{
   if(trimMode){
     trimStart = 0;
     trimEnd = getEffectiveBuffer().duration;
+    // Resetear modo al abrir
+    trimAction = 'keep';
+    $('trimModeKeep').classList.add('active');
+    $('trimModeCut').classList.remove('active');
+    $('trimApply').textContent = 'Aplicar recorte';
     updateTrimLabels();
     drawTrimMarkers();
     trimPanel.scrollIntoView({behavior:'smooth', block:'center'});
@@ -2408,18 +2527,34 @@ $('trimApply').addEventListener('click', ()=>{
   const sr = src.sampleRate;
   const startSample = Math.floor(trimStart * sr);
   const endSample = Math.floor(trimEnd * sr);
-  const newLen = endSample - startSample;
-  if(newLen <= 0){ setStatus('Rango de recorte inválido'); return; }
 
-  const ctx = ensureAudioCtx();
-  const trimmed = ctx.createBuffer(src.numberOfChannels, newLen, sr);
-  for(let ch=0; ch<src.numberOfChannels; ch++){
-    const from = src.getChannelData(ch).subarray(startSample, endSample);
-    trimmed.getChannelData(ch).set(from);
+  const audioCtx = ensureAudioCtx();
+  let result;
+
+  if(trimAction === 'cut'){
+    // Eliminar trozo: concatenar [0, trimStart] + [trimEnd, fin]
+    const newLen = startSample + (src.length - endSample);
+    if(newLen <= 0 || src.length - endSample < 0){ setStatus('Rango inválido'); return; }
+    result = audioCtx.createBuffer(src.numberOfChannels, newLen, sr);
+    for(let ch=0; ch<src.numberOfChannels; ch++){
+      const inp = src.getChannelData(ch);
+      const out = result.getChannelData(ch);
+      out.set(inp.subarray(0, startSample), 0);
+      out.set(inp.subarray(endSample), startSample);
+    }
+  } else {
+    // Conservar selección: quedarse con [trimStart, trimEnd]
+    const newLen = endSample - startSample;
+    if(newLen <= 0){ setStatus('Rango de recorte inválido'); return; }
+    result = audioCtx.createBuffer(src.numberOfChannels, newLen, sr);
+    for(let ch=0; ch<src.numberOfChannels; ch++){
+      const from = src.getChannelData(ch).subarray(startSample, endSample);
+      result.getChannelData(ch).set(from);
+    }
   }
-  // el recorte se vuelve el nuevo audio base
-  originalBuffer = trimmed;
-  workingBuffer = trimmed;
+
+  originalBuffer = result;
+  workingBuffer = result;
   isReversed = false;
   btnReverse.classList.remove('active');
   reversedCache = null; reversedCacheSrc = null;
@@ -2432,7 +2567,7 @@ $('trimApply').addEventListener('click', ()=>{
   trimPanel.classList.add('hidden');
   clearTrimMarkers();
   timeLabel.textContent = `0:00 / ${fmtTime(originalBuffer.duration)}`;
-  setStatus('Audio recortado ✓', 2000);
+  setStatus(trimAction === 'cut' ? 'Trozo eliminado ✓' : 'Audio recortado ✓', 2000);
   pushHistory();
 });
 
