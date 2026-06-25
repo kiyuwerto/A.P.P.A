@@ -58,6 +58,7 @@ let trimMode = false;
 let trimStart = 0;   // segundos (audio original)
 let trimEnd = 0;     // segundos
 let trimAction = 'keep'; // 'keep' conserva selección, 'cut' elimina trozo del medio
+let videoMediaSource = null; // MediaElementAudioSourceNode (creado una sola vez, reutilizado)
 let rafId = null;
 
 let pitchSemis = 0;     // -48..48
@@ -742,6 +743,7 @@ function stopPlayback(){
     sourceNode.disconnect();
     sourceNode = null;
   }
+  if(videoMediaSource){ try{ videoMediaSource.disconnect(); }catch(e){} }
   if(videoEl && !videoEl.classList.contains('hidden')){
     videoEl.pause();
   }
@@ -805,6 +807,7 @@ function startPlayback(){
       btnPlayPause.textContent = '❚❚';
       updateAppaAnimation();
       tickVideo();
+      startLiveToneSimple();
       return;
     }
 
@@ -820,11 +823,18 @@ function startPlayback(){
     const variSpeedRate = speedRate * semitonesToRate(pitchSemis);
     videoEl.playbackRate = Math.min(16, Math.max(0.0625, variSpeedRate));
     try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
+    // Si reverb activo (o ya se creó el nodo una vez), routear por WebAudio
+    if(reverbOn || videoMediaSource){
+      if(!videoMediaSource) videoMediaSource = ctx.createMediaElementSource(videoEl);
+      else try{ videoMediaSource.disconnect(); }catch(e){}
+      connectToOutput(videoMediaSource, ctx);
+    }
     videoEl.play();
     isPlaying = true;
     btnPlayPause.textContent = '❚❚';
     updateAppaAnimation();
     tickVideo();
+    startLiveToneSimple();
     return;
   }
 
