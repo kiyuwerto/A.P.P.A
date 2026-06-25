@@ -49,6 +49,8 @@ let mediaType = null;      // 'audio' | 'video'
 let originalBuffer = null; // AudioBuffer original (decodificado)
 let workingBuffer = null;  // AudioBuffer tras reversa, etc.
 let originalVideoFile = null; // File original si se cargó un video (para exportar con ffmpeg)
+let videoObjectUrl = null;    // blob URL del video original (para restaurar src)
+let reversedVideoUrl = null;  // blob URL del video revertido por FFmpeg (caché)
 let sourceNode = null;
 let isPlaying = false;
 let isReversed = false;
@@ -183,7 +185,11 @@ async function loadFile(file){
   mediaType = isVideo ? 'video' : 'audio';
   originalVideoFile = isVideo ? file : null;
 
+  // Revocar URLs anteriores y guardar la nueva
+  if(videoObjectUrl){ URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
+  if(reversedVideoUrl){ URL.revokeObjectURL(reversedVideoUrl); reversedVideoUrl = null; }
   const url = URL.createObjectURL(file);
+  if(isVideo) videoObjectUrl = url;
 
   if(isVideo){
     videoEl.src = url;
@@ -502,6 +508,8 @@ function doClearAll(){
   originalBuffer = null;
   workingBuffer = null;
   originalVideoFile = null;
+  if(videoObjectUrl){ URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
+  if(reversedVideoUrl){ URL.revokeObjectURL(reversedVideoUrl); reversedVideoUrl = null; }
   reversedCache = null; reversedCacheSrc = null;
   mediaType = null;
   isReversed = false;
@@ -1199,8 +1207,36 @@ btnReverse.addEventListener('click', ()=>{
   drawWaveform(getEffectiveBuffer());
   tlBuildWaveImage();
   setStatus(isReversed ? 'Reversa activada' : 'Reversa desactivada', 1500);
-  restartPlaybackIfPlaying();
   pushHistory();
+
+  if(mediaType === 'video'){
+    if(isReversed){
+      // Audio invertido ya funciona; preparar frames invertidos en background
+      restartPlaybackIfPlaying(); // audio ya suena al revés mientras tanto
+      setStatus('Preparando reversa visual del video…');
+      prepareReversedVideoVisual().then(url => {
+        if(!isReversed || !url) return; // cancelado o falló
+        const wasPlaying = isPlaying;
+        if(wasPlaying) stopPlayback();
+        videoEl.src = url;
+        videoEl.load();
+        setStatus('Reversa visual lista ✓', 2000);
+        if(wasPlaying) startPlayback(); // startPlayback ya ajusta currentTime
+      });
+    } else {
+      // Restaurar video original
+      const wasPlaying = isPlaying;
+      if(wasPlaying) stopPlayback();
+      if(videoObjectUrl){
+        videoEl.src = videoObjectUrl;
+        videoEl.load();
+      }
+      if(wasPlaying) startPlayback();
+    }
+    return;
+  }
+
+  restartPlaybackIfPlaying();
 });
 
 // ============================================================
@@ -1450,6 +1486,41 @@ async function encodeWavToM4a(buffer){
   await ff.deleteFile('output.m4a').catch(()=>{});
   showFfmpegProgress(false);
   return new Blob([data.buffer], {type:'audio/mp4'});
+}
+
+// Genera un preview de video con frames invertidos para reproducción visual en la app.
+// Se llama en background al activar reversa. El resultado queda en reversedVideoUrl.
+async function prepareReversedVideoVisual(){
+  if(reversedVideoUrl) return reversedVideoUrl;
+  if(!originalVideoFile) return null;
+  showFfmpegProgress(true, 'Preparando reversa visual… (puede tardar)');
+  try{
+    const ff = await getFfmpeg();
+    const videoData = new Uint8Array(await originalVideoFile.arrayBuffer());
+    const ext = originalVideoFile.name.split('.').pop() || 'mp4';
+    const inName = 'rv_in.' + ext;
+    await ff.writeFile(inName, videoData);
+    showFfmpegProgress(true, 'Invirtiendo frames del video…');
+    await ff.exec([
+      '-i', inName,
+      '-vf', 'reverse',
+      '-an',                               // sin audio: lo maneja Web Audio
+      '-c:v', 'libx264', '-preset', 'ultrafast',
+      'rv_out.mp4'
+    ]);
+    const data = await ff.readFile('rv_out.mp4');
+    ff.deleteFile(inName).catch(()=>{});
+    ff.deleteFile('rv_out.mp4').catch(()=>{});
+    const blob = new Blob([data.buffer], {type:'video/mp4'});
+    reversedVideoUrl = URL.createObjectURL(blob);
+    return reversedVideoUrl;
+  }catch(err){
+    console.error('Error preparando reversa visual:', err);
+    setStatus('No se pudo invertir el video visualmente');
+    return null;
+  }finally{
+    showFfmpegProgress(false);
+  }
 }
 
 // Exporta el VIDEO completo con el audio ya procesado (pitch/velocidad/reversa)
