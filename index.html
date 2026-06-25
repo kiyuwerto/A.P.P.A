@@ -555,7 +555,7 @@ input[type=range]::-moz-range-thumb{
 
 /* Capa de fondo especial */
 #fondoLayer{
-  position:fixed; inset:0; z-index:-1; display:none;
+  position:fixed; inset:0; z-index:0; display:none;
   background-image:url('fondo.jfif');
   background-size:cover; background-position:center;
   transition:transform 0.12s ease-out;
@@ -564,7 +564,7 @@ input[type=range]::-moz-range-thumb{
 @media (min-width:600px){
   #fondoLayer{ background-image:url('fondo2.jfif'); }
 }
-html.fondo-especial{ background:var(--brown-dark); }
+html.fondo-especial{ background:transparent; }
 body.fondo-especial{ background:transparent; }
 body.fondo-especial #fondoLayer{ display:block; }
 
