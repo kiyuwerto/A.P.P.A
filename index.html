@@ -65,9 +65,16 @@ button{font-family:inherit;}
   border-radius:18px; overflow:hidden; margin-bottom:12px;
   box-shadow:0 3px 16px rgba(0,0,0,0.11);
 }
+.video-preview-inner{
+  position:relative;
+}
 .video-preview-inner video{
   width:100%; display:block; background:#000;
   max-height:240px; object-fit:contain;
+}
+#videoReverseCanvas{
+  display:none; position:absolute; top:0; left:0;
+  width:100%; height:100%; background:#000; object-fit:contain;
 }
 .video-toggle-btn{
   display:block; width:100%; background:var(--brown-dark); color:var(--white);
@@ -674,6 +681,7 @@ body.fondo-especial .appa-arrow{
   <div class="video-section hidden" id="videoSection">
     <div class="video-preview-inner" id="videoPrevInner">
       <video id="videoEl" playsinline></video>
+      <canvas id="videoReverseCanvas"></canvas>
     </div>
     <button class="video-toggle-btn" id="btnVideoToggle">▲ Ocultar video</button>
   </div>

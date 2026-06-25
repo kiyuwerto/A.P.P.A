@@ -42,6 +42,8 @@ const tunerStatus = $('tunerStatus');
 const stringsRow = $('stringsRow');
 const btnUndo = $('btnUndo');
 const btnRedo = $('btnRedo');
+const reverseCanvas = $('videoReverseCanvas');
+const reverseCanvasCtx = reverseCanvas ? reverseCanvas.getContext('2d') : null;
 
 // ---------- Estado global ----------
 let audioCtx = null;
@@ -188,6 +190,7 @@ async function loadFile(file){
   // Revocar URLs anteriores y guardar la nueva
   if(videoObjectUrl){ URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
   if(reversedVideoUrl){ URL.revokeObjectURL(reversedVideoUrl); reversedVideoUrl = null; }
+  showReverseCanvas(false);
   const url = URL.createObjectURL(file);
   if(isVideo) videoObjectUrl = url;
 
@@ -510,6 +513,7 @@ function doClearAll(){
   originalVideoFile = null;
   if(videoObjectUrl){ URL.revokeObjectURL(videoObjectUrl); videoObjectUrl = null; }
   if(reversedVideoUrl){ URL.revokeObjectURL(reversedVideoUrl); reversedVideoUrl = null; }
+  showReverseCanvas(false);
   reversedCache = null; reversedCacheSrc = null;
   mediaType = null;
   isReversed = false;
@@ -784,6 +788,41 @@ function connectToOutput(source, audioCtx){
 
 // ============================================================
 
+function showReverseCanvas(show){
+  if(!reverseCanvas) return;
+  reverseCanvas.style.display = show ? 'block' : 'none';
+}
+
+function setupReverseCanvas(){
+  if(!reverseCanvas) return;
+  reverseCanvas.width  = videoEl.videoWidth  || videoEl.clientWidth  || 480;
+  reverseCanvas.height = videoEl.videoHeight || videoEl.clientHeight || 270;
+}
+
+// Reproduce el video visualmente al revés via Canvas scrubbing.
+// No depende de FFmpeg: busca el frame inverso en el <video> original en cada rAF.
+// rate = velocidad efectiva que ya tiene el sourceNode (variSpeedRate o speedRate).
+function tickVideoReverse(rate){
+  const ctx = ensureAudioCtx();
+  function step(){
+    if(!isPlaying) return;
+    const elapsed = ctx.currentTime - playStartCtxTime;
+    const audioBufferPos = playStartOffset + elapsed * rate;
+    const reversePos = Math.max(0, videoEl.duration - audioBufferPos);
+    try{ videoEl.currentTime = reversePos; }catch(e){}
+    if(reverseCanvasCtx && videoEl.videoWidth){
+      reverseCanvasCtx.drawImage(videoEl, 0, 0, reverseCanvas.width, reverseCanvas.height);
+    }
+    timeLabel.textContent = `${fmtTime(reversePos)} / ${fmtTime(videoEl.duration)}`;
+    if(reversePos <= 0.02 || audioBufferPos >= videoEl.duration){
+      stopPlayback();
+      return;
+    }
+    rafId = requestAnimationFrame(step);
+  }
+  step();
+}
+
 function stopPlayback(){
   if(sourceNode){
     try{ sourceNode.stop(); }catch(e){}
@@ -823,10 +862,15 @@ function startPlayback(){
     // velocidad están acoplados, así que el <video> nativo con su playbackRate ya
     // logra el efecto correcto (acelerar = más agudo) sin necesitar SoundTouch.
     if(pitchLockOn && workingBuffer){
-      // video solo muestra imagen (sin sonido), a la velocidad pura de speedRate
       videoEl.muted = true;
-      videoEl.playbackRate = Math.min(16, Math.max(0.0625, speedRate));
-      try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
+      if(isReversed){
+        // Canvas reverse: posicionar en el frame inicial invertido
+        const revStart = Math.max(0, videoEl.duration - playStartOffset);
+        try{ videoEl.currentTime = revStart; }catch(e){}
+      } else {
+        videoEl.playbackRate = Math.min(16, Math.max(0.0625, speedRate));
+        try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
+      }
 
       // audio procesado en paralelo (pitch fijo, tempo = speedRate)
       const buf = buildPlaybackBufferForVideo();
@@ -851,21 +895,30 @@ function startPlayback(){
       bufOffset = Math.max(0, Math.min(bufOffset, buf.duration - 0.01));
       sourceNode.start(0, bufOffset);
       playStartCtxTime = ctx.currentTime;
-      videoEl.play();
-      isPlaying = true;
-      btnPlayPause.textContent = '❚❚';
-      updateAppaAnimation();
-      tickVideo();
+      if(isReversed){
+        setupReverseCanvas();
+        showReverseCanvas(true);
+        isPlaying = true;
+        btnPlayPause.textContent = '❚❚';
+        updateAppaAnimation();
+        tickVideoReverse(speedRate);
+      } else {
+        videoEl.play();
+        isPlaying = true;
+        btnPlayPause.textContent = '❚❚';
+        updateAppaAnimation();
+        tickVideo();
+      }
       return;
     }
 
-    // Reversa sin pitch-lock: mute video, tocar buffer revertido por Web Audio.
-    // (El video nativo no puede reproducirse al revés; el audio SÍ puede desde el buffer.)
+    // Reversa sin pitch-lock: audio revertido por Web Audio + canvas para los frames.
     if(isReversed && workingBuffer){
       videoEl.muted = true;
       const variSpeedRate = speedRate * semitonesToRate(pitchSemis);
-      videoEl.playbackRate = Math.min(16, Math.max(0.0625, variSpeedRate));
-      try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
+      // Canvas reverse: posicionar video en el frame inicial invertido
+      const revStart = Math.max(0, videoEl.duration - playStartOffset);
+      try{ videoEl.currentTime = revStart; }catch(e){}
       const buf = getEffectiveBuffer(); // buffer ya revertido
       sourceNode = ctx.createBufferSource();
       sourceNode.buffer = buf;
@@ -880,11 +933,12 @@ function startPlayback(){
       const bufOffset = Math.max(0, Math.min(playStartOffset, buf.duration - 0.01));
       sourceNode.start(0, bufOffset);
       playStartCtxTime = ctx.currentTime;
-      videoEl.play();
+      setupReverseCanvas();
+      showReverseCanvas(true);
       isPlaying = true;
       btnPlayPause.textContent = '❚❚';
       updateAppaAnimation();
-      tickVideo();
+      tickVideoReverse(variSpeedRate);
       return;
     }
 
@@ -1003,8 +1057,8 @@ function tickVideo(){
 
 btnPlayPause.addEventListener('click', ()=>{
   if(isPlaying){
-    if(mediaType==='audio'){
-      // guardamos offset actual
+    if(mediaType==='audio' || (mediaType==='video' && isReversed)){
+      // guardar posición actual en el buffer de audio
       const ctx = ensureAudioCtx();
       const rate = sourceNode ? sourceNode.playbackRate.value : 1;
       playStartOffset += (ctx.currentTime - playStartCtxTime)*rate;
@@ -1024,10 +1078,13 @@ function seekTo(newPos){
   const dur = originalBuffer ? originalBuffer.duration : (videoEl.duration || 0);
   newPos = Math.max(0, Math.min(newPos, dur - 0.01));
   if(mediaType === 'video'){
-    try{ videoEl.currentTime = newPos; }catch(e){}
+    // En modo canvas-reverse, newPos es posición en el buffer revertido;
+    // el video se posiciona en la posición original correspondiente.
+    const vidPos = (isReversed) ? Math.max(0, videoEl.duration - newPos) : newPos;
+    try{ videoEl.currentTime = vidPos; }catch(e){}
     playStartOffset = newPos;
     TL.pos = newPos;
-    timeLabel.textContent = `${fmtTime(newPos)} / ${fmtTime(videoEl.duration)}`;
+    timeLabel.textContent = `${fmtTime(vidPos)} / ${fmtTime(videoEl.duration)}`;
   } else {
     playStartOffset = newPos;
     TL.pos = newPos;
@@ -1045,7 +1102,8 @@ function skipBy(delta){
       const rate = sourceNode.playbackRate.value;
       cur = playStartOffset + (ctx.currentTime - playStartCtxTime)*rate;
     } else if(mediaType === 'video'){
-      cur = videoEl.currentTime;
+      // En canvas-reverse, videoEl.currentTime es posición original; convertir a buffer revertido
+      cur = isReversed ? (videoEl.duration - videoEl.currentTime) : videoEl.currentTime;
     }
   }
   seekTo(cur + delta);
@@ -1211,26 +1269,16 @@ btnReverse.addEventListener('click', ()=>{
 
   if(mediaType === 'video'){
     if(isReversed){
-      // Audio invertido ya funciona; preparar frames invertidos en background
-      restartPlaybackIfPlaying(); // audio ya suena al revés mientras tanto
-      setStatus('Preparando reversa visual del video…');
-      prepareReversedVideoVisual().then(url => {
-        if(!isReversed || !url) return; // cancelado o falló
-        const wasPlaying = isPlaying;
-        if(wasPlaying) stopPlayback();
-        videoEl.src = url;
-        videoEl.load();
-        setStatus('Reversa visual lista ✓', 2000);
-        if(wasPlaying) startPlayback(); // startPlayback ya ajusta currentTime
-      });
+      // Canvas scrubbing se activa automáticamente en startPlayback; solo reiniciar
+      restartPlaybackIfPlaying();
     } else {
-      // Restaurar video original
+      // Reversa desactivada: ocultar canvas y volver a reproducción normal
       const wasPlaying = isPlaying;
+      const origPos = videoEl.currentTime; // canvas dejó el video en posición original
       if(wasPlaying) stopPlayback();
-      if(videoObjectUrl){
-        videoEl.src = videoObjectUrl;
-        videoEl.load();
-      }
+      showReverseCanvas(false);
+      playStartOffset = Math.max(0, origPos);
+      TL.pos = Math.max(0, origPos);
       if(wasPlaying) startPlayback();
     }
     return;
@@ -1558,10 +1606,13 @@ async function exportVideoWithFfmpeg(){
     }
     const vf = videoFilters.length ? videoFilters.join(',') : null;
 
-    showFfmpegProgress(true, 'Recodificando video (esto puede tardar varios minutos)…');
+    const label = vf ? 'Recodificando video (esto puede tardar varios minutos)…' : 'Combinando video + audio editado…';
+    showFfmpegProgress(true, label);
     const args = ['-i', inName, '-i', 'new_audio.wav'];
     if(vf) args.push('-vf', vf);
-    args.push('-map', '0:v:0', '-map', '1:a:0', '-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac', '-b:a', '192k', '-shortest', 'output.mp4');
+    // Sin filtros de video: copiar stream directamente (mucho más rápido que re-encodear)
+    const videoCodecArgs = vf ? ['-c:v', 'libx264', '-preset', 'ultrafast'] : ['-c:v', 'copy'];
+    args.push('-map', '0:v:0', '-map', '1:a:0', ...videoCodecArgs, '-c:a', 'aac', '-b:a', '192k', '-shortest', 'output.mp4');
     await ff.exec(args);
 
     const data = await ff.readFile('output.mp4');
@@ -2168,7 +2219,9 @@ function tlAnimate(){
   // sincroniza TL.pos con la reproducción real
   if(isPlaying && !TL.dragging){
     if(mediaType==='video'){
-      TL.pos = videoEl.currentTime;
+      // En canvas-reverse, videoEl.currentTime es posición original (va hacia atrás);
+      // TL.pos debe ir hacia adelante (posición en buffer revertido).
+      TL.pos = isReversed ? (videoEl.duration - videoEl.currentTime) : videoEl.currentTime;
     } else if(sourceNode){
       const ctx = ensureAudioCtx();
       const rate = sourceNode.playbackRate.value;
