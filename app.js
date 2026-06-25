@@ -206,11 +206,29 @@ async function loadFile(file){
     previewControls.classList.remove('hidden');
   }
 
-  // Decodificar audio (de video o audio) para procesar pitch/speed
+  // Decodificar audio para pitch/velocidad/edición
   try{
     const arrayBuf = await file.arrayBuffer();
     const ctx = ensureAudioCtx();
-    originalBuffer = await ctx.decodeAudioData(arrayBuf.slice(0));
+    let decoded = null;
+    try{
+      // Intento directo: funciona para audio puro y algunos videos en Chrome
+      decoded = await ctx.decodeAudioData(arrayBuf.slice(0));
+    }catch(decErr){
+      if(!isVideo) throw decErr;
+      // Fallback para video: extraer pista de audio con FFmpeg
+      // (Safari/iOS no soporta decodeAudioData en contenedores MP4/MOV)
+      setStatus('Extrayendo audio del video…');
+      showLoading('Extrayendo audio del video…');
+      const ff = await getFfmpeg();
+      await ff.writeFile('appa_vin', new Uint8Array(arrayBuf));
+      await ff.exec(['-i','appa_vin','-vn','-acodec','pcm_s16le','-ar','44100','appa_vout.wav']);
+      const wavData = await ff.readFile('appa_vout.wav');
+      ff.deleteFile('appa_vin').catch(()=>{});
+      ff.deleteFile('appa_vout.wav').catch(()=>{});
+      decoded = await ctx.decodeAudioData(wavData.buffer.slice(0));
+    }
+    originalBuffer = decoded;
     workingBuffer = originalBuffer;
     isReversed = false;
     drawWaveform(workingBuffer);
