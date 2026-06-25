@@ -586,16 +586,19 @@ body.fondo-especial .tl-controls{
   background:color-mix(in srgb, var(--card) calc(var(--btn-opacity) * 100%), transparent);
 }
 
-/* Contorno de texto cuando hay fondo especial */
-body.fondo-especial .icon-btn,
+/* Cajas beige en elementos sueltos cuando hay fondo especial */
+body.fondo-especial .icon-btn{
+  background:var(--cream);
+}
 body.fondo-especial .footer-brand,
 body.fondo-especial .footer-sub,
-body.fondo-especial .credit-line,
-body.fondo-especial .credit-line span{
-  text-shadow:0 1px 4px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.7);
+body.fondo-especial .credit-line{
+  background:color-mix(in srgb, var(--cream) calc(var(--btn-opacity) * 100%), transparent);
+  border-radius:10px; padding:3px 10px; display:inline-block;
 }
 body.fondo-especial .appa-arrow{
-  filter:drop-shadow(0 1px 4px rgba(0,0,0,0.85));
+  background:color-mix(in srgb, var(--cream) calc(var(--btn-opacity) * 100%), transparent);
+  border-radius:14px; padding:4px 6px;
 }
 
 /* Controles de apariencia en el menú */
