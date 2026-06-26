@@ -1002,8 +1002,8 @@ function startPlayback(){
     const variSpeedRate = speedRate * semitonesToRate(pitchSemis);
     videoEl.playbackRate = Math.min(16, Math.max(0.0625, variSpeedRate));
     try{ if(playStartOffset>0 && Math.abs(videoEl.currentTime-playStartOffset)>0.1) videoEl.currentTime = playStartOffset; }catch(e){}
-    // Si reverb activo (o ya se creó el nodo una vez), routear por WebAudio
-    if(reverbOn || videoMediaSource){
+    // Si hay algún efecto activo (o ya se creó el nodo una vez), routear por WebAudio
+    if(reverbOn || distortionOn || compOn || delayOn || eqOn || videoMediaSource){
       if(!videoMediaSource) videoMediaSource = ctx.createMediaElementSource(videoEl);
       else try{ videoMediaSource.disconnect(); }catch(e){}
       connectToOutput(videoMediaSource, ctx);
