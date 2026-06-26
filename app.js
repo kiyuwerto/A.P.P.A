@@ -761,16 +761,61 @@ function createDistortionCurve(amount){
 function connectToOutput(source, audioCtx){
   activeEffectNodes = [];
   let signal = source;
-  // Distorsión (antes del reverb en la cadena)
+
+  // 1. Distorsión
   if(distortionOn){
     const ws = audioCtx.createWaveShaper();
     ws.curve = createDistortionCurve(distortionAmount);
     ws.oversample = '4x';
-    source.connect(ws);
-    signal = ws;
+    signal.connect(ws); signal = ws;
     activeEffectNodes.push(ws);
   }
-  // Reverb (wet/dry)
+
+  // 2. Ecualizador (5 bandas en serie)
+  if(eqOn){
+    for(let i = 0; i < EQ_BANDS.length; i++){
+      const f = audioCtx.createBiquadFilter();
+      f.type = EQ_BANDS[i].type;
+      f.frequency.value = EQ_BANDS[i].freq;
+      f.gain.value = eqGains[i];
+      if(f.type === 'peaking') f.Q.value = 1.0;
+      signal.connect(f); signal = f;
+      activeEffectNodes.push(f);
+    }
+  }
+
+  // 3. Compresor
+  if(compOn){
+    const comp = audioCtx.createDynamicsCompressor();
+    comp.threshold.value = compThreshold;
+    comp.ratio.value = compRatio;
+    comp.knee.value = 10;
+    comp.attack.value = 0.003;
+    comp.release.value = 0.25;
+    signal.connect(comp); signal = comp;
+    activeEffectNodes.push(comp);
+  }
+
+  // 4. Delay (wet + dry mezclados en un GainNode)
+  if(delayOn){
+    const delNode = audioCtx.createDelay(2.0);
+    delNode.delayTime.value = delayTime;
+    const fbGain = audioCtx.createGain();
+    fbGain.gain.value = delayFeedback;
+    const wetGain = audioCtx.createGain();
+    wetGain.gain.value = 0.45;
+    const merger = audioCtx.createGain();
+    signal.connect(merger);
+    signal.connect(delNode);
+    delNode.connect(fbGain);
+    fbGain.connect(delNode);
+    delNode.connect(wetGain);
+    wetGain.connect(merger);
+    signal = merger;
+    activeEffectNodes.push(delNode, fbGain, wetGain, merger);
+  }
+
+  // 5. Reverb al final (conecta directo al destino con wet/dry)
   if(reverbOn){
     const conv = audioCtx.createConvolver();
     conv.buffer = getReverbIR(audioCtx);
@@ -2637,17 +2682,41 @@ $('trimModeCut').addEventListener('click', ()=>{
 });
 
 // ============================================================
-// EFECTOS (Reverb + Distorsión) — panel desplegable unificado
+// EFECTOS (Reverb + Distorsión + Compresor + Delay + EQ)
 // ============================================================
 let distortionOn = false;
 let distortionAmount = 0.5;
+
+let compOn = false;
+let compThreshold = -24;
+let compRatio = 4;
+
+let delayOn = false;
+let delayTime = 0.30;
+let delayFeedback = 0.40;
+
+let eqOn = false;
+const EQ_BANDS = [
+  { freq: 60,    type: 'lowshelf'  },
+  { freq: 230,   type: 'peaking'   },
+  { freq: 910,   type: 'peaking'   },
+  { freq: 3600,  type: 'peaking'   },
+  { freq: 14000, type: 'highshelf' },
+];
+let eqGains = [0, 0, 0, 0, 0];
+const EQ_PRESETS = {
+  flat:   [ 0,  0,  0,  0,  0],
+  bass:   [ 6,  4,  0, -2, -2],
+  treble: [-2,  0,  0,  4,  6],
+  vocal:  [-2, -1,  3,  4,  2],
+};
 
 const btnEfectos = $('btnEfectos');
 const efectosPanel = $('efectosPanel');
 
 function updateEfxGlow(){
   const panelOpen = !efectosPanel.classList.contains('hidden');
-  btnEfectos.classList.toggle('efx-glow', (reverbOn || distortionOn) && !panelOpen);
+  btnEfectos.classList.toggle('efx-glow', (reverbOn || distortionOn || compOn || delayOn || eqOn) && !panelOpen);
 }
 
 btnEfectos.addEventListener('click', ()=>{
@@ -2688,6 +2757,82 @@ $('distortionSlider').addEventListener('input', (e)=>{
   distortionAmount = parseInt(e.target.value) / 100;
   $('distortionLabel').textContent = e.target.value + '%';
   if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+
+// Compresor
+$('compToggle').addEventListener('click', ()=>{
+  compOn = !compOn;
+  const btn = $('compToggle');
+  btn.textContent = compOn ? 'ON' : 'OFF';
+  btn.classList.toggle('active', compOn);
+  $('compCtrl').classList.toggle('hidden', !compOn);
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+  updateEfxGlow();
+});
+$('compRatioSlider').addEventListener('input', (e)=>{
+  compRatio = parseFloat(e.target.value);
+  $('compRatioLabel').textContent = compRatio + ':1';
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+$('compThreshSlider').addEventListener('input', (e)=>{
+  compThreshold = parseInt(e.target.value);
+  $('compThreshLabel').textContent = (compThreshold >= 0 ? '' : '−') + Math.abs(compThreshold) + ' dB';
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+
+// Delay
+$('delayToggle').addEventListener('click', ()=>{
+  delayOn = !delayOn;
+  const btn = $('delayToggle');
+  btn.textContent = delayOn ? 'ON' : 'OFF';
+  btn.classList.toggle('active', delayOn);
+  $('delayCtrl').classList.toggle('hidden', !delayOn);
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+  updateEfxGlow();
+});
+$('delayTimeSlider').addEventListener('input', (e)=>{
+  delayTime = parseInt(e.target.value) / 1000;
+  $('delayTimeLabel').textContent = e.target.value + ' ms';
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+$('delayFeedbackSlider').addEventListener('input', (e)=>{
+  delayFeedback = parseInt(e.target.value) / 100;
+  $('delayFeedbackLabel').textContent = e.target.value + '%';
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+});
+
+// Ecualizador
+$('eqToggle').addEventListener('click', ()=>{
+  eqOn = !eqOn;
+  const btn = $('eqToggle');
+  btn.textContent = eqOn ? 'ON' : 'OFF';
+  btn.classList.toggle('active', eqOn);
+  $('eqCtrl').classList.toggle('hidden', !eqOn);
+  if(isPlaying){ stopPlayback(); startPlayback(); }
+  updateEfxGlow();
+});
+for(let i = 0; i < 5; i++){
+  $(`eqBand${i}`).addEventListener('input', e => {
+    const band = +e.target.id.slice(-1);
+    const val = +e.target.value;
+    eqGains[band] = val;
+    $(`eqVal${band}`).textContent = val === 0 ? '0' : (val > 0 ? '+' : '−') + Math.abs(val);
+    document.querySelectorAll('.eq-preset').forEach(b => b.classList.remove('active'));
+    if(isPlaying){ stopPlayback(); startPlayback(); }
+  });
+}
+document.querySelectorAll('.eq-preset').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    const preset = EQ_PRESETS[btn.dataset.preset];
+    preset.forEach((val, i) => {
+      eqGains[i] = val;
+      $(`eqBand${i}`).value = val;
+      $(`eqVal${i}`).textContent = val === 0 ? '0' : (val > 0 ? '+' : '−') + Math.abs(val);
+    });
+    document.querySelectorAll('.eq-preset').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if(isPlaying){ stopPlayback(); startPlayback(); }
+  });
 });
 
 // Handlers del diálogo de exportación

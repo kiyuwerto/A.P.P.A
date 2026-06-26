@@ -650,6 +650,37 @@ body.fondo-especial .appa-arrow{
 .efx-slider-row input[type=range]{ flex:1; }
 .efx-lbl{ font-size:0.72rem; font-weight:700; color:var(--brown); white-space:nowrap; }
 .efx-divider{ border:none; border-top:1px solid rgba(0,0,0,0.09); margin:10px 0; }
+
+/* Ecualizador */
+.eq-section{ background:rgba(0,0,0,0.03); border-radius:12px; padding:6px 4px 10px; margin-top:2px; }
+.eq-presets{ display:flex; gap:5px; margin-bottom:10px; }
+.eq-preset{
+  flex:1; background:var(--cream); color:var(--brown);
+  border:1.5px solid var(--brown); border-radius:16px;
+  padding:4px 0; font-size:0.68rem; font-weight:800;
+  font-family:inherit; cursor:pointer; transition:background 0.15s, color 0.15s;
+}
+.eq-preset.active{ background:var(--brown); color:var(--white); }
+.eq-bands{ display:flex; justify-content:space-around; padding:0 4px; gap:2px; }
+.eq-band{ display:flex; flex-direction:column; align-items:center; gap:2px; flex:1; }
+.eq-val{ font-size:0.62rem; font-weight:800; color:var(--green); min-height:14px; text-align:center; }
+.eq-track{
+  height:108px; width:28px;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.eq-track::before{
+  content:''; position:absolute; left:0; right:0; top:50%;
+  height:1px; background:var(--brown); opacity:0.2; pointer-events:none;
+}
+.eq-slider{
+  width:96px;
+  transform:rotate(-90deg);
+  cursor:pointer;
+  accent-color:var(--green);
+  flex-shrink:0;
+}
+.eq-freq{ font-size:0.64rem; font-weight:700; color:var(--brown); text-align:center; }
 </style>
 </head>
 <body>
@@ -850,6 +881,85 @@ body.fondo-especial .appa-arrow{
         <span class="efx-lbl">Suave</span>
         <input type="range" id="distortionSlider" min="1" max="100" step="1" value="50">
         <span class="efx-lbl">Bestial&nbsp;<b id="distortionLabel">50%</b></span>
+      </div>
+    </div>
+    <hr class="efx-divider">
+    <!-- Compresor -->
+    <div class="efx-row">
+      <span class="efx-name">Compresor</span>
+      <button class="efx-toggle" id="compToggle">OFF</button>
+    </div>
+    <div class="efx-ctrl hidden" id="compCtrl">
+      <div class="efx-slider-row">
+        <span class="efx-lbl">Suave</span>
+        <input type="range" id="compRatioSlider" min="1" max="20" step="0.5" value="4">
+        <span class="efx-lbl">Fuerte&nbsp;<b id="compRatioLabel">4:1</b></span>
+      </div>
+      <div class="efx-slider-row">
+        <span class="efx-lbl">Umbral alto</span>
+        <input type="range" id="compThreshSlider" min="-60" max="0" step="1" value="-24">
+        <span class="efx-lbl">Bajo&nbsp;<b id="compThreshLabel">−24 dB</b></span>
+      </div>
+    </div>
+    <hr class="efx-divider">
+    <!-- Delay -->
+    <div class="efx-row">
+      <span class="efx-name">Delay</span>
+      <button class="efx-toggle" id="delayToggle">OFF</button>
+    </div>
+    <div class="efx-ctrl hidden" id="delayCtrl">
+      <div class="efx-slider-row">
+        <span class="efx-lbl">Corto</span>
+        <input type="range" id="delayTimeSlider" min="30" max="800" step="10" value="300">
+        <span class="efx-lbl">Largo&nbsp;<b id="delayTimeLabel">300 ms</b></span>
+      </div>
+      <div class="efx-slider-row">
+        <span class="efx-lbl">Sin eco</span>
+        <input type="range" id="delayFeedbackSlider" min="0" max="85" step="1" value="40">
+        <span class="efx-lbl">Eco&nbsp;<b id="delayFeedbackLabel">40%</b></span>
+      </div>
+    </div>
+    <hr class="efx-divider">
+    <!-- Ecualizador -->
+    <div class="efx-row">
+      <span class="efx-name">Ecualizador</span>
+      <button class="efx-toggle" id="eqToggle">OFF</button>
+    </div>
+    <div class="efx-ctrl hidden" id="eqCtrl">
+      <div class="eq-section">
+        <div class="eq-presets">
+          <button class="eq-preset active" data-preset="flat">Plano</button>
+          <button class="eq-preset" data-preset="bass">Bajos</button>
+          <button class="eq-preset" data-preset="treble">Agudos</button>
+          <button class="eq-preset" data-preset="vocal">Vocal</button>
+        </div>
+        <div class="eq-bands">
+          <div class="eq-band">
+            <span class="eq-val" id="eqVal0">0</span>
+            <div class="eq-track"><input type="range" class="eq-slider" id="eqBand0" min="-12" max="12" step="0.5" value="0"></div>
+            <span class="eq-freq">60 Hz</span>
+          </div>
+          <div class="eq-band">
+            <span class="eq-val" id="eqVal1">0</span>
+            <div class="eq-track"><input type="range" class="eq-slider" id="eqBand1" min="-12" max="12" step="0.5" value="0"></div>
+            <span class="eq-freq">230 Hz</span>
+          </div>
+          <div class="eq-band">
+            <span class="eq-val" id="eqVal2">0</span>
+            <div class="eq-track"><input type="range" class="eq-slider" id="eqBand2" min="-12" max="12" step="0.5" value="0"></div>
+            <span class="eq-freq">910 Hz</span>
+          </div>
+          <div class="eq-band">
+            <span class="eq-val" id="eqVal3">0</span>
+            <div class="eq-track"><input type="range" class="eq-slider" id="eqBand3" min="-12" max="12" step="0.5" value="0"></div>
+            <span class="eq-freq">3.6K</span>
+          </div>
+          <div class="eq-band">
+            <span class="eq-val" id="eqVal4">0</span>
+            <div class="eq-track"><input type="range" class="eq-slider" id="eqBand4" min="-12" max="12" step="0.5" value="0"></div>
+            <span class="eq-freq">14K</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
