@@ -3031,6 +3031,9 @@ $('helpToggle').addEventListener('click', ()=>{
   content.classList.toggle('hidden');
   toggle.classList.toggle('open', isHidden);
 });
+document.querySelectorAll('.help-item:not(.always-open) .help-item-header').forEach(header => {
+  header.addEventListener('click', () => header.closest('.help-item').classList.toggle('open'));
+});
 
 // ============================================================
 // SESIÓN GUARDADA (IndexedDB): recuerda el último audio/video cargado

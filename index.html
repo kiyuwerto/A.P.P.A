@@ -481,11 +481,22 @@ input[type=range]::-moz-range-thumb{
 .help-content{
   margin-top:12px; text-align:left;
 }
-.help-item{
-  background:var(--cream-2); border-radius:12px; padding:12px 14px; margin-bottom:8px;
+.help-item{ background:var(--cream-2); border-radius:12px; margin-bottom:8px; overflow:hidden; }
+.help-item-header{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 14px; cursor:pointer; user-select:none; gap:8px;
 }
-.help-item b{display:block; color:var(--brown-dark); font-size:0.98rem; margin-bottom:3px;}
-.help-item span{display:block; color:var(--brown-light); font-size:0.86rem; line-height:1.4; font-weight:500;}
+.help-item.always-open .help-item-header{ cursor:default; }
+.help-item-header b{ color:var(--brown-dark); font-size:0.98rem; }
+.help-chevron{ color:var(--brown); font-size:0.78rem; flex-shrink:0; transition:transform 0.2s; }
+.help-item.open .help-chevron{ transform:rotate(180deg); }
+.help-item.always-open .help-chevron{ display:none; }
+.help-item-body{
+  display:none; padding:0 14px 12px;
+  color:var(--brown-light); font-size:0.86rem; line-height:1.4; font-weight:500;
+}
+.help-item.open .help-item-body,
+.help-item.always-open .help-item-body{ display:block; }
 .credits{margin-top:24px; padding-bottom:8px;}
 .credit-line{font-size:0.9rem; color:var(--brown-dark); font-weight:800; margin:3px 0;}
 .credit-line span{color:var(--brown-light); font-weight:600;}
@@ -1103,22 +1114,87 @@ body.fondo-especial .appa-arrow{
 
     <button class="help-toggle" id="helpToggle">Cómo usar la app <span id="helpChevron">▾</span></button>
     <div class="help-content hidden" id="helpContent">
-      <div class="help-item"><b>Subir archivo / Grabar mic</b><span>Cargá un audio o video desde tu celular o computador, o grabá directo con el micrófono. La app detecta sola si es audio o video — no tenés que hacer nada extra.</span></div>
-      <div class="help-item"><b>Grabar encima <u>(Overdub)</u></b><span>Grabá nuevo audio desde donde está el cursor, <b>mezclado sobre lo que ya hay</b>. Genial para corregir una parte sin borrar todo o para agregar capas.</span></div>
-      <div class="help-item"><b>La pista (timeline)</b><span>El audio se desplaza bajo la línea central mientras suena. <b>Arrastrá con un dedo</b> para moverte por el audio. <b>Pellizca con dos dedos</b> para acercar o alejar el zoom — la línea central queda siempre fija.</span></div>
-      <div class="help-item"><b>Pitch — cambio de tono <u>(±48 semitonos)</u></b><span><b>Los semitonos son como mover la cejilla en la guitarra:</b> +1 es subir un traste, +12 es subir una octava entera (como ir del traste 1 al 13), −12 es bajar una octava. Los botones <b>+1 / −1</b> ajustan de a un traste, y el <b>"0"</b> vuelve el pitch al original. El rango total es de 4 octavas arriba o abajo.</span></div>
-      <div class="help-item"><b>Velocidad <u>(0.05x – 10x)</u></b><span><b>Qué tan rápido suena.</b> 1x = normal, 2x = doble de rápido, 0.5x = la mitad. Por defecto, cambiar la velocidad también arrastra el tono (como un casete a distinta velocidad). Para separarlos, activá <b>Pitch-lock</b>.</span></div>
-      <div class="help-item"><b>Pitch-lock 🔒</b><span>Desacopla el tono de la velocidad. Con esto activo, podés <b>acelerar sin que las voces suenen "a ardilla"</b>, o bajar el tono sin que el audio se arrastre. Es el modo que usan apps como InShot.</span></div>
-      <div class="help-item"><b>Tono — detección en tiempo real</b><span>Al tocar, abre el análisis del audio: te muestra la <b>nota predominante</b> y las más frecuentes con su porcentaje. <b>Si el audio está reproduciéndose, el propio botón muestra la nota del momento en tiempo real</b>, como si fuera un afinador para el audio.</span></div>
-      <div class="help-item"><b>Afinador 🎸</b><span>Afinador en tiempo real <b>usando el micrófono</b>. Modos guitarra, ukelele y cromático. La aguja se pone <b>verde cuando estás afinado</b>; en guitarra/ukelele también resalta la cuerda más cercana.</span></div>
-      <div class="help-item"><b>Efectos — Reverb y Distorsión</b><span>Panel con dos efectos combinables: <b>Reverb</b> agrega espacio y eco (slider Seco→Húmedo). <b>Distorsión</b> va desde una saturación suave y cálida hasta el <b>clipping bestial estilo TikTok</b> (slider Suave→Bestial). Cada uno tiene su toggle ON/OFF independiente.</span></div>
-      <div class="help-item"><b>Reversa</b><span>Invierte el audio para que <b>suene al revés</b>.</span></div>
-      <div class="help-item"><b>Loop</b><span>El audio se <b>repite solo</b> al terminar, sin que tengas que hacer nada.</span></div>
-      <div class="help-item"><b>Recortar — dos modos</b><span>Poné la línea central donde querés y marcá inicio/fin. Modo <b>"Conservar selección"</b>: te quedás solo con ese fragmento. Modo <b>"Eliminar trozo"</b>: borrás esa parte del medio y la app une lo que queda antes y después. Ideal para sacar silencios o partes que no querés.</span></div>
-      <div class="help-item"><b>Export Rápi</b><span>Exporta al instante en <b>MP4 (audio AAC)</b>, liviano y compatible con iPhone sin instalar nada.</span></div>
-      <div class="help-item"><b>Export Pro</b><span>Elegís el formato: <b>WAV</b> (sin pérdida), <b>MP3</b> (320/192/128 kbps), <b>MP4 solo-audio</b>, o si cargaste un video, exportarlo <b>con el audio editado</b>. El motor de video se descarga la primera vez y puede tardar unos minutos.</span></div>
-      <div class="help-item"><b>Menú A.P.P.A. (tocá el logo arriba)</b><span>Personalización: <b>fondo especial</b>, transparencia de botones, fondo móvil con efecto parallax, y el historial de archivos exportados.</span></div>
-      <div class="help-item"><b>Deshacer / Rehacer ↩↪</b><span>Las flechas de arriba a la derecha deshacen o rehacen los últimos cambios de pitch, velocidad, cortes y efectos.</span></div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Subir archivo / Grabar mic</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Cargá un audio o video desde tu celular o computador, o grabá directo con el micrófono. La app detecta sola si es audio o video — no tenés que hacer nada extra. Si es un video, extrae el audio automáticamente para que puedas editarlo.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Grabar encima <u>(Overdub)</u></b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Grabá nuevo audio desde donde está el cursor, <b>mezclado sobre lo que ya hay</b>. Genial para corregir una parte sin borrar todo o para agregar capas.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>La pista (timeline)</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">El audio se desplaza bajo la línea central mientras suena. <b>Arrastrá con un dedo</b> para moverte por el audio. <b>Pellizca con dos dedos</b> para acercar o alejar el zoom — la línea central queda siempre fija.</div>
+      </div>
+
+      <div class="help-item always-open">
+        <div class="help-item-header"><b>Pitch — cambio de tono <u>(±48 semitonos)</u></b></div>
+        <div class="help-item-body"><b>Los semitonos son como mover la cejilla en la guitarra:</b> +1 es subir un traste, +12 es subir una octava entera (como ir del traste 1 al 13), −12 es bajar una octava. Los botones <b>+1 / −1</b> ajustan de a un traste, y el <b>"0"</b> vuelve el pitch al original. El rango total es de 4 octavas arriba o abajo.</div>
+      </div>
+
+      <div class="help-item always-open">
+        <div class="help-item-header"><b>Velocidad <u>(0.05x – 10x)</u></b></div>
+        <div class="help-item-body"><b>Qué tan rápido suena.</b> 1x = normal, 2x = doble de rápido, 0.5x = la mitad. Por defecto, cambiar la velocidad también arrastra el tono (como un casete a distinta velocidad). Para separarlos, activá <b>Pitch-lock</b>.</div>
+      </div>
+
+      <div class="help-item always-open">
+        <div class="help-item-header"><b>Pitch-lock 🔒</b></div>
+        <div class="help-item-body">Desacopla el tono de la velocidad. Con esto activo, podés <b>acelerar sin que las voces suenen "a ardilla"</b>, o bajar el tono sin que el audio se arrastre. Es el modo que usan apps como InShot.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Tono — detección en tiempo real</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Al tocar, abre el análisis del audio: te muestra la <b>nota predominante</b> y las más frecuentes con su porcentaje. <b>Si el audio está reproduciéndose, el propio botón muestra la nota del momento en tiempo real</b>, como un afinador para el audio.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Afinador 🎸</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Afinador en tiempo real <b>usando el micrófono</b>. Modos guitarra, ukelele y cromático. La aguja se pone <b>verde cuando estás afinado</b>; en guitarra/ukelele también resalta la cuerda más cercana.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Efectos</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Panel con cinco efectos combinables, cada uno con toggle ON/OFF independiente. <b>Reverb</b>: agrega espacio y eco (Seco→Húmedo). <b>Distorsión</b>: desde saturación cálida hasta clipping bestial (Suave→Bestial). <b>Compresor</b>: reduce la diferencia entre partes quietas y fuertes — hace que todo suene más denso; sliders de intensidad (ratio) y umbral de activación. <b>Delay</b>: eco rítmico con slider de tiempo (30–800 ms) y cantidad de repetición. <b>Ecualizador</b>: 5 bandas estilo Spotify (60 Hz, 230 Hz, 910 Hz, 3.6K, 14K) con ±12 dB cada una y presets Plano / Bajos / Agudos / Vocal. Todos los efectos funcionan tanto en audio como en video. Cuando cerrás el panel con algún efecto activo, el botón Efectos tintinea en celeste para recordártelo.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Reversa</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Invierte el audio para que <b>suene al revés</b>. En videos, la reversa visual se muestra en tiempo real vía canvas — sin reprocesar el archivo. Al exportar un video con reversa activada, la app lo procesa en segmentos cortos para no quedarse sin memoria, así funciona con videos de cualquier largo.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Loop</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">El audio se <b>repite solo</b> al terminar, sin que tengas que hacer nada.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Recortar — dos modos</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Poné la línea central donde querés y marcá inicio/fin. Modo <b>"Conservar selección"</b>: te quedás solo con ese fragmento. Modo <b>"Eliminar trozo"</b>: borrás esa parte del medio y la app une lo que queda antes y después. Ideal para sacar silencios o partes que no querés.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Export Rápi</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Exporta al instante en <b>MP4 (audio AAC)</b>, liviano y compatible con iPhone sin instalar nada.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Export Pro</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Elegís el formato: <b>WAV</b> (sin pérdida), <b>MP3</b> (320/192/128 kbps), <b>MP4 solo-audio</b> (AAC, compatible iPhone), o si cargaste un video, <b>MP4 con audio editado</b> — incluye todos los efectos, pitch, velocidad y reversa aplicados. El motor de video se descarga la primera vez (~25 MB); las siguientes veces es inmediato. El progreso aparece en pantalla con el indicador de Appa girando.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Menú A.P.P.A. (tocá el logo arriba)</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Personalización: <b>fondo especial</b>, transparencia de botones, fondo móvil con efecto parallax, y el historial de archivos exportados.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><b>Deshacer / Rehacer ↩↪</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Las flechas de arriba a la derecha deshacen o rehacen los últimos cambios de pitch, velocidad, cortes y efectos.</div>
+      </div>
+
     </div>
 
     <div class="credits">
