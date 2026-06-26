@@ -2567,11 +2567,13 @@ try{
 // Handlers del menú Appa
 const appaMenu = $('appaMenu');
 
-$('appaMenuBtn').addEventListener('click', ()=>{
-  applyColors(colorBrown, colorCream); // sincroniza swatches/pickers con el estado actual
+function openAppaMenu(){
+  applyColors(colorBrown, colorCream);
   renderExportLog();
   appaMenu.classList.remove('hidden');
-});
+}
+$('appaMenuBtn').addEventListener('click', openAppaMenu);
+$('footerBrand').addEventListener('click', openAppaMenu);
 $('menuClose').addEventListener('click', ()=> appaMenu.classList.add('hidden'));
 appaMenu.addEventListener('click', (e)=>{ if(e.target===appaMenu) appaMenu.classList.add('hidden'); });
 
