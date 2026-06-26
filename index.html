@@ -619,6 +619,22 @@ body.fondo-especial .appa-arrow{
   padding:8px 4px; font-weight:800; font-size:0.78rem; font-family:inherit; transition:background 0.15s;
 }
 .trim-mode-btn.active{ background:var(--brown); color:#fff; }
+/* Tintineo del botón Efectos cuando hay algún efecto activo y el panel está cerrado */
+@keyframes efx-twinkle-icon {
+  0%, 100% { color: #5de; filter: drop-shadow(0 0 5px rgba(85,221,238,0.85)); }
+  50%       { color: #fff; filter: drop-shadow(0 0 4px rgba(255,255,255,0.75)); }
+}
+@keyframes efx-twinkle-text {
+  0%, 100% { color: #5de; text-shadow: 0 0 8px rgba(85,221,238,0.8); }
+  50%       { color: #fff; text-shadow: 0 0 6px rgba(255,255,255,0.7); }
+}
+.tile-btn.efx-glow .tile-icon {
+  animation: efx-twinkle-icon 2.2s ease-in-out infinite;
+}
+.tile-btn.efx-glow > span:not(.tile-icon) {
+  animation: efx-twinkle-text 2.2s ease-in-out infinite;
+}
+
 /* Panel de Efectos */
 .efx-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:5px; }
 .efx-name{ font-weight:800; font-size:0.93rem; color:var(--brown-dark); }
@@ -792,7 +808,7 @@ body.fondo-especial .appa-arrow{
     </button>
     <!-- Loop: dos flechas formando loop rectangular -->
     <button class="tile-btn" id="btnLoop">
-      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 2 21 6 17 10"/><path d="M3 12V8a4 4 0 014-4h14"/><polyline points="7 22 3 18 7 14"/><path d="M21 12v4a4 4 0 01-4 4H3"/></svg></span>
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span>
       <span>Loop</span>
     </button>
     <!-- Recortar: tijeras con círculos de agarre y hojas cruzadas -->

@@ -2645,11 +2645,17 @@ let distortionAmount = 0.5;
 const btnEfectos = $('btnEfectos');
 const efectosPanel = $('efectosPanel');
 
+function updateEfxGlow(){
+  const panelOpen = !efectosPanel.classList.contains('hidden');
+  btnEfectos.classList.toggle('efx-glow', (reverbOn || distortionOn) && !panelOpen);
+}
+
 btnEfectos.addEventListener('click', ()=>{
   const open = !efectosPanel.classList.contains('hidden');
   efectosPanel.classList.toggle('hidden', open);
   btnEfectos.classList.toggle('active', !open);
   if(!open) efectosPanel.scrollIntoView({behavior:'smooth', block:'nearest'});
+  updateEfxGlow();
 });
 
 $('reverbToggle').addEventListener('click', ()=>{
@@ -2659,6 +2665,7 @@ $('reverbToggle').addEventListener('click', ()=>{
   btn.classList.toggle('active', reverbOn);
   $('reverbCtrl').classList.toggle('hidden', !reverbOn);
   if(isPlaying){ stopPlayback(); startPlayback(); }
+  updateEfxGlow();
 });
 
 $('reverbMixSlider').addEventListener('input', (e)=>{
@@ -2674,6 +2681,7 @@ $('distortionToggle').addEventListener('click', ()=>{
   btn.classList.toggle('active', distortionOn);
   $('distortionCtrl').classList.toggle('hidden', !distortionOn);
   if(isPlaying){ stopPlayback(); startPlayback(); }
+  updateEfxGlow();
 });
 
 $('distortionSlider').addEventListener('input', (e)=>{
