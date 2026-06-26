@@ -120,6 +120,9 @@ function hideLoading(){
     $('inlineLoading').classList.add('hidden');
   }
 }
+function setLoadingText(text){
+  $('inlineLoadingText').textContent = text || 'Cargando…';
+}
 
 function fmtTime(s){
   if(!isFinite(s)) return '0:00';
@@ -1502,7 +1505,7 @@ async function getFfmpeg(){
       const label = $('ffmpegProgressLabel');
       if(fill) fill.style.width = pct + '%';
       if(label) label.textContent = `Procesando… ${pct}%`;
-      if(pct > 0) showLoading(`Procesando video… ${pct}%`);
+      if(pct > 0) setLoadingText(`Procesando video… ${pct}%`);
     });
     await ff.load({
       coreURL: 'ffmpeg-core.js',
@@ -1584,13 +1587,13 @@ async function exportVideoWithFfmpeg(){
   try{
     const ff = await getFfmpeg();
 
-    showLoading('Procesando audio del video…');
+    setLoadingText('Procesando audio del video…');
     setStatus('Procesando audio del video…');
     const renderedAudio = await renderToBufferForVideo();
     const wavBlob = bufferToWav(renderedAudio);
     const wavData = new Uint8Array(await wavBlob.arrayBuffer());
 
-    showLoading('Preparando archivos…');
+    setLoadingText('Preparando archivos…');
     setStatus('Preparando archivos…');
     const videoData = new Uint8Array(await originalVideoFile.arrayBuffer());
     const inName = 'input_video.' + (originalVideoFile.name.split('.').pop() || 'mp4');
@@ -1605,7 +1608,7 @@ async function exportVideoWithFfmpeg(){
     const vf = videoFilters.length ? videoFilters.join(',') : null;
 
     const exportLabel = vf ? 'Recodificando video… (puede tardar varios minutos)' : 'Combinando video + audio editado…';
-    showLoading(exportLabel);
+    setLoadingText(exportLabel);
     setStatus(exportLabel);
     const args = ['-i', inName, '-i', 'new_audio.wav'];
     if(vf) args.push('-vf', vf);
@@ -1614,7 +1617,7 @@ async function exportVideoWithFfmpeg(){
     args.push('-map', '0:v:0', '-map', '1:a:0', ...videoCodecArgs, '-c:a', 'aac', '-b:a', '192k', '-shortest', 'output.mp4');
     await ff.exec(args);
 
-    showLoading('Preparando descarga…');
+    setLoadingText('Preparando descarga…');
     const data = await ff.readFile('output.mp4');
     const blob = new Blob([data.buffer], {type:'video/mp4'});
     const filename = `appa_video_${Date.now()}.mp4`;
