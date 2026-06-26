@@ -1600,20 +1600,49 @@ async function exportVideoWithFfmpeg(){
     await ff.writeFile(inName, videoData);
     await ff.writeFile('new_audio.wav', wavData);
 
-    const videoFilters = [];
-    if(isReversed) videoFilters.push('reverse');
-    if(Math.abs(speedRate - 1) > 0.01){
-      videoFilters.push(`setpts=PTS/${speedRate}`);
-    }
-    const vf = videoFilters.length ? videoFilters.join(',') : null;
+    let videoInputFile = inName;
 
-    const exportLabel = vf ? 'Recodificando video… (puede tardar varios minutos)' : 'Combinando video + audio editado…';
+    if(isReversed){
+      // El filtro 'reverse' de FFmpeg carga todos los frames en RAM a la vez.
+      // Para videos largos esto agota la memoria del tab y crashea el browser.
+      // Solución: dividir en segmentos de 3 segundos, invertir cada uno por separado,
+      // y concatenarlos en orden inverso → mismo resultado, ~1/N de pico de RAM.
+      const duration = videoEl.duration || 0;
+      const SEG = 3;
+      const numSegs = Math.max(1, Math.ceil(duration / SEG));
+      const revFiles = [];
+
+      for(let i = 0; i < numSegs; i++){
+        const start = i * SEG;
+        const segFile = `rv${i}.mp4`;
+        setLoadingText(`Invirtiendo video… ${i + 1}/${numSegs}`);
+        setStatus(`Invirtiendo video… ${i + 1}/${numSegs}`);
+        await ff.exec([
+          '-i', inName,
+          '-vf', `trim=start=${start}:duration=${SEG},reverse,setpts=PTS-STARTPTS`,
+          '-an', '-c:v', 'libx264', '-preset', 'ultrafast',
+          segFile
+        ]);
+        revFiles.unshift(segFile); // orden inverso para el concat
+      }
+
+      setLoadingText('Uniendo segmentos invertidos…');
+      setStatus('Uniendo segmentos invertidos…');
+      const listTxt = revFiles.map(f => `file '${f}'`).join('\n');
+      await ff.writeFile('rv_list.txt', new TextEncoder().encode(listTxt));
+      await ff.exec(['-f','concat','-safe','0','-i','rv_list.txt','-c','copy','rv_full.mp4']);
+      for(const f of revFiles) await ff.deleteFile(f).catch(()=>{});
+      await ff.deleteFile('rv_list.txt').catch(()=>{});
+      videoInputFile = 'rv_full.mp4';
+    }
+
+    const speedFilter = Math.abs(speedRate - 1) > 0.01 ? `setpts=PTS/${speedRate}` : null;
+    const exportLabel = speedFilter ? 'Recodificando video… (puede tardar)' : 'Combinando video + audio editado…';
     setLoadingText(exportLabel);
     setStatus(exportLabel);
-    const args = ['-i', inName, '-i', 'new_audio.wav'];
-    if(vf) args.push('-vf', vf);
-    // Sin filtros de video: copiar stream (rápido). Con filtros: re-encodear con libx264.
-    const videoCodecArgs = vf ? ['-c:v', 'libx264', '-preset', 'ultrafast'] : ['-c:v', 'copy'];
+    const args = ['-i', videoInputFile, '-i', 'new_audio.wav'];
+    if(speedFilter) args.push('-vf', speedFilter);
+    const videoCodecArgs = speedFilter ? ['-c:v', 'libx264', '-preset', 'ultrafast'] : ['-c:v', 'copy'];
     args.push('-map', '0:v:0', '-map', '1:a:0', ...videoCodecArgs, '-c:a', 'aac', '-b:a', '192k', '-shortest', 'output.mp4');
     await ff.exec(args);
 
@@ -1626,6 +1655,7 @@ async function exportVideoWithFfmpeg(){
     renderExportLog();
     setStatus('Video exportado ✓', 2500);
 
+    if(videoInputFile !== inName) await ff.deleteFile(videoInputFile).catch(()=>{});
     await ff.deleteFile(inName).catch(()=>{});
     await ff.deleteFile('new_audio.wav').catch(()=>{});
     await ff.deleteFile('output.mp4').catch(()=>{});
