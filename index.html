@@ -458,13 +458,13 @@ input[type=range]::-moz-range-thumb{
   border:3px solid transparent;
 }
 @keyframes footer-blink{
-  0%,100%{ color:var(--brown-dark); background:transparent; }
-  40%,60%{ color:#fff; background:#3ab6d8; }
+  0%,100%{ color:var(--brown-dark); background:transparent; box-shadow:none; text-shadow:none; }
+  40%,60%{ color:#fff; background:#3ab6d8; box-shadow:0 0 18px rgba(58,182,216,0.8),0 0 36px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); }
 }
 .footer-brand.blinking{ animation:footer-blink 0.55s ease-in-out 2; }
 @keyframes help-blink{
-  0%,100%{ background:var(--brown); color:var(--white); }
-  40%,60%{ background:#3ab6d8; color:#fff; }
+  0%,100%{ background:var(--brown); color:var(--white); box-shadow:none; }
+  40%,60%{ background:#3ab6d8; color:#fff; box-shadow:0 0 18px rgba(58,182,216,0.8),0 0 36px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); }
 }
 .help-toggle.blinking{ animation:help-blink 0.55s ease-in-out 1; }
 .footer-brand{ cursor:pointer; }
