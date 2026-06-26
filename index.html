@@ -486,11 +486,19 @@ input[type=range]::-moz-range-thumb{
   display:flex; justify-content:space-between; align-items:center;
   padding:12px 14px; cursor:pointer; user-select:none; gap:8px;
 }
-.help-item.always-open .help-item-header{ cursor:default; }
+.help-item.always-open .help-item-header{ cursor:default; background:#3ab6d8; }
 .help-item-header b{ color:var(--brown-dark); font-size:0.98rem; }
+.help-item.always-open .help-item-header b{
+  color:#fff;
+  text-shadow:0 0 10px rgba(255,255,255,0.75), 0 0 22px rgba(58,182,216,0.6);
+}
 .help-chevron{ color:var(--brown); font-size:0.78rem; flex-shrink:0; transition:transform 0.2s; }
 .help-item.open .help-chevron{ transform:rotate(180deg); }
 .help-item.always-open .help-chevron{ display:none; }
+.help-item.always-open{
+  border:1.5px solid #3ab6d8;
+  box-shadow:0 0 14px rgba(58,182,216,0.35), 0 0 4px rgba(58,182,216,0.2);
+}
 .help-item-body{
   display:none; padding:0 14px 12px;
   color:var(--brown-light); font-size:0.86rem; line-height:1.4; font-weight:500;
