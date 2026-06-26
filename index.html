@@ -457,19 +457,15 @@ input[type=range]::-moz-range-thumb{
   display:inline-block; border-radius:8px; padding:2px 10px;
   border:3px solid transparent;
 }
-@keyframes footer-blink{
-  0%,100%{ color:var(--brown-dark); background:transparent; border-color:transparent; }
-  40%,60%{ color:var(--cream); background:var(--brown-dark); border-color:var(--brown-light); }
+@keyframes cyan-pulse{
+  0%,100%{ box-shadow:none; }
+  50%{ box-shadow:0 0 0 3px #3ab6d8, 0 0 18px rgba(58,182,216,0.7); }
 }
 .footer-brand.blinking{
-  animation:footer-blink 0.55s ease-in-out 2;
-}
-@keyframes help-blink{
-  0%,100%{ background:var(--brown); color:var(--white); box-shadow:none; }
-  40%,60%{ background:var(--white); color:var(--brown); box-shadow:0 0 0 3px var(--brown-dark); }
+  animation:cyan-pulse 0.55s ease-in-out 2;
 }
 .help-toggle.blinking{
-  animation:help-blink 0.55s ease-in-out 1;
+  animation:cyan-pulse 0.55s ease-in-out 1;
 }
 .footer-sub{font-size:0.95rem; font-weight:600; color:var(--brown-light); margin-top:2px; margin-bottom:20px;}
 .help-toggle{
@@ -1150,7 +1146,7 @@ body.fondo-especial .appa-arrow{
 
       <div class="help-item always-open">
         <div class="help-item-header"><b>Pitch-lock 🔒</b></div>
-        <div class="help-item-body">Desacopla el tono de la velocidad. Con esto activo, podés <b>acelerar sin que las voces suenen "a ardilla"</b>, o bajar el tono sin que el audio se arrastre. Es el modo que usan apps como InShot.</div>
+        <div class="help-item-body">Desacopla el tono de la velocidad. Con esto activo, podés <b>acelerar sin que las voces suenen "a ardilla"</b>, o bajar el tono sin que el audio se arrastre.</div>
       </div>
 
       <div class="help-item">
