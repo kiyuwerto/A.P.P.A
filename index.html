@@ -622,6 +622,22 @@ body.fondo-especial .appa-arrow{
 
 /* Controles de apariencia en el menú */
 .fondo-toggle-row{ display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+
+/* Barrido de luz celeste en el botón Fondo especial */
+#fondoEspecialBtn{ position:relative; overflow:hidden; }
+#fondoEspecialBtn::before{
+  content:'';
+  position:absolute; top:0; left:0;
+  width:55%; height:100%;
+  background:linear-gradient(to right, transparent, rgba(58,182,216,0.55) 50%, transparent);
+  transform:translateX(-160%);
+  animation:fondo-shimmer 2.8s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes fondo-shimmer{
+  0%      { transform:translateX(-160%); }
+  55%,100%{ transform:translateX(290%); }
+}
 .menu-toggle-btn.btn-active{ background:var(--green); }
 .menu-toggle-btn.btn-sub{ background:var(--brown-light); }
 .opacity-row{ display:flex; align-items:center; gap:12px; margin-top:8px; }
