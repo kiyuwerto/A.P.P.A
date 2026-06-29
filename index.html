@@ -720,6 +720,15 @@ body.fondo-especial .appa-arrow{
 }
 .chord-extra-voicings{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding:4px 0 0; }
 .chord-extra-voicings.hidden{ display:none; }
+.chord-builder-row{ display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; }
+.chord-sel-btn{
+  background:var(--cream); color:var(--brown-dark);
+  border:1.5px solid var(--brown); border-radius:9px;
+  padding:4px 8px; font-size:0.72rem; font-weight:700;
+  font-family:inherit; cursor:pointer; transition:background 0.15s;
+}
+.chord-sel-btn.sel{ background:var(--brown); color:#fff; }
+.chord-sel-btn:hover:not(.sel){ background:var(--brown-light); color:#fff; }
 .menu-toggle-btn.btn-active{ background:var(--green); }
 .menu-toggle-btn.btn-sub{ background:var(--brown-light); }
 .opacity-row{ display:flex; align-items:center; gap:12px; margin-top:8px; }
@@ -1100,10 +1109,8 @@ body.fondo-especial .appa-arrow{
       </div>
     </div>
     <div id="panelAcordeNotas" class="hidden">
-      <div class="chord-search-row">
-        <input class="chord-name-inp" type="text" id="chordNameInp" placeholder="Ej: Mi mayor, Dm7, F#m…" autocomplete="off">
-        <button class="nota-action-btn nota-detect-btn" id="searchChordBtn">Buscar</button>
-      </div>
+      <div class="chord-builder-row" id="rootNoteRow"></div>
+      <div class="chord-builder-row" id="chordTypeRow"></div>
       <div class="acorde-result hidden" id="chordNoteBox">
         <div class="acorde-result-label" id="chordNoteLabel"></div>
         <div class="chord-note-chips" id="chordNoteChips"></div>

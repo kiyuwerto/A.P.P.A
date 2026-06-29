@@ -3822,7 +3822,7 @@ function updateReanalyzeShimmer(){
           const count=voicings.length-1;
           const toggleBtn=document.createElement('button');
           toggleBtn.className='voicings-toggle-btn';
-          toggleBtn.textContent=`▾ ${count} posición${count>1?'es':''} más`;
+          toggleBtn.textContent=`▾ ${count} ${count>1?'posiciones':'posición'} más`;
           wrap.appendChild(toggleBtn);
           const extraWrap=document.createElement('div');
           extraWrap.className='chord-extra-voicings hidden';
@@ -3831,7 +3831,7 @@ function updateReanalyzeShimmer(){
           toggleBtn.addEventListener('click',()=>{
             const hidden=extraWrap.classList.toggle('hidden');
             toggleBtn.textContent=hidden
-              ?`▾ ${count} posición${count>1?'es':''} más`
+              ?`▾ ${count} ${count>1?'posiciones':'posición'} más`
               :'▴ Ocultar posiciones';
           });
         }
@@ -3863,23 +3863,45 @@ function updateReanalyzeShimmer(){
     $('chordResultBox').classList.remove('hidden');
   }
 
-  function doSearch(){
-    const inp=$('chordNameInp').value.trim();
-    if(!inp) return;
-    const parsed=parseChordName(inp);
-    const box=$('chordNoteBox');
-    const lbl=$('chordNoteLabel');
-    const chipsEl=$('chordNoteChips');
-    if(!parsed){
-      lbl.textContent='No se reconoció el acorde.'; chipsEl.innerHTML='';
-      box.classList.remove('hidden'); $('chordDiagsSection').classList.add('hidden');
-      return;
-    }
-    const notes=getChordNotes(parsed.rootSemi,parsed.type);
-    lbl.textContent=`${NES[parsed.rootSemi]} ${parsed.type.es} (${NEN[parsed.rootSemi]}${parsed.type.en}):`;
-    chipsEl.innerHTML=notes.map(n=>`<span class="chord-note-chip">${n}</span>`).join('');
-    box.classList.remove('hidden');
-    showDiagrams(parsed.rootSemi,parsed.type);
+  let builderRoot = 0;
+  let builderType = CT[0];
+
+  function doSearchByBuilder(){
+    const notes=getChordNotes(builderRoot,builderType);
+    $('chordNoteLabel').textContent=`${NES[builderRoot]} ${builderType.es} (${NEN[builderRoot]}${builderType.en}):`;
+    $('chordNoteChips').innerHTML=notes.map(n=>`<span class="chord-note-chip">${n}</span>`).join('');
+    $('chordNoteBox').classList.remove('hidden');
+    showDiagrams(builderRoot,builderType);
+  }
+
+  function renderChordBuilder(){
+    const rootRow=$('rootNoteRow');
+    const typeRow=$('chordTypeRow');
+    rootRow.innerHTML='';
+    typeRow.innerHTML='';
+    NES.forEach((n,i)=>{
+      const b=document.createElement('button');
+      b.className='chord-sel-btn'+(i===builderRoot?' sel':'');
+      b.textContent=n;
+      b.addEventListener('click',()=>{
+        builderRoot=i;
+        rootRow.querySelectorAll('.chord-sel-btn').forEach((el,j)=>el.classList.toggle('sel',j===i));
+        doSearchByBuilder();
+      });
+      rootRow.appendChild(b);
+    });
+    const typeLabel=t=>t.es==='mayor'?'Mayor':t.es==='m maj7'?'mMaj7':t.es;
+    CT.forEach((t,i)=>{
+      const b=document.createElement('button');
+      b.className='chord-sel-btn'+(t===builderType?' sel':'');
+      b.textContent=typeLabel(t);
+      b.addEventListener('click',()=>{
+        builderType=t;
+        typeRow.querySelectorAll('.chord-sel-btn').forEach((el,j)=>el.classList.toggle('sel',j===i));
+        doSearchByBuilder();
+      });
+      typeRow.appendChild(b);
+    });
   }
 
   // Init
@@ -3898,14 +3920,13 @@ function updateReanalyzeShimmer(){
   $('tabAcordeNotas').addEventListener('click',()=>{
     $('tabAcordeNotas').classList.add('active'); $('tabNotasAcorde').classList.remove('active');
     $('panelAcordeNotas').classList.remove('hidden'); $('panelNotasAcorde').classList.add('hidden');
+    doSearchByBuilder();
   });
 
   $('addNotaBtn').addEventListener('click',()=>{
     if(notaSlots.length<8){ notaSlots.push({n:'Do',o:'4'}); renderSlots(); }
   });
   $('detectChordBtn').addEventListener('click', doDetect);
-  $('searchChordBtn').addEventListener('click', doSearch);
-  $('chordNameInp').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(); });
 
   document.querySelectorAll('.diag-fmt-tab').forEach(tab=>{
     tab.addEventListener('click',()=>{
@@ -3917,6 +3938,7 @@ function updateReanalyzeShimmer(){
   });
 
   renderSlots();
+  renderChordBuilder();
 })();
 
 // Revisar si hay una sesión guardada de una visita anterior
