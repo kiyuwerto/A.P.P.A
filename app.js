@@ -165,6 +165,7 @@ function applyHistoryState(state){
   btnPitchLock.classList.toggle('active', pitchLockOn);
   restartPlaybackIfPlaying();
   updatePitchLockHint();
+  updateReanalyzeShimmer();
 }
 
 function updatePitchLockHint(){
@@ -535,6 +536,7 @@ function doClearAll(){
 
   pitchSlider.value = 0; pitchValue.value = '0.000';
   speedSlider.value = 1; speedValue.value = '1.000';
+  updateReanalyzeShimmer();
   btnReverse.classList.remove('active');
   btnPitchLock.classList.remove('active');
   btnLoop.classList.remove('active');
@@ -1223,6 +1225,7 @@ pitchSlider.addEventListener('input', ()=>{
   // que es instantáneo. Con pitch-lock hay que reprocesar con SoundTouch -> se hace al soltar.
   if(!pitchLockOn) updatePlaybackRateLive();
   updatePitchLockHint();
+  updateReanalyzeShimmer();
 });
 pitchSlider.addEventListener('change', ()=>{
   if(pitchLockOn) restartPlaybackIfPlaying(); // pitch-lock reprocesa al soltar (caro)
@@ -1237,12 +1240,14 @@ pitchValue.addEventListener('change', ()=>{
   restartPlaybackIfPlaying();
   pushHistory();
   updatePitchLockHint();
+  updateReanalyzeShimmer();
 });
 
 speedSlider.addEventListener('input', ()=>{
   speedRate = parseFloat(speedSlider.value);
   speedValue.value = speedRate.toFixed(3);
   if(!pitchLockOn) updatePlaybackRateLive();
+  updateReanalyzeShimmer();
 });
 speedSlider.addEventListener('change', ()=>{
   if(pitchLockOn) restartPlaybackIfPlaying();
@@ -1256,6 +1261,7 @@ speedValue.addEventListener('change', ()=>{
   speedSlider.value = v;
   restartPlaybackIfPlaying();
   pushHistory();
+  updateReanalyzeShimmer();
 });
 
 // ============================================================
@@ -1278,6 +1284,7 @@ document.querySelectorAll('.step-btn[data-delta]').forEach(btn=>{
     }
     restartPlaybackIfPlaying();
     pushHistory();
+    updateReanalyzeShimmer();
   });
 });
 
@@ -1288,6 +1295,7 @@ $('pitchZeroBtn').addEventListener('click', ()=>{
   restartPlaybackIfPlaying();
   pushHistory();
   updatePitchLockHint();
+  updateReanalyzeShimmer();
 });
 
 $('speedZeroBtn').addEventListener('click', ()=>{
@@ -1296,6 +1304,7 @@ $('speedZeroBtn').addEventListener('click', ()=>{
   speedSlider.value = 1;
   restartPlaybackIfPlaying();
   pushHistory();
+  updateReanalyzeShimmer();
 });
 
 // ============================================================
@@ -3398,6 +3407,462 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
+
+// ============================================================
+// MÓDULO ACORDES — detección, nombres y diagramas
+// ============================================================
+function updateReanalyzeShimmer(){
+  $('reanalyzeBtn').classList.toggle('altered', pitchSemis !== 0 || speedRate !== 1);
+}
+
+(function(){
+  const NES = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+  const NEN = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const NEF = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B']; // flat names
+
+  const N2S = {};
+  NES.forEach((n,i)=>{ N2S[n.toLowerCase()]=i; });
+  NEN.forEach((n,i)=>{ N2S[n.toLowerCase()]=i; });
+  NEF.forEach((n,i)=>{ N2S[n.toLowerCase()]=i; });
+
+  function noteToSemi(name){
+    return N2S[name.trim().toLowerCase().replace(/sostenido/g,'#').replace(/bemol/g,'b')] ?? null;
+  }
+
+  const CT = [
+    {es:'mayor',    en:'',      iv:[0,4,7]},
+    {es:'menor',    en:'m',     iv:[0,3,7]},
+    {es:'7',        en:'7',     iv:[0,4,7,10]},
+    {es:'maj7',     en:'maj7',  iv:[0,4,7,11]},
+    {es:'m7',       en:'m7',    iv:[0,3,7,10]},
+    {es:'dim',      en:'dim',   iv:[0,3,6]},
+    {es:'dim7',     en:'dim7',  iv:[0,3,6,9]},
+    {es:'aug',      en:'aug',   iv:[0,4,8]},
+    {es:'sus2',     en:'sus2',  iv:[0,2,7]},
+    {es:'sus4',     en:'sus4',  iv:[0,5,7]},
+    {es:'m maj7',   en:'mM7',   iv:[0,3,7,11]},
+    {es:'9',        en:'9',     iv:[0,4,7,10,14]},
+    {es:'m9',       en:'m9',    iv:[0,3,7,10,14]},
+    {es:'maj9',     en:'maj9',  iv:[0,4,7,11,14]},
+    {es:'6',        en:'6',     iv:[0,4,7,9]},
+    {es:'m6',       en:'m6',    iv:[0,3,7,9]},
+    {es:'add9',     en:'add9',  iv:[0,4,7,14]},
+    {es:'7sus4',    en:'7sus4', iv:[0,5,7,10]},
+    {es:'5',        en:'5',     iv:[0,7]},
+  ];
+
+  function detectChords(semis){
+    const pcs = [...new Set(semis.map(s=>((s%12)+12)%12))];
+    if(!pcs.length) return [];
+    const res = [];
+    for(let r=0;r<12;r++){
+      for(const t of CT){
+        const needed = [...new Set(t.iv.map(i=>(r+(i%12))%12))];
+        if(needed.every(n=>pcs.includes(n)) && pcs.every(n=>needed.includes(n)))
+          res.push({r, t, nameEs:`${NES[r]} ${t.es}`, nameEn:`${NEN[r]}${t.en}`});
+      }
+    }
+    return res;
+  }
+
+  function parseChordName(inp){
+    let s = inp.trim().replace(/sostenido/gi,'#').replace(/bemol/gi,'b');
+    const esNotes = [
+      ['Sol#',8],['Solb',6],['Sol',7],['Fa#',6],['Fa',5],
+      ['Re#',3],['Reb',1],['Re',2],['Do#',1],['Do',0],
+      ['La#',10],['Lab',8],['La',9],
+      ['Mib',3],['Mi',4],
+      ['Sib',10],['Si',11],
+    ];
+    for(const [nm,semi] of esNotes){
+      if(s.toLowerCase().startsWith(nm.toLowerCase())){
+        const rest = s.slice(nm.length).trim().toLowerCase();
+        const type = CT.find(t=>
+          rest===t.es.toLowerCase() || (rest===''&&t.es==='mayor') ||
+          (rest==='disminuido'&&t.es==='dim') || (rest==='aumentado'&&t.es==='aug') ||
+          (rest==='mayor 7'&&t.es==='maj7') || (rest==='menor 7'&&t.es==='m7')
+        );
+        if(type) return {rootSemi:semi,type};
+      }
+    }
+    const enNotes = [
+      ['C#',1],['D#',3],['F#',6],['G#',8],['A#',10],
+      ['Db',1],['Eb',3],['Gb',6],['Ab',8],['Bb',10],
+      ['C',0],['D',2],['E',4],['F',5],['G',7],['A',9],['B',11],
+    ];
+    for(const [nm,semi] of enNotes){
+      if(s.startsWith(nm)){
+        const rest = s.slice(nm.length).trim();
+        const type = CT.find(t=>
+          rest===t.en || (rest===''&&t.en==='') ||
+          (rest.toLowerCase()==='minor'&&t.en==='m') ||
+          (rest.toLowerCase()==='major'&&t.en==='') ||
+          (rest.toLowerCase()==='min'&&t.en==='m') ||
+          (rest.toLowerCase()==='maj'&&t.en==='')
+        );
+        if(type) return {rootSemi:semi,type};
+      }
+    }
+    return null;
+  }
+
+  function getChordNotes(rootSemi, type){
+    return [...new Set(type.iv.map(i=>(rootSemi+(i%12))%12))].map(s=>NES[s]);
+  }
+
+  // Guitar chord database [E A D G B e] strings (0=low E, 5=high e)
+  // frets: -1=mute 0=open 1+= fret, pos=display start fret
+  const GDB = {
+    'C':    {frets:[-1,3,2,0,1,0], fingers:[0,3,2,0,1,0], barre:null,             pos:0},
+    'C#':   {frets:[-1,4,6,6,6,4],  fingers:[0,1,3,4,2,1], barre:{f:4,a:1,b:5},   pos:4},
+    'Db':   {frets:[-1,4,6,6,6,4],  fingers:[0,1,3,4,2,1], barre:{f:4,a:1,b:5},   pos:4},
+    'D':    {frets:[-1,-1,0,2,3,2],fingers:[0,0,0,1,3,2],  barre:null,             pos:0},
+    'D#':   {frets:[-1,6,8,8,8,6], fingers:[0,1,3,4,2,1], barre:{f:6,a:1,b:5},   pos:6},
+    'Eb':   {frets:[-1,6,8,8,8,6], fingers:[0,1,3,4,2,1], barre:{f:6,a:1,b:5},   pos:6},
+    'E':    {frets:[0,2,2,1,0,0],  fingers:[0,2,3,1,0,0],  barre:null,             pos:0},
+    'F':    {frets:[1,3,3,2,1,1],  fingers:[1,3,4,2,1,1], barre:{f:1,a:0,b:5},   pos:1},
+    'F#':   {frets:[2,4,4,3,2,2],  fingers:[1,3,4,2,1,1], barre:{f:2,a:0,b:5},   pos:2},
+    'Gb':   {frets:[2,4,4,3,2,2],  fingers:[1,3,4,2,1,1], barre:{f:2,a:0,b:5},   pos:2},
+    'G':    {frets:[3,2,0,0,0,3],  fingers:[3,2,0,0,0,4],  barre:null,             pos:0},
+    'G#':   {frets:[4,6,6,5,4,4],  fingers:[1,3,4,2,1,1], barre:{f:4,a:0,b:5},   pos:4},
+    'Ab':   {frets:[4,6,6,5,4,4],  fingers:[1,3,4,2,1,1], barre:{f:4,a:0,b:5},   pos:4},
+    'A':    {frets:[-1,0,2,2,2,0], fingers:[0,0,2,3,4,0],  barre:null,             pos:0},
+    'A#':   {frets:[-1,1,3,3,3,1], fingers:[0,1,3,4,2,1], barre:{f:1,a:1,b:5},   pos:1},
+    'Bb':   {frets:[-1,1,3,3,3,1], fingers:[0,1,3,4,2,1], barre:{f:1,a:1,b:5},   pos:1},
+    'B':    {frets:[-1,2,4,4,4,2], fingers:[0,1,3,4,2,1], barre:{f:2,a:1,b:5},   pos:2},
+    'Cm':   {frets:[-1,3,5,5,4,3], fingers:[0,1,3,4,2,1], barre:{f:3,a:1,b:5},   pos:3},
+    'C#m':  {frets:[-1,4,6,6,5,4], fingers:[0,1,3,4,2,1], barre:{f:4,a:1,b:5},   pos:4},
+    'Dbm':  {frets:[-1,4,6,6,5,4], fingers:[0,1,3,4,2,1], barre:{f:4,a:1,b:5},   pos:4},
+    'Dm':   {frets:[-1,-1,0,2,3,1],fingers:[0,0,0,2,3,1],  barre:null,             pos:0},
+    'D#m':  {frets:[6,8,8,6,6,6],  fingers:[1,3,4,1,1,1], barre:{f:6,a:0,b:5},   pos:6},
+    'Ebm':  {frets:[6,8,8,6,6,6],  fingers:[1,3,4,1,1,1], barre:{f:6,a:0,b:5},   pos:6},
+    'Em':   {frets:[0,2,2,0,0,0],  fingers:[0,2,3,0,0,0],  barre:null,             pos:0},
+    'Fm':   {frets:[1,3,3,1,1,1],  fingers:[1,3,4,1,1,1], barre:{f:1,a:0,b:5},   pos:1},
+    'F#m':  {frets:[2,4,4,2,2,2],  fingers:[1,3,4,1,1,1], barre:{f:2,a:0,b:5},   pos:2},
+    'Gbm':  {frets:[2,4,4,2,2,2],  fingers:[1,3,4,1,1,1], barre:{f:2,a:0,b:5},   pos:2},
+    'Gm':   {frets:[3,5,5,3,3,3],  fingers:[1,3,4,1,1,1], barre:{f:3,a:0,b:5},   pos:3},
+    'G#m':  {frets:[4,6,6,4,4,4],  fingers:[1,3,4,1,1,1], barre:{f:4,a:0,b:5},   pos:4},
+    'Abm':  {frets:[4,6,6,4,4,4],  fingers:[1,3,4,1,1,1], barre:{f:4,a:0,b:5},   pos:4},
+    'Am':   {frets:[-1,0,2,2,1,0], fingers:[0,0,2,3,1,0],  barre:null,             pos:0},
+    'A#m':  {frets:[-1,1,3,3,2,1], fingers:[0,1,3,4,2,1], barre:{f:1,a:1,b:5},   pos:1},
+    'Bbm':  {frets:[-1,1,3,3,2,1], fingers:[0,1,3,4,2,1], barre:{f:1,a:1,b:5},   pos:1},
+    'Bm':   {frets:[-1,2,4,4,3,2], fingers:[0,1,3,4,2,1], barre:{f:2,a:1,b:5},   pos:2},
+    'C7':   {frets:[-1,3,2,3,1,0], fingers:[0,3,2,4,1,0],  barre:null,             pos:0},
+    'D7':   {frets:[-1,-1,0,2,1,2],fingers:[0,0,0,2,1,3],  barre:null,             pos:0},
+    'E7':   {frets:[0,2,0,1,0,0],  fingers:[0,2,0,1,0,0],  barre:null,             pos:0},
+    'G7':   {frets:[3,2,0,0,0,1],  fingers:[3,2,0,0,0,1],  barre:null,             pos:0},
+    'A7':   {frets:[-1,0,2,0,2,0], fingers:[0,0,2,0,3,0],  barre:null,             pos:0},
+    'B7':   {frets:[-1,2,1,2,0,2], fingers:[0,2,1,3,0,4],  barre:null,             pos:0},
+    'Cmaj7':{frets:[-1,3,2,0,0,0], fingers:[0,3,2,0,0,0],  barre:null,             pos:0},
+    'Dmaj7':{frets:[-1,-1,0,2,2,2],fingers:[0,0,0,1,2,3],  barre:null,             pos:0},
+    'Emaj7':{frets:[0,2,1,1,0,0],  fingers:[0,2,1,1,0,0],  barre:null,             pos:0},
+    'Fmaj7':{frets:[-1,0,3,2,1,0], fingers:[0,0,3,2,1,0],  barre:null,             pos:0},
+    'Gmaj7':{frets:[3,2,0,0,0,2],  fingers:[3,2,0,0,0,1],  barre:null,             pos:0},
+    'Amaj7':{frets:[-1,0,2,1,2,0], fingers:[0,0,2,1,3,0],  barre:null,             pos:0},
+    'Am7':  {frets:[-1,0,2,0,1,0], fingers:[0,0,2,0,1,0],  barre:null,             pos:0},
+    'Em7':  {frets:[0,2,0,0,0,0],  fingers:[0,2,0,0,0,0],  barre:null,             pos:0},
+    'Dm7':  {frets:[-1,-1,0,2,1,1],fingers:[0,0,0,3,1,2],  barre:null,             pos:0},
+    'Adim': {frets:[-1,0,1,2,1,0], fingers:[0,0,1,3,2,0],  barre:null,             pos:0},
+    'Bdim': {frets:[-1,2,0,0,0,1], fingers:[0,2,0,0,0,1],  barre:null,             pos:0},
+    'Ddim': {frets:[-1,-1,0,1,0,1],fingers:[0,0,0,1,0,2],  barre:null,             pos:0},
+    'Edim': {frets:[0,1,2,0,0,-1], fingers:[0,1,2,0,0,0],  barre:null,             pos:0},
+    'Eaug': {frets:[0,3,2,1,1,0],  fingers:[0,4,3,1,2,0],  barre:null,             pos:0},
+    'Aaug': {frets:[-1,0,3,2,2,1], fingers:[0,0,4,3,2,1],  barre:null,             pos:0},
+    'Caug': {frets:[-1,3,2,1,1,0], fingers:[0,4,3,1,2,0],  barre:null,             pos:0},
+    'Daug': {frets:[-1,-1,0,3,3,2],fingers:[0,0,0,2,3,1],  barre:null,             pos:0},
+  };
+  // Ukulele chord database [G C E A] strings (reentrant tuning G4 C4 E4 A4)
+  const UDB = {
+    'C':    {frets:[0,0,0,3],  fingers:[0,0,0,3],  barre:null,          pos:0},
+    'C#':   {frets:[1,1,1,4],  fingers:[1,1,1,4],  barre:{f:1,a:0,b:2}, pos:1},
+    'Db':   {frets:[1,1,1,4],  fingers:[1,1,1,4],  barre:{f:1,a:0,b:2}, pos:1},
+    'D':    {frets:[2,2,2,0],  fingers:[2,3,4,0],  barre:{f:2,a:0,b:2}, pos:2},
+    'D#':   {frets:[3,3,3,1],  fingers:[2,3,4,1],  barre:{f:3,a:0,b:2}, pos:3},
+    'Eb':   {frets:[3,3,3,1],  fingers:[2,3,4,1],  barre:{f:3,a:0,b:2}, pos:3},
+    'E':    {frets:[4,4,4,2],  fingers:[2,3,4,1],  barre:{f:4,a:0,b:2}, pos:4},
+    'F':    {frets:[2,0,1,0],  fingers:[2,0,1,0],  barre:null,          pos:0},
+    'F#':   {frets:[3,1,2,1],  fingers:[3,1,2,1],  barre:{f:1,a:1,b:3}, pos:1},
+    'Gb':   {frets:[3,1,2,1],  fingers:[3,1,2,1],  barre:{f:1,a:1,b:3}, pos:1},
+    'G':    {frets:[0,2,3,2],  fingers:[0,1,3,2],  barre:null,          pos:0},
+    'G#':   {frets:[5,3,4,3],  fingers:[4,1,3,2],  barre:{f:3,a:1,b:3}, pos:3},
+    'Ab':   {frets:[5,3,4,3],  fingers:[4,1,3,2],  barre:{f:3,a:1,b:3}, pos:3},
+    'A':    {frets:[2,1,0,0],  fingers:[2,1,0,0],  barre:null,          pos:0},
+    'A#':   {frets:[3,2,1,1],  fingers:[3,2,1,1],  barre:{f:1,a:2,b:3}, pos:1},
+    'Bb':   {frets:[3,2,1,1],  fingers:[3,2,1,1],  barre:{f:1,a:2,b:3}, pos:1},
+    'B':    {frets:[4,3,2,2],  fingers:[4,3,2,2],  barre:{f:2,a:2,b:3}, pos:2},
+    'Cm':   {frets:[0,3,3,3],  fingers:[0,1,2,3],  barre:{f:3,a:1,b:3}, pos:3},
+    'C#m':  {frets:[1,4,4,4],  fingers:[1,2,3,4],  barre:{f:4,a:1,b:3}, pos:4},
+    'Dbm':  {frets:[1,4,4,4],  fingers:[1,2,3,4],  barre:{f:4,a:1,b:3}, pos:4},
+    'Dm':   {frets:[2,2,1,0],  fingers:[3,2,1,0],  barre:null,          pos:0},
+    'D#m':  {frets:[3,3,2,1],  fingers:[3,4,2,1],  barre:null,          pos:1},
+    'Ebm':  {frets:[3,3,2,1],  fingers:[3,4,2,1],  barre:null,          pos:1},
+    'Em':   {frets:[0,4,3,2],  fingers:[0,4,3,2],  barre:null,          pos:0},
+    'Fm':   {frets:[1,0,1,3],  fingers:[1,0,2,4],  barre:null,          pos:0},
+    'F#m':  {frets:[2,1,2,0],  fingers:[3,1,4,0],  barre:null,          pos:0},
+    'Gbm':  {frets:[2,1,2,0],  fingers:[3,1,4,0],  barre:null,          pos:0},
+    'Gm':   {frets:[0,2,3,1],  fingers:[0,2,3,1],  barre:null,          pos:0},
+    'G#m':  {frets:[4,3,4,2],  fingers:[4,2,3,1],  barre:null,          pos:2},
+    'Abm':  {frets:[4,3,4,2],  fingers:[4,2,3,1],  barre:null,          pos:2},
+    'Am':   {frets:[2,0,0,0],  fingers:[2,0,0,0],  barre:null,          pos:0},
+    'A#m':  {frets:[3,1,1,1],  fingers:[3,1,1,1],  barre:{f:1,a:1,b:3}, pos:1},
+    'Bbm':  {frets:[3,1,1,1],  fingers:[3,1,1,1],  barre:{f:1,a:1,b:3}, pos:1},
+    'Bm':   {frets:[4,2,2,2],  fingers:[4,1,1,1],  barre:{f:2,a:1,b:3}, pos:2},
+    'C7':   {frets:[0,0,0,1],  fingers:[0,0,0,1],  barre:null,          pos:0},
+    'D7':   {frets:[2,2,2,3],  fingers:[1,2,3,4],  barre:{f:2,a:0,b:2}, pos:2},
+    'E7':   {frets:[1,2,0,2],  fingers:[1,3,0,2],  barre:null,          pos:0},
+    'G7':   {frets:[0,2,1,2],  fingers:[0,2,1,3],  barre:null,          pos:0},
+    'A7':   {frets:[0,1,0,0],  fingers:[0,1,0,0],  barre:null,          pos:0},
+    'Am7':  {frets:[0,0,0,0],  fingers:[0,0,0,0],  barre:null,          pos:0},
+    'Em7':  {frets:[0,2,0,2],  fingers:[0,2,0,3],  barre:null,          pos:0},
+    'Dm7':  {frets:[2,2,1,2],  fingers:[3,2,1,4],  barre:null,          pos:0},
+    'Cmaj7':{frets:[0,0,0,2],  fingers:[0,0,0,2],  barre:null,          pos:0},
+    'Gmaj7':{frets:[0,2,2,2],  fingers:[0,1,2,3],  barre:null,          pos:0},
+    'Amaj7':{frets:[1,1,0,0],  fingers:[1,2,0,0],  barre:null,          pos:0},
+    'Fmaj7':{frets:[2,4,1,3],  fingers:[2,4,1,3],  barre:null,          pos:1},
+  };
+
+  // SVG fretboard renderer (guitar or ukulele)
+  function renderFretboard(frets, fingers, barre, pos, ns){
+    const W  = ns===6 ? 108 : 74;
+    const H  = 128;
+    const PL = ns===6 ? 18 : 14;
+    const PT = 26;
+    const PR = 8;
+    const NF = 5;
+    const strW = (W-PL-PR)/(ns-1);
+    const fretH = (H-PT-8)/NF;
+    const sf = pos>0 ? pos : 1;
+
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+
+    if(pos>0)
+      s+=`<text x="${PL-3}" y="${PT+fretH*0.65}" font-size="8" text-anchor="end" fill="#7a4a26" font-weight="bold">${pos}fr</text>`;
+
+    // top line: nut (thick) or upper fret
+    s+=`<line x1="${PL}" y1="${PT}" x2="${PL+strW*(ns-1)}" y2="${PT}" stroke="${pos===0?'#5c3719':'#aaa'}" stroke-width="${pos===0?3:1.5}"/>`;
+
+    // fret lines
+    for(let f=1;f<=NF;f++){
+      const y=PT+f*fretH;
+      s+=`<line x1="${PL}" y1="${y}" x2="${PL+strW*(ns-1)}" y2="${y}" stroke="#ccc" stroke-width="1"/>`;
+    }
+
+    // string lines
+    for(let i=0;i<ns;i++){
+      const x=PL+i*strW;
+      s+=`<line x1="${x}" y1="${PT}" x2="${x}" y2="${PT+NF*fretH}" stroke="#999" stroke-width="1.2"/>`;
+    }
+
+    // barre
+    if(barre){
+      const row=barre.f-sf+1;
+      if(row>=1&&row<=NF){
+        const by=PT+(row-0.5)*fretH;
+        s+=`<line x1="${PL+barre.a*strW}" y1="${by}" x2="${PL+barre.b*strW}" y2="${by}" stroke="#3b2010" stroke-width="${fretH*0.56}" stroke-linecap="round"/>`;
+      }
+    }
+
+    // dots / markers
+    for(let i=0;i<ns;i++){
+      const x=PL+i*strW;
+      const fr=frets[i];
+      if(fr<0){
+        s+=`<text x="${x}" y="${PT-7}" font-size="11" text-anchor="middle" fill="#b94a3a" font-weight="bold">×</text>`;
+      } else if(fr===0){
+        s+=`<circle cx="${x}" cy="${PT-8}" r="4" fill="none" stroke="#5c3719" stroke-width="1.5"/>`;
+      } else {
+        const row=fr-sf+1;
+        if(row>=1&&row<=NF){
+          const cy=PT+(row-0.5)*fretH;
+          const fi=fingers[i];
+          const inB=barre&&fr===barre.f&&fi===1&&i>=barre.a&&i<=barre.b;
+          if(!inB){
+            s+=`<circle cx="${x}" cy="${cy}" r="${fretH*0.30}" fill="#3b2010"/>`;
+            if(fi>1) s+=`<text x="${x}" y="${cy+3.5}" font-size="7" text-anchor="middle" fill="#fff" font-weight="bold">${fi}</text>`;
+          }
+        }
+      }
+    }
+    s+='</svg>';
+    return s;
+  }
+
+  // SVG piano renderer
+  function renderPiano(notesSemi){
+    const WW=13, WH=50, BW=8, BH=30, octs=2;
+    const TW=7*octs*WW+2;
+    const wOrder=[0,2,4,5,7,9,11];
+    const bLayout=[{s:1,sl:0},{s:3,sl:1},{s:6,sl:3},{s:8,sl:4},{s:10,sl:5}];
+    let sv=`<svg viewBox="0 0 ${TW} ${WH+2}" width="${TW}" height="${WH+2}">`;
+    for(let o=0;o<octs;o++){
+      for(let wi=0;wi<7;wi++){
+        const semi=wOrder[wi];
+        const x=(o*7+wi)*WW+1;
+        const hit=notesSemi.includes(semi);
+        sv+=`<rect x="${x}" y="1" width="${WW-1}" height="${WH}" rx="2" fill="${hit?'#3ab6d8':'#fff'}" stroke="#bbb" stroke-width="1"/>`;
+        if(hit) sv+=`<text x="${x+(WW-1)/2}" y="${WH-5}" font-size="6.5" text-anchor="middle" fill="#fff" font-weight="bold">${NES[semi]}</text>`;
+      }
+    }
+    for(let o=0;o<octs;o++){
+      for(const bk of bLayout){
+        const x=(o*7+bk.sl)*WW+WW-Math.floor(BW/2)+1;
+        const hit=notesSemi.includes(bk.s);
+        sv+=`<rect x="${x}" y="1" width="${BW}" height="${BH}" rx="2" fill="${hit?'#0e7a99':'#333'}"/>`;
+        if(hit) sv+=`<text x="${x+BW/2}" y="${BH-3}" font-size="6" text-anchor="middle" fill="#fff" font-weight="bold">${NES[bk.s]}</text>`;
+      }
+    }
+    sv+='</svg>';
+    return sv;
+  }
+
+  // ── UI state ──
+  let diagFmt = 'guitar';
+  let selChord = null;
+  let notaSlots = [{n:'Mi',o:'4'},{n:'Sol#',o:'4'},{n:'Si',o:'4'}];
+
+  function renderSlots(){
+    const c=$('notaSlots');
+    c.innerHTML='';
+    notaSlots.forEach((slot,i)=>{
+      const d=document.createElement('div');
+      d.className='nota-slot';
+
+      const ns=document.createElement('select'); ns.className='nota-sel';
+      NES.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; if(n===slot.n) o.selected=true; ns.appendChild(o); });
+      ns.addEventListener('change',()=>{ notaSlots[i].n=ns.value; });
+
+      const os=document.createElement('select'); os.className='nota-oct-sel';
+      for(let k=1;k<=7;k++){ const o=document.createElement('option'); o.value=String(k); o.textContent=k; if(String(k)===slot.o) o.selected=true; os.appendChild(o); }
+      os.addEventListener('change',()=>{ notaSlots[i].o=os.value; });
+
+      const rb=document.createElement('button'); rb.className='nota-rm-btn'; rb.textContent='×';
+      rb.addEventListener('click',()=>{ notaSlots.splice(i,1); renderSlots(); });
+
+      d.appendChild(ns); d.appendChild(os); d.appendChild(rb);
+      c.appendChild(d);
+    });
+  }
+
+  function lookupChord(rootSemi, typeEn, db){
+    const keyS=NEN[rootSemi]+typeEn;
+    const keyF=NEF[rootSemi]+typeEn;
+    return db[keyS]||db[keyF]||null;
+  }
+
+  function showDiagrams(rootSemi, typeObj){
+    selChord={rootSemi,type:typeObj};
+    const notesSemi=[...new Set(typeObj.iv.map(i=>(rootSemi+(i%12))%12))];
+    const enKey=NEN[rootSemi]+typeObj.en;
+    const wrap=$('chordDiagsWrap');
+    wrap.innerHTML='';
+
+    if(diagFmt==='guitar'){
+      const d=lookupChord(rootSemi,typeObj.en,GDB);
+      if(d){
+        const card=document.createElement('div'); card.className='chord-diag-card';
+        card.innerHTML=renderFretboard(d.frets,d.fingers,d.barre,d.pos,6);
+        const lbl=document.createElement('div'); lbl.className='chord-diag-lbl'; lbl.textContent=enKey;
+        card.appendChild(lbl); wrap.appendChild(card);
+      } else {
+        wrap.innerHTML=`<div style="color:var(--brown-light);font-size:0.8rem;padding:8px 0">Sin diagrama de guitarra disponible.</div>`;
+      }
+    } else if(diagFmt==='ukulele'){
+      const d=lookupChord(rootSemi,typeObj.en,UDB);
+      if(d){
+        const card=document.createElement('div'); card.className='chord-diag-card';
+        card.innerHTML=renderFretboard(d.frets,d.fingers,d.barre,d.pos,4);
+        const lbl=document.createElement('div'); lbl.className='chord-diag-lbl'; lbl.textContent=enKey;
+        card.appendChild(lbl); wrap.appendChild(card);
+      } else {
+        wrap.innerHTML=`<div style="color:var(--brown-light);font-size:0.8rem;padding:8px 0">Sin diagrama de ukulele disponible.</div>`;
+      }
+    } else {
+      const card=document.createElement('div'); card.className='chord-diag-card';
+      card.innerHTML=renderPiano(notesSemi);
+      const lbl=document.createElement('div'); lbl.className='chord-diag-lbl'; lbl.textContent=enKey;
+      card.appendChild(lbl); wrap.appendChild(card);
+    }
+    $('chordDiagsSection').classList.remove('hidden');
+  }
+
+  function doDetect(){
+    const semis=notaSlots.map(s=>noteToSemi(s.n)).filter(s=>s!==null);
+    const results=detectChords(semis);
+    const chips=$('chordResultChips');
+    chips.innerHTML='';
+    if(!results.length){
+      chips.innerHTML='<span style="color:var(--brown-light);font-size:0.8rem">No se reconoció ningún acorde.</span>';
+    } else {
+      results.forEach(res=>{
+        const chip=document.createElement('button'); chip.className='acorde-chip';
+        chip.innerHTML=`<b>${res.nameEs}</b> <span style="opacity:.65">(${res.nameEn})</span>`;
+        chip.addEventListener('click',()=>{
+          chips.querySelectorAll('.acorde-chip').forEach(c=>c.classList.remove('sel'));
+          chip.classList.add('sel');
+          showDiagrams(res.r,res.t);
+        });
+        chips.appendChild(chip);
+      });
+      chips.querySelector('.acorde-chip').click();
+    }
+    $('chordResultBox').classList.remove('hidden');
+  }
+
+  function doSearch(){
+    const inp=$('chordNameInp').value.trim();
+    if(!inp) return;
+    const parsed=parseChordName(inp);
+    const box=$('chordNoteBox');
+    const lbl=$('chordNoteLabel');
+    const chipsEl=$('chordNoteChips');
+    if(!parsed){
+      lbl.textContent='No se reconoció el acorde.'; chipsEl.innerHTML='';
+      box.classList.remove('hidden'); $('chordDiagsSection').classList.add('hidden');
+      return;
+    }
+    const notes=getChordNotes(parsed.rootSemi,parsed.type);
+    lbl.textContent=`${NES[parsed.rootSemi]} ${parsed.type.es} (${NEN[parsed.rootSemi]}${parsed.type.en}):`;
+    chipsEl.innerHTML=notes.map(n=>`<span class="chord-note-chip">${n}</span>`).join('');
+    box.classList.remove('hidden');
+    showDiagrams(parsed.rootSemi,parsed.type);
+  }
+
+  // Init
+  $('btnAcordes').addEventListener('click',()=>{
+    const p=$('acordesPanel');
+    const open=!p.classList.contains('hidden');
+    p.classList.toggle('hidden',open);
+    $('btnAcordes').classList.toggle('active',!open);
+    if(!open) renderSlots();
+  });
+
+  $('tabNotasAcorde').addEventListener('click',()=>{
+    $('tabNotasAcorde').classList.add('active'); $('tabAcordeNotas').classList.remove('active');
+    $('panelNotasAcorde').classList.remove('hidden'); $('panelAcordeNotas').classList.add('hidden');
+  });
+  $('tabAcordeNotas').addEventListener('click',()=>{
+    $('tabAcordeNotas').classList.add('active'); $('tabNotasAcorde').classList.remove('active');
+    $('panelAcordeNotas').classList.remove('hidden'); $('panelNotasAcorde').classList.add('hidden');
+  });
+
+  $('addNotaBtn').addEventListener('click',()=>{
+    if(notaSlots.length<8){ notaSlots.push({n:'Do',o:'4'}); renderSlots(); }
+  });
+  $('detectChordBtn').addEventListener('click', doDetect);
+  $('searchChordBtn').addEventListener('click', doSearch);
+  $('chordNameInp').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(); });
+
+  document.querySelectorAll('.diag-fmt-tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('.diag-fmt-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      diagFmt=tab.dataset.fmt;
+      if(selChord) showDiagrams(selChord.rootSemi,selChord.type);
+    });
+  });
+
+  renderSlots();
+})();
 
 // Revisar si hay una sesión guardada de una visita anterior
 checkForSavedSession();

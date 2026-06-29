@@ -644,6 +644,75 @@ body.fondo-especial .appa-arrow{
   0%      { transform:translateX(-160%); }
   55%,100%{ transform:translateX(290%); }
 }
+/* Brillo metálico en "Volver a analizar" cuando tono/velocidad están alterados */
+#reanalyzeBtn{ position:relative; overflow:hidden; }
+#reanalyzeBtn.altered::before{
+  content:''; position:absolute; top:0; left:0;
+  width:55%; height:100%;
+  background:linear-gradient(to right, transparent, rgba(58,182,216,0.55) 50%, transparent);
+  transform:translateX(-160%);
+  animation:fondo-shimmer 2.8s ease-in-out infinite;
+  pointer-events:none;
+}
+/* ── Acordes panel ── */
+.acorde-tabs{ display:flex; gap:6px; margin-bottom:12px; }
+.acorde-tab{
+  flex:1; background:var(--cream); color:var(--brown-dark);
+  border:2px solid var(--brown); border-radius:12px; cursor:pointer;
+  padding:7px 4px; font-weight:800; font-size:0.78rem; font-family:inherit;
+  transition:background 0.15s;
+}
+.acorde-tab.active{ background:var(--brown); color:#fff; }
+.nota-slots{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+.nota-slot{ display:flex; align-items:center; gap:5px; }
+.nota-sel,.nota-oct-sel{
+  background:var(--cream); border:1.5px solid var(--brown); border-radius:9px;
+  padding:6px 3px; font-size:0.82rem; font-family:inherit; color:var(--brown-dark);
+  font-weight:700; cursor:pointer; -webkit-appearance:none; text-align:center;
+}
+.nota-sel{ flex:1; min-width:0; }
+.nota-oct-sel{ width:50px; }
+.nota-rm-btn{
+  background:none; border:none; color:var(--brown-light); font-size:1.1rem;
+  cursor:pointer; padding:2px 5px; font-weight:900; flex-shrink:0; line-height:1;
+}
+.nota-actions-row{ display:flex; gap:8px; margin-bottom:10px; }
+.nota-action-btn{
+  flex:1; background:var(--brown-light); color:#fff; border:none; border-radius:12px;
+  padding:9px 6px; font-weight:800; font-size:0.8rem; font-family:inherit; cursor:pointer;
+}
+.nota-action-btn:active{ filter:brightness(0.9); }
+.nota-detect-btn{ background:var(--brown); }
+.acorde-result{ margin-bottom:10px; }
+.acorde-result-label{ font-weight:800; font-size:0.8rem; color:var(--brown-light); margin-bottom:5px; }
+.acorde-chips{ display:flex; flex-wrap:wrap; gap:5px; }
+.acorde-chip{
+  background:var(--cream); border:1.5px solid var(--brown); border-radius:9px;
+  padding:4px 10px; font-size:0.8rem; font-weight:700; color:var(--brown-dark);
+  cursor:pointer; transition:background 0.15s;
+}
+.acorde-chip.sel,.acorde-chip:hover{ background:var(--brown); color:#fff; }
+.chord-search-row{ display:flex; gap:7px; margin-bottom:10px; }
+.chord-name-inp{
+  flex:1; background:var(--cream); border:1.5px solid var(--brown); border-radius:11px;
+  padding:8px 10px; font-size:0.85rem; font-family:inherit; color:var(--brown-dark); font-weight:700;
+}
+.chord-note-chips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
+.chord-note-chip{
+  background:var(--brown); color:#fff; border-radius:8px;
+  padding:4px 10px; font-size:0.8rem; font-weight:700;
+}
+.diag-fmt-tabs{ display:flex; gap:6px; margin:10px 0 8px; }
+.diag-fmt-tab{
+  flex:1; background:var(--cream); color:var(--brown-dark);
+  border:2px solid var(--brown); border-radius:10px; cursor:pointer;
+  padding:6px 4px; font-weight:800; font-size:0.75rem; font-family:inherit;
+  transition:background 0.15s;
+}
+.diag-fmt-tab.active{ background:var(--brown); color:#fff; }
+#chordDiagsWrap{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding:4px 0; }
+.chord-diag-card{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+.chord-diag-lbl{ font-weight:800; font-size:0.8rem; color:var(--brown-dark); text-align:center; }
 .menu-toggle-btn.btn-active{ background:var(--green); }
 .menu-toggle-btn.btn-sub{ background:var(--brown-light); }
 .opacity-row{ display:flex; align-items:center; gap:12px; margin-top:8px; }
@@ -895,6 +964,11 @@ body.fondo-especial .appa-arrow{
       <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="6" x2="23" y2="6"/><line x1="1" y1="18" x2="23" y2="18"/><path d="M1 12 L4 12 L5 6 L6 6 L7 18 L8 18 L10 6 L11 6 L12 18 L13 18 L15 6 L16 6 L17 12 L23 12"/></svg></span>
       <span>Efectos</span>
     </button>
+    <!-- Acordes: diagrama de cuerdas con puntos de dedos -->
+    <button class="tile-btn full" id="btnAcordes">
+      <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="3" x2="6" y2="21"/><line x1="10.5" y1="3" x2="10.5" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="19.5" y1="3" x2="19.5" y2="21"/><line x1="6" y1="3" x2="19.5" y2="3" stroke-width="2.5"/><line x1="6" y1="10" x2="19.5" y2="10"/><line x1="6" y1="17" x2="19.5" y2="17"/><circle cx="10.5" cy="6.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="19.5" cy="6.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="6" cy="13.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13.5" r="2.2" fill="currentColor" stroke="none"/></svg></span>
+      <span>Acordes</span>
+    </button>
   </div>
   <!-- Panel efectos (Reverb + Distorsión) -->
   <div class="trim-panel hidden" id="efectosPanel">
@@ -1001,6 +1075,43 @@ body.fondo-especial .appa-arrow{
       </div>
     </div>
   </div>
+  <!-- Panel Acordes -->
+  <div class="trim-panel hidden" id="acordesPanel">
+    <div class="acorde-tabs">
+      <button class="acorde-tab active" id="tabNotasAcorde">Notas → Acorde</button>
+      <button class="acorde-tab" id="tabAcordeNotas">Acorde → Notas</button>
+    </div>
+    <div id="panelNotasAcorde">
+      <div class="nota-slots" id="notaSlots"></div>
+      <div class="nota-actions-row">
+        <button class="nota-action-btn" id="addNotaBtn">+ Nota</button>
+        <button class="nota-action-btn nota-detect-btn" id="detectChordBtn">Detectar acorde</button>
+      </div>
+      <div class="acorde-result hidden" id="chordResultBox">
+        <div class="acorde-result-label">Acordes detectados:</div>
+        <div class="acorde-chips" id="chordResultChips"></div>
+      </div>
+    </div>
+    <div id="panelAcordeNotas" class="hidden">
+      <div class="chord-search-row">
+        <input class="chord-name-inp" type="text" id="chordNameInp" placeholder="Ej: Mi mayor, Dm7, F#m…" autocomplete="off">
+        <button class="nota-action-btn nota-detect-btn" id="searchChordBtn">Buscar</button>
+      </div>
+      <div class="acorde-result hidden" id="chordNoteBox">
+        <div class="acorde-result-label" id="chordNoteLabel"></div>
+        <div class="chord-note-chips" id="chordNoteChips"></div>
+      </div>
+    </div>
+    <div id="chordDiagsSection" class="hidden">
+      <div class="diag-fmt-tabs">
+        <button class="diag-fmt-tab active" data-fmt="guitar">Guitarra</button>
+        <button class="diag-fmt-tab" data-fmt="ukulele">Ukulele</button>
+        <button class="diag-fmt-tab" data-fmt="piano">Piano</button>
+      </div>
+      <div id="chordDiagsWrap"></div>
+    </div>
+  </div>
+
   <button class="refresh-perm-btn" id="btnRefreshPerm">Refrescar micrófono/parlante</button>
 
   <div class="export-section">
