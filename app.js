@@ -82,6 +82,10 @@ let liveToneRaf = null; // seguimiento de tono en vivo durante reproducción
 let tunerAnalyser = null;
 let tunerRafId = null;
 let tunerMode = 'guitar';
+let toneDisplayMode = 'original'; // 'original' | 'modified' para chips de detectar tono
+let lastNoteCountsOrig = null;
+let lastNoteCountsMod = null;
+let lastNoteAnalyzed = 0;
 
 // ============================================================
 // Utilidades
@@ -1767,7 +1771,8 @@ function analyzeLoadedAudioTone(){
   const numWindows = 40; // cuántos puntos analizar a lo largo del audio
   const step = Math.max(windowSize, Math.floor((data.length - windowSize) / numWindows));
 
-  const noteCounts = {};
+  const noteCountsOrig = {};
+  const noteCountsMod  = {};
   const detectedFreqs = [];
   let analyzed = 0;
 
@@ -1776,11 +1781,14 @@ function analyzeLoadedAudioTone(){
     const slice = data.slice(start, start + windowSize);
     const rawFreq = autoCorrelate(slice, sr);
     if(rawFreq > 40 && rawFreq < 2000 && isFinite(rawFreq)){
-      const freq = rawFreq * pitchFactor; // aplicar pitch shift virtual
-      detectedFreqs.push(freq);
-      const {name, solfege, octave} = freqToNote(freq);
-      const key = `${name}${octave}|${solfege}`;
-      noteCounts[key] = (noteCounts[key]||0) + 1;
+      const freqMod = rawFreq * pitchFactor;
+      detectedFreqs.push(freqMod);
+      const o = freqToNote(rawFreq);
+      const oKey = `${o.name}${o.octave}|${o.solfege}`;
+      noteCountsOrig[oKey] = (noteCountsOrig[oKey]||0) + 1;
+      const m = freqToNote(freqMod);
+      const mKey = `${m.name}${m.octave}|${m.solfege}`;
+      noteCountsMod[mKey] = (noteCountsMod[mKey]||0) + 1;
       analyzed++;
     }
   }
@@ -1791,20 +1799,21 @@ function analyzeLoadedAudioTone(){
     tunerStatus.textContent = 'No se detectó una nota definida (¿voz/ruido?)';
     tunerNeedle.style.left = '50%';
     stringsRow.innerHTML = '';
+    $('toneModeBtn').classList.add('hidden');
     return;
   }
 
-  // nota predominante
+  // nota predominante (en base a versión modificada para el display principal)
   let topNote = null, topCount = 0;
-  for(const k in noteCounts){ if(noteCounts[k] > topCount){ topCount = noteCounts[k]; topNote = k; } }
+  for(const k in noteCountsMod){ if(noteCountsMod[k] > topCount){ topCount = noteCountsMod[k]; topNote = k; } }
 
   // frecuencia mediana de las detecciones (más robusta que el promedio)
   detectedFreqs.sort((a,b)=>a-b);
   const medianFreq = detectedFreqs[Math.floor(detectedFreqs.length/2)];
   const {name, solfege, octave, cents} = freqToNote(medianFreq);
 
-  const [topLabel] = topNote.split('|'); // e.g. "A4"
-  const topSolfege = topNote.split('|')[1] || ''; // e.g. "La"
+  const [topLabel] = topNote.split('|');
+  const topSolfege = topNote.split('|')[1] || '';
   tunerNote.textContent = `${topLabel} · ${topSolfege}`;
   tunerFreq.textContent = `${medianFreq.toFixed(1)} Hz (mediana)`;
   tunerStatus.textContent = `Nota predominante en el audio · ${analyzed} muestras`;
@@ -1814,7 +1823,18 @@ function analyzeLoadedAudioTone(){
   tunerNeedle.style.left = pct + '%';
   tunerNeedle.style.background = Math.abs(cents)<15 ? 'var(--green)' : 'var(--white)';
 
-  // mostrar top 3 notas detectadas como chips
+  // guardar ambas versiones y resetear botón a "Original"
+  lastNoteCountsOrig = noteCountsOrig;
+  lastNoteCountsMod  = noteCountsMod;
+  lastNoteAnalyzed   = analyzed;
+  toneDisplayMode = 'original';
+  const toneModeBtn = $('toneModeBtn');
+  toneModeBtn.textContent = 'Original';
+  toneModeBtn.classList.remove('active', 'hidden');
+  renderNoteChips(lastNoteCountsOrig, lastNoteAnalyzed);
+}
+
+function renderNoteChips(noteCounts, analyzed){
   const sorted = Object.entries(noteCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
   stringsRow.innerHTML = '';
   sorted.forEach(([noteKey,count])=>{
@@ -1826,6 +1846,17 @@ function analyzeLoadedAudioTone(){
     stringsRow.appendChild(chip);
   });
 }
+
+$('toneModeBtn').addEventListener('click', ()=>{
+  toneDisplayMode = toneDisplayMode === 'original' ? 'modified' : 'original';
+  const btn = $('toneModeBtn');
+  btn.textContent = toneDisplayMode === 'original' ? 'Original' : 'Modificado';
+  btn.classList.toggle('active', toneDisplayMode === 'modified');
+  renderNoteChips(
+    toneDisplayMode === 'original' ? lastNoteCountsOrig : lastNoteCountsMod,
+    lastNoteAnalyzed
+  );
+});
 
 // ============================================================
 // Afinador EN TIEMPO REAL con micrófono (botón "Afinador")
@@ -1886,6 +1917,7 @@ function setMode(mode, keepNeedle){
   $('tunerHint').textContent = 'Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.';
   $('tunerHint').classList.remove('hidden');
   $('reanalyzeBtn').classList.add('hidden');
+  $('toneModeBtn').classList.add('hidden');
   document.querySelectorAll('.mode-btn').forEach(b=> b.classList.toggle('selected', b.dataset.mode===mode));
   renderStrings();
 }

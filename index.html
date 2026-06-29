@@ -232,7 +232,13 @@ input[type=range]::-moz-range-thumb{
   left:50%; transform:translateX(-50%); transition:left 0.08s linear, background 0.15s;
 }
 .tuner-status{font-weight:800; margin-top:10px; font-size:0.95rem;}
-.strings-row{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; justify-content:center;}
+.strings-row-outer{display:flex; align-items:center; gap:10px; margin-top:16px; flex-wrap:wrap; justify-content:center;}
+.strings-row{display:flex; gap:8px; flex-wrap:wrap; justify-content:center;}
+.tone-mode-btn{
+  padding:8px 14px; border-radius:14px; border:2px solid var(--brown); background:transparent;
+  color:var(--brown-dark); font-weight:800; font-size:0.82rem; cursor:pointer; white-space:nowrap; flex-shrink:0;
+}
+.tone-mode-btn.active{background:var(--brown); color:var(--white);}
 .string-chip{
   background:var(--brown); color:var(--white); border:none; border-radius:14px;
   padding:10px 6px; font-weight:800; font-size:1rem; min-width:54px; text-align:center;
@@ -1017,7 +1023,10 @@ body.fondo-especial .appa-arrow{
       <div class="tuner-meter"><div class="center-mark"></div><div class="needle" id="tunerNeedle"></div></div>
       <div class="tuner-status" id="tunerStatus">Esperando micrófono…</div>
     </div>
-    <div class="strings-row" id="stringsRow"></div>
+    <div class="strings-row-outer">
+      <button class="tone-mode-btn hidden" id="toneModeBtn">Original</button>
+      <div class="strings-row" id="stringsRow"></div>
+    </div>
     <div class="mic-hint" id="tunerHint">Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.</div>
     <button class="menu-toggle-btn hidden" id="reanalyzeBtn" style="margin-top:12px;">Volver a analizar</button>
   </div>
