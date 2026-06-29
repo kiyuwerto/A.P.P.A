@@ -1771,13 +1771,15 @@ function analyzeLoadedAudioTone(){
   const detectedFreqs = [];
   let analyzed = 0;
 
+  const pitchFactor = semitonesToRate(pitchSemis);
   for(let start=0; start + windowSize < data.length; start += step){
     const slice = data.slice(start, start + windowSize);
-    const freq = autoCorrelate(slice, sr);
-    if(freq > 40 && freq < 2000 && isFinite(freq)){
+    const rawFreq = autoCorrelate(slice, sr);
+    if(rawFreq > 40 && rawFreq < 2000 && isFinite(rawFreq)){
+      const freq = rawFreq * pitchFactor; // aplicar pitch shift virtual
       detectedFreqs.push(freq);
-      const {name, octave} = freqToNote(freq);
-      const key = name + octave;
+      const {name, solfege, octave} = freqToNote(freq);
+      const key = `${name}${octave}|${solfege}`;
       noteCounts[key] = (noteCounts[key]||0) + 1;
       analyzed++;
     }
@@ -1799,9 +1801,11 @@ function analyzeLoadedAudioTone(){
   // frecuencia mediana de las detecciones (más robusta que el promedio)
   detectedFreqs.sort((a,b)=>a-b);
   const medianFreq = detectedFreqs[Math.floor(detectedFreqs.length/2)];
-  const {name, octave, cents} = freqToNote(medianFreq);
+  const {name, solfege, octave, cents} = freqToNote(medianFreq);
 
-  tunerNote.textContent = topNote;
+  const [topLabel] = topNote.split('|'); // e.g. "A4"
+  const topSolfege = topNote.split('|')[1] || ''; // e.g. "La"
+  tunerNote.textContent = `${topLabel} · ${topSolfege}`;
   tunerFreq.textContent = `${medianFreq.toFixed(1)} Hz (mediana)`;
   tunerStatus.textContent = `Nota predominante en el audio · ${analyzed} muestras`;
 
@@ -1813,11 +1817,12 @@ function analyzeLoadedAudioTone(){
   // mostrar top 3 notas detectadas como chips
   const sorted = Object.entries(noteCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
   stringsRow.innerHTML = '';
-  sorted.forEach(([note,count])=>{
+  sorted.forEach(([noteKey,count])=>{
     const pctg = Math.round(count/analyzed*100);
+    const [label, sol] = noteKey.split('|');
     const chip = document.createElement('div');
     chip.className = 'string-chip';
-    chip.innerHTML = `${note}<small>${pctg}%</small>`;
+    chip.innerHTML = `${label} · ${sol}<small>${pctg}%</small>`;
     stringsRow.appendChild(chip);
   });
 }
@@ -2116,15 +2121,18 @@ function autoCorrelate(buf, sampleRate){
   return sampleRate/T0;
 }
 
-const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_NAMES    = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const SOLFEGE_NAMES = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
 function freqToNote(freq){
   const noteNum = 12*(Math.log2(freq/440)) + 69;
   const rounded = Math.round(noteNum);
-  const name = NOTE_NAMES[((rounded%12)+12)%12];
+  const idx = ((rounded%12)+12)%12;
+  const name = NOTE_NAMES[idx];
+  const solfege = SOLFEGE_NAMES[idx];
   const octave = Math.floor(rounded/12)-1;
   const exactFreq = 440*Math.pow(2,(rounded-69)/12);
   const cents = 1200*Math.log2(freq/exactFreq);
-  return {name, octave, cents, exactFreq};
+  return {name, solfege, octave, cents, exactFreq};
 }
 
 function loopTuner(){
@@ -2136,8 +2144,8 @@ function loopTuner(){
   if(freq===-1 || !isFinite(freq) || freq<40 || freq>1500){
     tunerStatus.textContent = 'Esperando sonido…';
   } else {
-    const {name, octave, cents} = freqToNote(freq);
-    tunerNote.textContent = `${name}${octave}`;
+    const {name, solfege, octave, cents} = freqToNote(freq);
+    tunerNote.textContent = `${name}${octave} · ${solfege}`;
     tunerFreq.textContent = `${freq.toFixed(1)} Hz`;
 
     const pct = clamp(50 + cents/50*50, 0, 100);
@@ -3006,10 +3014,11 @@ function startLiveToneTracking(){
       const start = Math.max(0, center - winSize/2);
       if(start + winSize < data.length){
         const slice = data.slice(start, start+winSize);
-        const freq = autoCorrelate(slice, sr);
-        if(freq > 40 && freq < 2000 && isFinite(freq)){
-          const {name, octave, cents} = freqToNote(freq);
-          tunerNote.textContent = name + octave;
+        const rawFreq = autoCorrelate(slice, sr);
+        if(rawFreq > 40 && rawFreq < 2000 && isFinite(rawFreq)){
+          const freq = rawFreq * semitonesToRate(pitchSemis);
+          const {name, solfege, octave, cents} = freqToNote(freq);
+          tunerNote.textContent = `${name}${octave} · ${solfege}`;
           tunerFreq.textContent = freq.toFixed(1) + ' Hz';
           const pct = clamp(50 + cents/50*50, 0, 100);
           tunerNeedle.style.left = pct + '%';
