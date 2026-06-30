@@ -3527,14 +3527,16 @@ if('serviceWorker' in navigator){
 // ============================================================
 // MÓDULO ACORDES — detección, nombres y diagramas
 // ============================================================
-let _lastAlteredState = false;
+let _lastPitchSemis = 0;
+let _lastSpeedRate = 1;
 let _reanalyzeTingDismissed = false;
 let _toneModeTingDismissed = false;
 
 function updateReanalyzeShimmer(){
   const altered = pitchSemis !== 0 || speedRate !== 1;
-  if(altered !== _lastAlteredState){
-    _lastAlteredState = altered;
+  if(pitchSemis !== _lastPitchSemis || speedRate !== _lastSpeedRate){
+    _lastPitchSemis = pitchSemis;
+    _lastSpeedRate = speedRate;
     _reanalyzeTingDismissed = false;
     _toneModeTingDismissed = false;
   }
