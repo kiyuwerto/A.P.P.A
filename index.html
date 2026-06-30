@@ -334,6 +334,14 @@ input[type=range]::-moz-range-thumb{
 }
 .modal-option small{display:block; font-weight:600; font-size:0.78rem; opacity:.8; margin-top:3px;}
 .modal-option:active{filter:brightness(0.92);}
+.export-name-row{ margin-bottom:14px; }
+.export-name-label{ display:block; font-weight:800; font-size:0.85rem; color:var(--brown-dark); margin-bottom:5px; }
+.export-name-inp{
+  width:100%; background:var(--cream-2); border:2px solid var(--brown); border-radius:12px;
+  padding:10px 13px; font-weight:700; font-size:0.95rem; font-family:inherit;
+  color:var(--brown-dark); outline:none;
+}
+.export-name-inp:focus{ border-color:#3ab6d8; }
 
 .menu-section{margin-top:18px;}
 .menu-section h4{margin:0 0 10px; font-size:1.05rem; font-weight:800; color:var(--brown-dark);}
@@ -658,17 +666,17 @@ body.fondo-especial .appa-arrow{
 }
 /* Tintineos periódicos en botones cuando tono/velocidad están alterados */
 @keyframes reanalyze-ting{
-  0%,7%,16%,100%{ background:var(--brown); color:var(--white); box-shadow:none; text-shadow:none; }
-  3%{ background:#3ab6d8; color:#fff; box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); }
-  11%{ background:#3ab6d8; color:#fff; box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); }
+  0%,100%{ background:var(--brown); color:var(--white); box-shadow:none; text-shadow:none; }
+  15%{ background:#3ab6d8; color:#fff; box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); }
+  30%{ background:var(--brown); color:var(--white); box-shadow:none; text-shadow:none; }
 }
 @keyframes tonemode-ting{
-  0%,7%,16%,100%{ background:transparent; color:var(--brown-dark); box-shadow:none; text-shadow:none; border-color:var(--brown); }
-  3%{ background:#3ab6d8; color:#fff; box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); border-color:#3ab6d8; }
-  11%{ background:#3ab6d8; color:#fff; box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); border-color:#3ab6d8; }
+  0%,100%{ background:transparent; color:var(--brown-dark); box-shadow:none; text-shadow:none; border-color:var(--brown); }
+  15%{ background:#3ab6d8; color:#fff; box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); border-color:#3ab6d8; }
+  30%{ background:transparent; color:var(--brown-dark); box-shadow:none; text-shadow:none; border-color:var(--brown); }
 }
-#reanalyzeBtn.altered{ animation:reanalyze-ting 5s ease-in-out infinite; }
-#toneModeBtn.altered{ animation:tonemode-ting 5s ease-in-out infinite; }
+#reanalyzeBtn.altered{ animation:reanalyze-ting 3s ease-in-out infinite; }
+#toneModeBtn.altered{ animation:tonemode-ting 3s ease-in-out infinite; animation-delay:-1.5s; }
 /* ── Acordes panel ── */
 .acorde-tabs{ display:flex; gap:6px; margin-bottom:12px; }
 .acorde-tab{
@@ -1182,6 +1190,10 @@ body.fondo-especial .appa-arrow{
       <div class="modal-header">
         <h3>Exportar</h3>
         <button class="modal-close" id="exportClose">&times;</button>
+      </div>
+      <div class="export-name-row">
+        <label class="export-name-label" for="exportFilename">Nombre del archivo</label>
+        <input type="text" id="exportFilename" class="export-name-inp" value="appa_export" spellcheck="false" autocomplete="off">
       </div>
       <p class="modal-sub">Audio:</p>
       <button class="modal-option" data-fmt="wav">WAV <small>Sin pérdida, máxima calidad (archivo grande)</small></button>

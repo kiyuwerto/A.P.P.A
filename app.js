@@ -1629,7 +1629,8 @@ async function doExport(format, kbps){
       blob = bufferToWav(rendered);
       ext = 'wav';
     }
-    const filename = `appa_${Date.now()}.${ext}`;
+    const baseName = ($('exportFilename')?.value?.trim() || 'appa_export').replace(/[\\/:*?"<>|]/g, '_');
+    const filename = `${baseName || 'appa_export'}.${ext}`;
     triggerDownload(blob, filename);
     addToExportLog(filename, ext.toUpperCase() + (format==='mp3'?` ${kbps||192}k`:' (sin pérdida)'), rendered.duration);
     setStatus('Exportado ✓', 2000);
@@ -1958,6 +1959,8 @@ function renderNoteChips(noteCounts, analyzed){
 }
 
 $('toneModeBtn').addEventListener('click', ()=>{
+  _toneModeTingDismissed = true;
+  $('toneModeBtn').classList.remove('altered');
   toneDisplayMode = toneDisplayMode === 'original' ? 'modified' : 'original';
   const btn = $('toneModeBtn');
   btn.textContent = toneDisplayMode === 'original' ? 'Original' : 'Modificado';
@@ -2000,6 +2003,10 @@ document.querySelectorAll('.mode-btn').forEach(btn=>{
   btn.addEventListener('click', ()=> setMode(btn.dataset.mode, false));
 });
 
+$('reanalyzeBtn').addEventListener('click', ()=>{
+  _reanalyzeTingDismissed = true;
+  $('reanalyzeBtn').classList.remove('altered');
+});
 $('reanalyzeBtn').addEventListener('click', analyzeLoadedAudioTone);
 
 const TUNINGS = {
@@ -3520,11 +3527,20 @@ if('serviceWorker' in navigator){
 // ============================================================
 // MÓDULO ACORDES — detección, nombres y diagramas
 // ============================================================
+let _lastAlteredState = false;
+let _reanalyzeTingDismissed = false;
+let _toneModeTingDismissed = false;
+
 function updateReanalyzeShimmer(){
   const altered = pitchSemis !== 0 || speedRate !== 1;
-  $('reanalyzeBtn').classList.toggle('altered', altered);
+  if(altered !== _lastAlteredState){
+    _lastAlteredState = altered;
+    _reanalyzeTingDismissed = false;
+    _toneModeTingDismissed = false;
+  }
+  $('reanalyzeBtn').classList.toggle('altered', altered && !_reanalyzeTingDismissed);
   const tmb = $('toneModeBtn');
-  if(tmb && !tmb.classList.contains('hidden')) tmb.classList.toggle('altered', altered);
+  if(tmb && !tmb.classList.contains('hidden')) tmb.classList.toggle('altered', altered && !_toneModeTingDismissed);
 }
 
 (function(){
