@@ -527,6 +527,9 @@ function drawRollingWave(canvas, container, amps, centerLine){
 // ============================================================
 $('btnClearTrack').addEventListener('click', ()=>{
   if(!workingBuffer && !originalBuffer){ setStatus('No hay nada que limpiar', 1500); return; }
+  $('confirmClearText').textContent = originalVideoFile
+    ? 'Se borrará el video cargado. Al ser un video, esta acción no se puede deshacer.'
+    : 'Se borrará el audio cargado. Puedes deshacerlo con ↩ después si quieres.';
   $('confirmClearDialog').classList.remove('hidden');
 });
 
