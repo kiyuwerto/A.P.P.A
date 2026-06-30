@@ -4123,6 +4123,8 @@ function updateReanalyzeShimmer(){
     'G#7':  [{frets:[1,3,2,3],   fingers:[1,4,2,3],   barre:null,            pos:1}],
     'Ab7':  [{frets:[1,3,2,3],   fingers:[1,4,2,3],   barre:null,            pos:1}],
     'A7':   [{frets:[0,1,0,0],   fingers:[0,1,0,0],   barre:null,            pos:0}],
+    'A#7':  [{frets:[1,2,1,1],   fingers:[1,2,1,1],   barre:{f:1,a:0,b:3},  pos:1}],
+    'Bb7':  [{frets:[1,2,1,1],   fingers:[1,2,1,1],   barre:{f:1,a:0,b:3},  pos:1}],
     'B7':   [{frets:[2,3,2,2],   fingers:[3,4,1,2],   barre:null,            pos:2}],
     'Cm7':  [{frets:[3,3,3,3],    fingers:[1,1,1,1],   barre:{f:3,a:0,b:3},  pos:3}],
     'C#m7': [{frets:[4,4,4,4],    fingers:[1,1,1,1],   barre:{f:4,a:0,b:3},  pos:4}],
