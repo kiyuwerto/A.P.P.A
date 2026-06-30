@@ -100,6 +100,12 @@ function ensureAudioCtx(){
 
 function setStatus(msg, timeout){
   statusBar.textContent = msg || '';
+  if(msg && !msg.includes('…')){
+    statusBar.classList.remove('ting');
+    void statusBar.offsetWidth;
+    statusBar.classList.add('ting');
+    statusBar.addEventListener('animationend', ()=> statusBar.classList.remove('ting'), {once:true});
+  }
   if(timeout){
     setTimeout(()=>{ if(statusBar.textContent===msg) statusBar.textContent=''; }, timeout);
   }

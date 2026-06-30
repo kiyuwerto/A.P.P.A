@@ -479,6 +479,11 @@ input[type=range]::-moz-range-thumb{
   40%,60%{ background:#3ab6d8; color:#fff; box-shadow:0 0 18px rgba(58,182,216,0.8),0 0 36px rgba(58,182,216,0.4); text-shadow:0 0 10px rgba(255,255,255,0.9); }
 }
 .help-toggle.blinking{ animation:help-blink 0.55s ease-in-out 1; }
+@keyframes status-ting{
+  0%,100%{ color:var(--brown-light); text-shadow:none; }
+  35%,65%{ color:#3ab6d8; text-shadow:0 0 8px rgba(58,182,216,0.9), 0 0 18px rgba(58,182,216,0.45); }
+}
+.status-bar.ting{ animation:status-ting 0.52s ease-in-out 2; }
 .footer-brand{ cursor:pointer; }
 .footer-sub{font-size:0.95rem; font-weight:600; color:var(--brown-light); margin-top:2px; margin-bottom:20px;}
 .help-toggle{
