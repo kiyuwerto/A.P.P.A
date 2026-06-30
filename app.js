@@ -1840,6 +1840,8 @@ function openExportDialog(){
   videoOpt.classList.toggle('hidden', !showVideo);
   videoLabel.classList.toggle('hidden', !showVideo);
   $('exportDialog').classList.remove('hidden');
+  const inp = $('exportFilename');
+  if(inp){ setTimeout(()=>{ inp.focus(); inp.select(); }, 50); }
 }
 
 // ============================================================
