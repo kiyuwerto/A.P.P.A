@@ -2833,6 +2833,20 @@ $('fondoEspecialBtn').addEventListener('click', ()=> applyFondoEspecial(!fondoEs
 $('fondoMobileBtn').addEventListener('click', ()=> applyFondoMobile(!fondoMobile));
 $('btnOpacitySlider').addEventListener('input', (e)=> applyBtnOpacity(parseInt(e.target.value)));
 
+// ── Layout horizontal ──
+let layoutH = false;
+function applyLayoutH(on){
+  layoutH = on;
+  document.body.classList.toggle('layout-h', on);
+  const btn = $('layoutHBtn');
+  if(btn) btn.classList.toggle('btn-active', on);
+  try{ localStorage.setItem('appa_layout_h', on ? '1' : '0'); }catch(e){}
+}
+try{
+  if(localStorage.getItem('appa_layout_h') === '1') applyLayoutH(true);
+}catch(e){}
+$('layoutHBtn').addEventListener('click', ()=> applyLayoutH(!layoutH));
+
 // ============================================================
 // MODO RECORTAR: conservar selección vs eliminar trozo del medio
 // ============================================================
