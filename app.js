@@ -2638,9 +2638,13 @@ function applyColors(brownHex, creamHex){
   const white = lBrown < 0.5 ? shade(brownHex, 0.85 - lBrown) : shade(brownHex, -(lBrown - 0.08));
   // "card" es el fondo de tarjetas: siempre más claro que el crema, empujado a ~96% luminosidad.
   const card = shade(creamHex, Math.max(0.04, 0.96 - lCream));
+  // "card-text" para texto sobre --card: siempre usa el color más oscuro de los dos inputs,
+  // así mantiene contraste aunque se invierta (--card siempre queda claro).
+  const creamDark = shade(creamHex, -0.13);
+  const cardText = lBrown <= lCream ? brownDark : creamDark;
 
   const map = {
-    '--cream': creamHex, '--cream-2': cream2, '--card': card,
+    '--cream': creamHex, '--cream-2': cream2, '--card': card, '--card-text': cardText,
     '--brown': brownHex, '--brown-dark': brownDark,
     '--brown-light': brownLight, '--white': white
   };
