@@ -1008,7 +1008,8 @@ function startPlayback(){
     // SIN pitch-lock: vari-speed clásico, igual que el audio puro — el pitch y la
     // velocidad están acoplados, así que el <video> nativo con su playbackRate ya
     // logra el efecto correcto (acelerar = más agudo) sin necesitar SoundTouch.
-    if(pitchLockOn && workingBuffer){
+    const needsEffectsChain = reverbOn || distortionOn || compOn || delayOn || eqOn;
+    if((pitchLockOn || (needsEffectsChain && Math.abs(pitchSemis) > 0.001)) && workingBuffer){
       videoEl.muted = true;
       if(isReversed){
         // Canvas reverse: posicionar en el frame inicial invertido
