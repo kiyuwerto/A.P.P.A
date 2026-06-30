@@ -4041,10 +4041,12 @@ function updateReanalyzeShimmer(){
   };
   // Ukulele chord database [G C E A] strings (reentrant tuning G4 C4 E4 A4)
   const UDB = {
-    'C':    [{frets:[0,0,0,3],  fingers:[0,0,0,3],  barre:null,           pos:0}],
+    'C':    [{frets:[0,0,0,3],  fingers:[0,0,0,3],  barre:null,            pos:0},
+             {frets:[5,4,3,3],  fingers:[4,3,1,1],  barre:{f:3,a:2,b:3},  pos:3}],
     'C#':   [{frets:[1,1,1,4],  fingers:[1,1,1,4],  barre:{f:1,a:0,b:2},  pos:1}],
     'Db':   [{frets:[1,1,1,4],  fingers:[1,1,1,4],  barre:{f:1,a:0,b:2},  pos:1}],
-    'D':    [{frets:[2,2,2,0],  fingers:[2,3,4,0],  barre:{f:2,a:0,b:2},  pos:2}],
+    'D':    [{frets:[2,2,2,0],  fingers:[2,3,4,0],  barre:null,            pos:0},
+             {frets:[7,6,5,5],  fingers:[4,3,1,1],  barre:{f:5,a:2,b:3},  pos:5}],
     'D#':   [{frets:[3,3,3,1],  fingers:[2,3,4,1],  barre:{f:3,a:0,b:2},  pos:3}],
     'Eb':   [{frets:[3,3,3,1],  fingers:[2,3,4,1],  barre:{f:3,a:0,b:2},  pos:3}],
     'E':    [{frets:[4,4,4,2],  fingers:[2,3,4,1],  barre:{f:4,a:0,b:2},  pos:4}],
