@@ -513,7 +513,7 @@ function drawRollingWave(canvas, container, amps, centerLine){
   const slice = amps.slice(-totalBars); // las más recientes
   const mid = h/2;
   const cs = getComputedStyle(document.documentElement);
-  ctx.fillStyle = cs.getPropertyValue('--brown').trim() || '#7a4a26';
+  ctx.fillStyle = cs.getPropertyValue('--card-text').trim() || '#5c3719';
 
   for(let i=0;i<slice.length;i++){
     const amp = Math.min(1, slice[i]*4); // escalar para que se vea
@@ -662,7 +662,7 @@ function drawWaveform(buffer){
   const data = buffer.getChannelData(0);
   const w = rect.width, h = rect.height;
   const step = Math.ceil(data.length/w);
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--brown').trim() || '#7a4a26';
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-text').trim() || '#5c3719';
   ctx.beginPath();
   for(let x=0; x<w; x++){
     let min=1, max=-1;
@@ -2359,7 +2359,7 @@ function tlBuildWaveImage(){
 
   const data = buffer.getChannelData(0);
   const step = Math.max(1, Math.floor(data.length / totalW));
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--brown').trim() || '#7a4a26';
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card-text').trim() || '#5c3719';
   const mid = h/2;
   for(let x=0; x<totalW; x++){
     let min=1, max=-1;
@@ -2648,11 +2648,13 @@ function applyColors(brownHex, creamHex){
   // así mantiene contraste aunque se invierta (--card siempre queda claro).
   const creamDark = shade(creamHex, -0.13);
   const cardText = lBrown <= lCream ? brownDark : creamDark;
+  // "cream-text" para texto sobre --cream: oscuro cuando cream es claro, claro cuando cream es oscuro.
+  const creamText = lCream > 0.5 ? brownDark : shade(creamHex, 0.92 - lCream);
 
   const map = {
     '--cream': creamHex, '--cream-2': cream2, '--card': card, '--card-text': cardText,
     '--brown': brownHex, '--brown-dark': brownDark,
-    '--brown-light': brownLight, '--white': white
+    '--brown-light': brownLight, '--white': white, '--cream-text': creamText
   };
   const root = document.documentElement.style;
   for(const k in map) root.setProperty(k, map[k]);

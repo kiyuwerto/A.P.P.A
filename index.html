@@ -109,7 +109,7 @@ button{font-family:inherit;}
 }
 .tl-skip-btn:active{background:rgba(0,0,0,0.07);}
 .tl-time{
-  color:var(--brown-dark); font-weight:700; font-size:0.82rem;
+  color:var(--card-text); font-weight:700; font-size:0.82rem;
   min-width:72px; text-align:center;
 }
 .upload-row{display:flex; gap:10px; margin-bottom:18px;}
@@ -137,7 +137,7 @@ input[type=file]{display:none;}
 }
 .control-label{
   font-weight:700; font-size:0.72rem; letter-spacing:1px; text-transform:uppercase;
-  color:var(--brown-light);
+  color:var(--card-text);
   margin-bottom:10px; display:flex; justify-content:space-between; align-items:baseline;
 }
 .control-row{display:flex; gap:12px; align-items:center;}
@@ -164,14 +164,14 @@ input[type=range]::-moz-range-thumb{
 }
 .value-box{
   border:2.5px solid var(--brown); border-radius:12px; background:var(--cream);
-  width:108px; text-align:center; font-weight:800; font-size:1.15rem; color:var(--brown-dark);
+  width:108px; text-align:center; font-weight:800; font-size:1.15rem; color:var(--cream-text);
   padding:11px 4px; -moz-appearance:textfield;
 }
 .value-box::-webkit-outer-spin-button, .value-box::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0;}
 
 .zero-btn{
   width:42px; height:42px; border-radius:50%; border:2.5px solid var(--brown);
-  background:var(--cream); color:var(--brown-dark); font-weight:800; font-size:1rem;
+  background:var(--cream); color:var(--cream-text); font-weight:800; font-size:1rem;
   flex-shrink:0; box-shadow:0 1px 5px rgba(0,0,0,0.10);
 }
 .zero-btn:active{filter:brightness(0.92);}
@@ -304,7 +304,7 @@ input[type=range]::-moz-range-thumb{
 .timeline .playhead::after{bottom:0; border-bottom:8px solid var(--brown);}
 .timeline .tl-empty{
   position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  color:var(--brown-light); font-weight:700; font-size:0.95rem; opacity:.75;
+  color:var(--card-text); font-weight:700; font-size:0.95rem; opacity:.75;
   pointer-events:none;
 }
 
@@ -669,17 +669,17 @@ body.fondo-especial .appa-arrow{
 /* ── Acordes panel ── */
 .acorde-tabs{ display:flex; gap:6px; margin-bottom:12px; }
 .acorde-tab{
-  flex:1; background:var(--cream); color:var(--brown-dark);
+  flex:1; background:var(--cream); color:var(--cream-text);
   border:2px solid var(--brown); border-radius:12px; cursor:pointer;
   padding:7px 4px; font-weight:800; font-size:0.78rem; font-family:inherit;
   transition:background 0.15s;
 }
-.acorde-tab.active{ background:var(--brown); color:#fff; }
+.acorde-tab.active{ background:var(--brown); color:var(--white); }
 .nota-slots{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
 .nota-slot{ display:flex; align-items:center; gap:5px; }
 .nota-sel,.nota-oct-sel{
   background:var(--cream); border:1.5px solid var(--brown); border-radius:9px;
-  padding:6px 3px; font-size:0.82rem; font-family:inherit; color:var(--brown-dark);
+  padding:6px 3px; font-size:0.82rem; font-family:inherit; color:var(--cream-text);
   font-weight:700; cursor:pointer; -webkit-appearance:none; text-align:center;
 }
 .nota-sel{ flex:1; min-width:0; }
@@ -690,7 +690,7 @@ body.fondo-especial .appa-arrow{
 }
 .nota-actions-row{ display:flex; gap:8px; margin-bottom:10px; }
 .nota-action-btn{
-  flex:1; background:var(--brown-light); color:#fff; border:none; border-radius:12px;
+  flex:1; background:var(--brown-light); color:var(--white); border:none; border-radius:12px;
   padding:9px 6px; font-weight:800; font-size:0.8rem; font-family:inherit; cursor:pointer;
 }
 .nota-action-btn:active{ filter:brightness(0.9); }
@@ -700,28 +700,28 @@ body.fondo-especial .appa-arrow{
 .acorde-chips{ display:flex; flex-wrap:wrap; gap:5px; }
 .acorde-chip{
   background:var(--cream); border:1.5px solid var(--brown); border-radius:9px;
-  padding:4px 10px; font-size:0.8rem; font-weight:700; color:var(--brown-dark);
+  padding:4px 10px; font-size:0.8rem; font-weight:700; color:var(--cream-text);
   cursor:pointer; transition:background 0.15s;
 }
 .acorde-chip.sel,.acorde-chip:hover{ background:var(--brown); color:#fff; }
 .chord-search-row{ display:flex; gap:7px; margin-bottom:10px; }
 .chord-name-inp{
   flex:1; background:var(--cream); border:1.5px solid var(--brown); border-radius:11px;
-  padding:8px 10px; font-size:0.85rem; font-family:inherit; color:var(--brown-dark); font-weight:700;
+  padding:8px 10px; font-size:0.85rem; font-family:inherit; color:var(--cream-text); font-weight:700;
 }
 .chord-note-chips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
 .chord-note-chip{
-  background:var(--brown); color:#fff; border-radius:8px;
+  background:var(--brown); color:var(--white); border-radius:8px;
   padding:4px 10px; font-size:0.8rem; font-weight:700;
 }
 .diag-fmt-tabs{ display:flex; gap:6px; margin:10px 0 8px; }
 .diag-fmt-tab{
-  flex:1; background:var(--cream); color:var(--brown-dark);
+  flex:1; background:var(--cream); color:var(--cream-text);
   border:2px solid var(--brown); border-radius:10px; cursor:pointer;
   padding:6px 4px; font-weight:800; font-size:0.75rem; font-family:inherit;
   transition:background 0.15s;
 }
-.diag-fmt-tab.active{ background:var(--brown); color:#fff; }
+.diag-fmt-tab.active{ background:var(--brown); color:var(--white); }
 #chordDiagsWrap{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; padding:4px 0; }
 .chord-diag-card{ display:flex; flex-direction:column; align-items:center; gap:4px; }
 .chord-diag-lbl{ font-weight:800; font-size:0.8rem; color:var(--card-text); text-align:center; }
@@ -734,13 +734,13 @@ body.fondo-especial .appa-arrow{
 .chord-extra-voicings.hidden{ display:none; }
 .chord-builder-row{ display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px; }
 .chord-sel-btn{
-  background:var(--cream); color:var(--brown-dark);
+  background:var(--cream); color:var(--cream-text);
   border:1.5px solid var(--brown); border-radius:9px;
   padding:4px 8px; font-size:0.72rem; font-weight:700;
   font-family:inherit; cursor:pointer; transition:background 0.15s;
 }
-.chord-sel-btn.sel{ background:var(--brown); color:#fff; }
-.chord-sel-btn:hover:not(.sel){ background:var(--brown-light); color:#fff; }
+.chord-sel-btn.sel{ background:var(--brown); color:var(--white); }
+.chord-sel-btn:hover:not(.sel){ background:var(--brown-light); color:var(--white); }
 .menu-toggle-btn.btn-active{ background:var(--green); }
 .menu-toggle-btn.btn-sub{ background:var(--brown-light); }
 .opacity-row{ display:flex; align-items:center; gap:12px; margin-top:8px; }
