@@ -154,6 +154,32 @@ function updateUndoRedoButtons(){
 }
 
 function applyHistoryState(state){
+  if(state._workingBuffer){
+    // Restaurar audio (deshacer un "Limpiar pista")
+    workingBuffer = state._workingBuffer;
+    originalBuffer = state._originalBuffer || state._workingBuffer;
+    mediaType = state._mediaType || 'audio';
+    drawWaveform(workingBuffer);
+    tlInit();
+    playStartOffset = 0;
+    waveCanvas.classList.remove('hidden');
+    placeholderText.classList.add('hidden');
+    previewControls.classList.remove('hidden');
+    tlEmpty.classList.add('hidden');
+    timeLabel.textContent = `0:00 / ${fmtTime(workingBuffer.duration)}`;
+  } else if(state._clearTrack){
+    // Rehacer el "Limpiar pista"
+    workingBuffer = null; originalBuffer = null; mediaType = null;
+    waveCanvas.classList.add('hidden');
+    placeholderText.classList.remove('hidden');
+    previewControls.classList.add('hidden');
+    tlEmpty.classList.remove('hidden');
+    TL.waveImg = null; TL.pos = 0;
+    tlCanvas.getContext('2d').clearRect(0,0,tlCanvas.width,tlCanvas.height);
+    waveCanvas.getContext('2d').clearRect(0,0,waveCanvas.width,waveCanvas.height);
+    timeLabel.textContent = '0:00 / 0:00';
+    stopPlayback();
+  }
   pitchSemis = state.pitchSemis;
   speedRate = state.speedRate;
   pitchLockOn = state.pitchLockOn;
@@ -163,7 +189,8 @@ function applyHistoryState(state){
   speedSlider.value = speedRate;
   speedValue.value = speedRate.toFixed(3);
   btnPitchLock.classList.toggle('active', pitchLockOn);
-  restartPlaybackIfPlaying();
+  btnReverse.classList.toggle('active', isReversed);
+  if(!state._clearTrack) restartPlaybackIfPlaying();
   updatePitchLockHint();
   updateReanalyzeShimmer();
 }
@@ -512,7 +539,18 @@ $('confirmClearNo').addEventListener('click', ()=>{
 });
 $('confirmClearYes').addEventListener('click', ()=>{
   $('confirmClearDialog').classList.add('hidden');
-  doClearAll();
+  // Para audio (no video) guardamos el estado en el historial para que se pueda deshacer
+  if(workingBuffer && !originalVideoFile){
+    history = history.slice(0, historyIndex+1);
+    history.push({ pitchSemis, speedRate, pitchLockOn, isReversed,
+      _workingBuffer: workingBuffer, _originalBuffer: originalBuffer, _mediaType: mediaType });
+    doClearAll(true); // preserveHistory=true: no resetea el array de historial
+    history.push({ pitchSemis:0, speedRate:1, pitchLockOn:false, isReversed:false, _clearTrack:true });
+    historyIndex = history.length-1;
+    updateUndoRedoButtons();
+  } else {
+    doClearAll();
+  }
 });
 $('confirmClearDialog').addEventListener('click', (e)=>{
   if(e.target.id === 'confirmClearDialog') $('confirmClearDialog').classList.add('hidden');
@@ -550,7 +588,7 @@ function doResetMods(){
   setStatus('Modificaciones reseteadas ✓', 2000);
 }
 
-function doClearAll(){
+function doClearAll(preserveHistory = false){
   stopPlayback();
   originalBuffer = null;
   workingBuffer = null;
@@ -567,8 +605,7 @@ function doClearAll(){
   pitchSemis = 0;
   speedRate = 1.0;
   playStartOffset = 0;
-  history = []; historyIndex = -1;
-  updateUndoRedoButtons();
+  if(!preserveHistory){ history = []; historyIndex = -1; updateUndoRedoButtons(); }
 
   pitchSlider.value = 0; pitchValue.value = '0.000';
   speedSlider.value = 1; speedValue.value = '1.000';
