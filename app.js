@@ -1941,6 +1941,7 @@ function analyzeLoadedAudioTone(){
   toneModeBtn.textContent = 'Original';
   toneModeBtn.classList.remove('active', 'hidden');
   renderNoteChips(lastNoteCountsOrig, lastNoteAnalyzed);
+  updateReanalyzeShimmer();
 }
 
 function renderNoteChips(noteCounts, analyzed){
@@ -2027,6 +2028,7 @@ function setMode(mode, keepNeedle){
   $('tunerHint').classList.remove('hidden');
   $('reanalyzeBtn').classList.add('hidden');
   $('toneModeBtn').classList.add('hidden');
+  $('toneModeBtn').classList.remove('altered');
   document.querySelectorAll('.mode-btn').forEach(b=> b.classList.toggle('selected', b.dataset.mode===mode));
   renderStrings();
 }
@@ -3519,7 +3521,10 @@ if('serviceWorker' in navigator){
 // MÓDULO ACORDES — detección, nombres y diagramas
 // ============================================================
 function updateReanalyzeShimmer(){
-  $('reanalyzeBtn').classList.toggle('altered', pitchSemis !== 0 || speedRate !== 1);
+  const altered = pitchSemis !== 0 || speedRate !== 1;
+  $('reanalyzeBtn').classList.toggle('altered', altered);
+  const tmb = $('toneModeBtn');
+  if(tmb && !tmb.classList.contains('hidden')) tmb.classList.toggle('altered', altered);
 }
 
 (function(){
@@ -4686,7 +4691,7 @@ function updateReanalyzeShimmer(){
     const open=!p.classList.contains('hidden');
     p.classList.toggle('hidden',open);
     $('btnAcordes').classList.toggle('active',!open);
-    if(!open) renderSlots();
+    if(!open){ renderSlots(); doSearchByBuilder(); }
   });
 
   $('tabNotasAcorde').addEventListener('click',()=>{
