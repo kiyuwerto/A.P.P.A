@@ -498,9 +498,13 @@ function drawRollingWave(canvas, container, amps, centerLine){
 // ============================================================
 // LIMPIAR TODO el campo de trabajo
 // ============================================================
-$('btnClearAll').addEventListener('click', ()=>{
+$('btnClearTrack').addEventListener('click', ()=>{
   if(!workingBuffer && !originalBuffer){ setStatus('No hay nada que limpiar', 1500); return; }
   $('confirmClearDialog').classList.remove('hidden');
+});
+
+$('btnResetMods').addEventListener('click', ()=>{
+  doResetMods();
 });
 
 $('confirmClearNo').addEventListener('click', ()=>{
@@ -513,6 +517,38 @@ $('confirmClearYes').addEventListener('click', ()=>{
 $('confirmClearDialog').addEventListener('click', (e)=>{
   if(e.target.id === 'confirmClearDialog') $('confirmClearDialog').classList.add('hidden');
 });
+
+function doResetMods(){
+  stopPlayback();
+  pitchSemis = 0; pitchSlider.value = 0; pitchValue.value = '0.000';
+  speedRate = 1.0; speedSlider.value = 1; speedValue.value = '1.000';
+  isReversed = false; btnReverse.classList.remove('active');
+  pitchLockOn = false; btnPitchLock.classList.remove('active');
+  loopEnabled = false; btnLoop.classList.remove('active');
+  trimMode = false; btnTrim.classList.remove('active');
+  trimPanel.classList.add('hidden'); clearTrimMarkers();
+  updateReanalyzeShimmer();
+
+  // Apagar efectos
+  reverbOn = false;
+  $('reverbToggle').textContent='OFF'; $('reverbToggle').classList.remove('active'); $('reverbCtrl').classList.add('hidden');
+  distortionOn = false;
+  $('distortionToggle').textContent='OFF'; $('distortionToggle').classList.remove('active'); $('distortionCtrl').classList.add('hidden');
+  compOn = false;
+  $('compToggle').textContent='OFF'; $('compToggle').classList.remove('active'); $('compCtrl').classList.add('hidden');
+  delayOn = false;
+  $('delayToggle').textContent='OFF'; $('delayToggle').classList.remove('active'); $('delayCtrl').classList.add('hidden');
+  eqOn = false;
+  $('eqToggle').textContent='OFF'; $('eqToggle').classList.remove('active'); $('eqCtrl').classList.add('hidden');
+
+  // Cerrar paneles
+  efectosPanel.classList.add('hidden'); btnEfectos.classList.remove('active','efx-glow');
+  $('acordesPanel').classList.add('hidden'); $('btnAcordes').classList.remove('active');
+  if(!tunerPanel.classList.contains('hidden')){ tunerPanel.classList.add('hidden'); }
+  btnTunerToggle.classList.remove('active');
+
+  setStatus('Modificaciones reseteadas ✓', 2000);
+}
 
 function doClearAll(){
   stopPlayback();
