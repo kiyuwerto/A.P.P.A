@@ -570,6 +570,8 @@ function doResetMods(){
   trimPanel.classList.add('hidden'); clearTrimMarkers();
   updateReanalyzeShimmer();
 
+  liveReverbWet=null; liveReverbDry=null; liveDistShaper=null;
+  liveComp=null; liveDelayNode=null; liveDelayFb=null; liveEqFilters=[];
   // Apagar efectos
   reverbOn = false;
   $('reverbToggle').textContent='OFF'; $('reverbToggle').classList.remove('active'); $('reverbCtrl').classList.add('hidden');
@@ -815,11 +817,17 @@ function updateAppaAnimation(){
 let reverbOn = false;
 let reverbMix = 0.30;
 let reverbIR = null; // impulso en caché
+// Referencias a nodos vivos del grafo de efectos (para actualizar params sin reiniciar)
+let liveReverbWet = null, liveReverbDry = null;
+let liveDistShaper = null;
+let liveComp = null;
+let liveDelayNode = null, liveDelayFb = null;
+let liveEqFilters = [];
 
 function getReverbIR(audioCtx){
   if(reverbIR) return reverbIR;
   const sr = audioCtx.sampleRate;
-  const len = Math.floor(sr * 2.5);
+  const len = Math.floor(sr * 0.8);
   const buf = audioCtx.createBuffer(2, len, sr);
   for(let c=0; c<2; c++){
     const ch = buf.getChannelData(c);
@@ -842,6 +850,10 @@ function createDistortionCurve(amount){
 
 function connectToOutput(source, audioCtx){
   activeEffectNodes = [];
+  // Limpiar refs de nodos vivos (se rellenan abajo si el efecto está activo)
+  liveDistShaper = null; liveEqFilters = []; liveComp = null;
+  liveDelayNode = null; liveDelayFb = null;
+  liveReverbWet = null; liveReverbDry = null;
   let signal = source;
 
   // 1. Distorsión
@@ -849,6 +861,7 @@ function connectToOutput(source, audioCtx){
     const ws = audioCtx.createWaveShaper();
     ws.curve = createDistortionCurve(distortionAmount);
     ws.oversample = '4x';
+    liveDistShaper = ws;
     signal.connect(ws); signal = ws;
     activeEffectNodes.push(ws);
   }
@@ -861,6 +874,7 @@ function connectToOutput(source, audioCtx){
       f.frequency.value = EQ_BANDS[i].freq;
       f.gain.value = eqGains[i];
       if(f.type === 'peaking') f.Q.value = 1.0;
+      liveEqFilters.push(f);
       signal.connect(f); signal = f;
       activeEffectNodes.push(f);
     }
@@ -874,6 +888,7 @@ function connectToOutput(source, audioCtx){
     comp.knee.value = 10;
     comp.attack.value = 0.003;
     comp.release.value = 0.25;
+    liveComp = comp;
     signal.connect(comp); signal = comp;
     activeEffectNodes.push(comp);
   }
@@ -887,6 +902,7 @@ function connectToOutput(source, audioCtx){
     const wetGain = audioCtx.createGain();
     wetGain.gain.value = 0.45;
     const merger = audioCtx.createGain();
+    liveDelayNode = delNode; liveDelayFb = fbGain;
     signal.connect(merger);
     signal.connect(delNode);
     delNode.connect(fbGain);
@@ -905,6 +921,7 @@ function connectToOutput(source, audioCtx){
     const dry = audioCtx.createGain();
     wet.gain.value = reverbMix;
     dry.gain.value = 1 - reverbMix;
+    liveReverbWet = wet; liveReverbDry = dry;
     signal.connect(dry);
     signal.connect(conv);
     conv.connect(wet);
@@ -2867,7 +2884,8 @@ $('reverbToggle').addEventListener('click', ()=>{
 $('reverbMixSlider').addEventListener('input', (e)=>{
   reverbMix = parseInt(e.target.value) / 100;
   $('reverbMixLabel').textContent = e.target.value + '%';
-  if(isPlaying){ stopPlayback(); startPlayback(); }
+  if(liveReverbWet){ liveReverbWet.gain.setTargetAtTime(reverbMix, audioCtx.currentTime, 0.01); }
+  if(liveReverbDry){ liveReverbDry.gain.setTargetAtTime(1-reverbMix, audioCtx.currentTime, 0.01); }
 });
 
 $('distortionToggle').addEventListener('click', ()=>{
@@ -2883,7 +2901,7 @@ $('distortionToggle').addEventListener('click', ()=>{
 $('distortionSlider').addEventListener('input', (e)=>{
   distortionAmount = parseInt(e.target.value) / 100;
   $('distortionLabel').textContent = e.target.value + '%';
-  if(isPlaying){ stopPlayback(); startPlayback(); }
+  if(liveDistShaper){ liveDistShaper.curve = createDistortionCurve(distortionAmount); }
 });
 
 // Compresor
@@ -2899,12 +2917,12 @@ $('compToggle').addEventListener('click', ()=>{
 $('compRatioSlider').addEventListener('input', (e)=>{
   compRatio = parseFloat(e.target.value);
   $('compRatioLabel').textContent = compRatio + ':1';
-  if(isPlaying){ stopPlayback(); startPlayback(); }
+  if(liveComp){ liveComp.ratio.setTargetAtTime(compRatio, audioCtx.currentTime, 0.01); }
 });
 $('compThreshSlider').addEventListener('input', (e)=>{
   compThreshold = parseInt(e.target.value);
   $('compThreshLabel').textContent = (compThreshold >= 0 ? '' : '−') + Math.abs(compThreshold) + ' dB';
-  if(isPlaying){ stopPlayback(); startPlayback(); }
+  if(liveComp){ liveComp.threshold.setTargetAtTime(compThreshold, audioCtx.currentTime, 0.01); }
 });
 
 // Delay
@@ -2920,12 +2938,12 @@ $('delayToggle').addEventListener('click', ()=>{
 $('delayTimeSlider').addEventListener('input', (e)=>{
   delayTime = parseInt(e.target.value) / 1000;
   $('delayTimeLabel').textContent = e.target.value + ' ms';
-  if(isPlaying){ stopPlayback(); startPlayback(); }
+  if(liveDelayNode){ liveDelayNode.delayTime.setTargetAtTime(delayTime, audioCtx.currentTime, 0.01); }
 });
 $('delayFeedbackSlider').addEventListener('input', (e)=>{
   delayFeedback = parseInt(e.target.value) / 100;
   $('delayFeedbackLabel').textContent = e.target.value + '%';
-  if(isPlaying){ stopPlayback(); startPlayback(); }
+  if(liveDelayFb){ liveDelayFb.gain.setTargetAtTime(delayFeedback, audioCtx.currentTime, 0.01); }
 });
 
 // Ecualizador
@@ -2945,7 +2963,7 @@ for(let i = 0; i < 5; i++){
     eqGains[band] = val;
     $(`eqVal${band}`).textContent = val === 0 ? '0' : (val > 0 ? '+' : '−') + Math.abs(val);
     document.querySelectorAll('.eq-preset').forEach(b => b.classList.remove('active'));
-    if(isPlaying){ stopPlayback(); startPlayback(); }
+    if(liveEqFilters[band]){ liveEqFilters[band].gain.setTargetAtTime(val, audioCtx.currentTime, 0.005); }
   });
 }
 document.querySelectorAll('.eq-preset').forEach(btn => {
@@ -2955,10 +2973,10 @@ document.querySelectorAll('.eq-preset').forEach(btn => {
       eqGains[i] = val;
       $(`eqBand${i}`).value = val;
       $(`eqVal${i}`).textContent = val === 0 ? '0' : (val > 0 ? '+' : '−') + Math.abs(val);
+      if(liveEqFilters[i]){ liveEqFilters[i].gain.setTargetAtTime(val, audioCtx.currentTime, 0.005); }
     });
     document.querySelectorAll('.eq-preset').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    if(isPlaying){ stopPlayback(); startPlayback(); }
   });
 });
 
