@@ -490,7 +490,8 @@ input[type=range]::-moz-range-thumb{
   padding:12px 14px; cursor:pointer; user-select:none; gap:8px;
 }
 .help-item.always-open .help-item-header{ cursor:default; background:#3ab6d8; }
-.help-item-header b{ color:var(--brown-dark); font-size:0.98rem; }
+.help-icon{ flex-shrink:0; opacity:0.72; display:flex; align-items:center; }
+.help-item-header b{ color:var(--brown-dark); font-size:0.98rem; flex:1; }
 .help-item.always-open .help-item-header b{
   color:#fff;
   text-shadow:0 0 10px rgba(255,255,255,0.75), 0 0 22px rgba(58,182,216,0.6);
@@ -1126,15 +1127,6 @@ body.fondo-especial .appa-arrow{
     </div>
   </div>
 
-  <button class="refresh-perm-btn" id="btnRefreshPerm">Refrescar micrófono/parlante</button>
-
-  <div class="export-section">
-    <div class="export-row">
-      <button class="tile-btn export" id="btnExportFast">Export Rápi</button>
-      <button class="tile-btn export pro" id="btnExportPro">Export Pro</button>
-    </div>
-  </div>
-
   <div class="panel hidden" id="tunerPanel">
     <h3 id="tunerTitle">Afinador</h3>
     <div class="tuner-mode-row" id="tunerModeRow">
@@ -1271,86 +1263,99 @@ body.fondo-especial .appa-arrow{
     <div class="help-content hidden" id="helpContent">
 
       <div class="help-item">
-        <div class="help-item-header"><b>Subir archivo / Grabar mic</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><b>Subir archivo / Grabar mic</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Cargá un audio o video desde tu celular o computador, o grabá directo con el micrófono. La app detecta sola si es audio o video — no tenés que hacer nada extra. Si es un video, extrae el audio automáticamente para que puedas editarlo.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Grabar encima <u>(Overdub)</u></b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M19 11a7 7 0 01-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="9" y1="22" x2="15" y2="22"/></svg></span><b>Grabar encima <u>(Overdub)</u></b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Grabá nuevo audio desde donde está el cursor, <b>mezclado sobre lo que ya hay</b>. Genial para corregir una parte sin borrar todo o para agregar capas.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>La pista (timeline)</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="21" stroke-width="2.5"/><line x1="3" y1="8" x2="3" y2="16"/><line x1="7" y1="5" x2="7" y2="19"/><line x1="17" y1="5" x2="17" y2="19"/><line x1="21" y1="8" x2="21" y2="16"/></svg></span><b>La pista (timeline)</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">El audio se desplaza bajo la línea central mientras suena. <b>Arrastrá con un dedo</b> para moverte por el audio. <b>Pellizca con dos dedos</b> para acercar o alejar el zoom — la línea central queda siempre fija.</div>
       </div>
 
-      <div class="help-item always-open">
-        <div class="help-item-header"><b>Pitch — cambio de tono <u>(±48 semitonos)</u></b></div>
+      <div class="help-item">
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="12 5 12 19"/><polyline points="8 9 12 5 16 9"/><polyline points="8 15 12 19 16 15"/></svg></span><b>Pitch — cambio de tono <u>(±48 semitonos)</u></b><span class="help-chevron">▾</span></div>
         <div class="help-item-body"><b>Los semitonos son como mover la cejilla en la guitarra:</b> +1 es subir un traste, +12 es subir una octava entera (como ir del traste 1 al 13), −12 es bajar una octava. Los botones <b>+1 / −1</b> ajustan de a un traste, y el <b>"0"</b> vuelve el pitch al original. El rango total es de 4 octavas arriba o abajo.</div>
       </div>
 
-      <div class="help-item always-open">
-        <div class="help-item-header"><b>Velocidad <u>(0.05x – 10x)</u></b></div>
+      <div class="help-item">
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><polyline points="12 7 12 13 15.5 13"/><line x1="8.5" y1="5.5" x2="6" y2="3"/><line x1="15.5" y1="5.5" x2="18" y2="3"/></svg></span><b>Velocidad <u>(0.05x – 10x)</u></b><span class="help-chevron">▾</span></div>
         <div class="help-item-body"><b>Qué tan rápido suena.</b> 1x = normal, 2x = doble de rápido, 0.5x = la mitad. Por defecto, cambiar la velocidad también arrastra el tono (como un casete a distinta velocidad). Para separarlos, activá <b>Pitch-lock</b>.</div>
       </div>
 
-      <div class="help-item always-open">
-        <div class="help-item-header"><b>Pitch-lock 🔒</b></div>
+      <div class="help-item">
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="4" y="11" width="16" height="11" rx="3.5"/><path d="M8 11V8a4 4 0 018 0v3" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1.6"/></svg></span><b>Pitch-lock</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Desacopla el tono de la velocidad. Con esto activo, podés <b>acelerar sin que las voces suenen "a ardilla"</b>, o bajar el tono sin que el audio se arrastre.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Tono — detección en tiempo real</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="1.5" y="8.5" width="3" height="7" rx="1.5"/><rect x="6" y="5.5" width="3" height="13" rx="1.5"/><rect x="10.5" y="3" width="3" height="18" rx="1.5"/><rect x="15" y="5.5" width="3" height="13" rx="1.5"/><rect x="19.5" y="8.5" width="3" height="7" rx="1.5"/></svg></span><b>Tono — detección en tiempo real</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Al tocar, abre el análisis del audio: te muestra la <b>nota predominante</b> y las más frecuentes con su porcentaje. <b>Si el audio está reproduciéndose, el propio botón muestra la nota del momento en tiempo real</b>, como un afinador para el audio.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Afinador 🎸</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="10.5" y="1" width="3" height="6.5" rx="1.5"/><path fill-rule="evenodd" d="M12 7.5c-3.5 0-5 2-5 4 0 1 .5 2 1 2.5-.5.8-1 2-1 3C7 19.8 9.2 22 12 22s5-2.2 5-5c0-1-.5-2.2-1-3 .5-.5 1-1.5 1-2.5 0-2-1.5-4-5-4zM14 17.5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></span><b>Afinador</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Afinador en tiempo real <b>usando el micrófono</b>. Modos guitarra, ukelele y cromático. La aguja se pone <b>verde cuando estás afinado</b>; en guitarra/ukelele también resalta la cuerda más cercana.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Efectos</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="3" x2="6" y2="21"/><line x1="10.5" y1="3" x2="10.5" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="19.5" y1="3" x2="19.5" y2="21"/><line x1="6" y1="3" x2="19.5" y2="3" stroke-width="2.5"/><line x1="6" y1="10" x2="19.5" y2="10"/><line x1="6" y1="17" x2="19.5" y2="17"/><circle cx="10.5" cy="6.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="19.5" cy="6.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="6" cy="13.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13.5" r="2.2" fill="currentColor" stroke="none"/></svg></span><b>Acordes</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-body">Dos modos: <b>Notas → Acorde</b> (ingresás notas y detecta los acordes posibles) y <b>Acorde → Notas</b> (elegís el acorde y muestra las notas con diagrama para guitarra, ukelele o piano). <b>Tip:</b> usalo junto al <b>Afinador</b> — el afinador te dice el nombre de la nota con número de cuerda, así sabés exactamente qué nota estás tocando.</div>
+      </div>
+
+      <div class="help-item">
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="6" x2="23" y2="6"/><line x1="1" y1="18" x2="23" y2="18"/><path d="M1 12 L4 12 L5 6 L6 6 L7 18 L8 18 L10 6 L11 6 L12 18 L13 18 L15 6 L16 6 L17 12 L23 12"/></svg></span><b>Efectos</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Panel con cinco efectos combinables, cada uno con toggle ON/OFF independiente. <b>Reverb</b>: agrega espacio y eco (Seco→Húmedo). <b>Distorsión</b>: desde saturación cálida hasta clipping bestial (Suave→Bestial). <b>Compresor</b>: reduce la diferencia entre partes quietas y fuertes — hace que todo suene más denso; sliders de intensidad (ratio) y umbral de activación. <b>Delay</b>: eco rítmico con slider de tiempo (30–800 ms) y cantidad de repetición. <b>Ecualizador</b>: 5 bandas estilo Spotify (60 Hz, 230 Hz, 910 Hz, 3.6K, 14K) con ±12 dB cada una y presets Plano / Bajos / Agudos / Vocal. Todos los efectos funcionan tanto en audio como en video. Cuando cerrás el panel con algún efecto activo, el botón Efectos tintinea en celeste para recordártelo.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Reversa</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="2" y="4" width="3.5" height="16" rx="1.8"/><polygon points="7.5,12 14.5,4.5 14.5,19.5"/><polygon points="15,12 22,4.5 22,19.5"/></svg></span><b>Reversa</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Invierte el audio para que <b>suene al revés</b>. En videos, la reversa visual se muestra en tiempo real vía canvas — sin reprocesar el archivo. Al exportar un video con reversa activada, la app lo procesa en segmentos cortos para no quedarse sin memoria, así funciona con videos de cualquier largo.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Loop</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg></span><b>Loop</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">El audio se <b>repite solo</b> al terminar, sin que tengas que hacer nada.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Recortar — dos modos</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg></span><b>Recortar — dos modos</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Poné la línea central donde querés y marcá inicio/fin. Modo <b>"Conservar selección"</b>: te quedás solo con ese fragmento. Modo <b>"Eliminar trozo"</b>: borrás esa parte del medio y la app une lo que queda antes y después. Ideal para sacar silencios o partes que no querés.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Export Rápi</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span><b>Export Rápi</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Exporta al instante en <b>MP4 (audio AAC)</b>, liviano y compatible con iPhone sin instalar nada.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Export Pro</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span><b>Export Pro</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Elegís el formato: <b>WAV</b> (sin pérdida), <b>MP3</b> (320/192/128 kbps), <b>MP4 solo-audio</b> (AAC, compatible iPhone), o si cargaste un video, <b>MP4 con audio editado</b> — incluye todos los efectos, pitch, velocidad y reversa aplicados. El motor de video se descarga la primera vez (~25 MB); las siguientes veces es inmediato. El progreso aparece en pantalla con el indicador de Appa girando.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Menú A.P.P.A. (logo arriba o el nombre abajo)</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="9" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/><rect x="13" y="13" width="9" height="9" rx="2"/></svg></span><b>Menú A.P.P.A. (logo arriba o el nombre abajo)</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Personalización: <b>fondo especial</b>, transparencia de botones, fondo móvil con efecto parallax, y el historial de archivos exportados. Se abre tocando el logo del encabezado <b>o</b> el nombre A.P.P.A al pie de la app.</div>
       </div>
 
       <div class="help-item">
-        <div class="help-item-header"><b>Deshacer / Rehacer ↩↪</b><span class="help-chevron">▾</span></div>
+        <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg></span><b>Deshacer / Rehacer ↩↪</b><span class="help-chevron">▾</span></div>
         <div class="help-item-body">Las flechas de arriba a la derecha deshacen o rehacen los últimos cambios de pitch, velocidad, cortes y efectos.</div>
       </div>
 
     </div>
+
+    <div class="export-section">
+      <div class="export-row">
+        <button class="tile-btn export" id="btnExportFast">Export Rápi</button>
+        <button class="tile-btn export pro" id="btnExportPro">Export Pro</button>
+      </div>
+    </div>
+    <button class="refresh-perm-btn" id="btnRefreshPerm">Refrescar micrófono/parlante</button>
 
     <div class="credits">
       <div class="credit-line"><span>Mastermind:</span> Kiyuwerto</div>
