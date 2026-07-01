@@ -1081,27 +1081,6 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
     </button>
   </div>
 
-  <div class="panel hidden" id="tunerPanel">
-    <h3 id="tunerTitle">Afinador</h3>
-    <div class="tuner-mode-row" id="tunerModeRow">
-      <button class="mode-btn selected" data-mode="guitar">Guitarra</button>
-      <button class="mode-btn" data-mode="ukulele">Ukelele</button>
-      <button class="mode-btn" data-mode="chromatic">Cromático</button>
-    </div>
-    <div class="tuner-display">
-      <div class="tuner-note" id="tunerNote">—</div>
-      <div class="tuner-freq" id="tunerFreq">0.0 Hz</div>
-      <div class="tuner-meter"><div class="center-mark"></div><div class="needle" id="tunerNeedle"></div></div>
-      <div class="tuner-status" id="tunerStatus">Esperando micrófono…</div>
-    </div>
-    <div class="strings-row-outer">
-      <button class="tone-mode-btn hidden" id="toneModeBtn">Original</button>
-      <div class="strings-row" id="stringsRow"></div>
-    </div>
-    <div class="mic-hint" id="tunerHint">Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.</div>
-    <button class="menu-toggle-btn hidden" id="reanalyzeBtn" style="margin-top:12px;">Volver a analizar</button>
-  </div>
-
   <!-- MODAL: Exportar (Pro) -->
   <div class="modal-overlay hidden" id="exportDialog">
     <div class="modal-card">
@@ -1373,6 +1352,27 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
       </div>
       <div id="chordDiagsWrap"></div>
     </div>
+  </div>
+
+  <div class="panel hidden" id="tunerPanel">
+    <h3 id="tunerTitle">Afinador</h3>
+    <div class="tuner-mode-row" id="tunerModeRow">
+      <button class="mode-btn selected" data-mode="guitar">Guitarra</button>
+      <button class="mode-btn" data-mode="ukulele">Ukelele</button>
+      <button class="mode-btn" data-mode="chromatic">Cromático</button>
+    </div>
+    <div class="tuner-display">
+      <div class="tuner-note" id="tunerNote">—</div>
+      <div class="tuner-freq" id="tunerFreq">0.0 Hz</div>
+      <div class="tuner-meter"><div class="center-mark"></div><div class="needle" id="tunerNeedle"></div></div>
+      <div class="tuner-status" id="tunerStatus">Esperando micrófono…</div>
+    </div>
+    <div class="strings-row-outer">
+      <button class="tone-mode-btn hidden" id="toneModeBtn">Original</button>
+      <div class="strings-row" id="stringsRow"></div>
+    </div>
+    <div class="mic-hint" id="tunerHint">Toca una cuerda y mantenla sonando. El indicador se pone verde cuando está afinada.</div>
+    <button class="menu-toggle-btn hidden" id="reanalyzeBtn" style="margin-top:12px;">Volver a analizar</button>
   </div>
 
   </div><!-- /h-left-b -->

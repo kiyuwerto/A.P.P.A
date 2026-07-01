@@ -2840,6 +2840,15 @@ function applyLayoutH(on){
   document.body.classList.toggle('layout-h', on);
   const btn = $('layoutHBtn');
   if(btn) btn.classList.toggle('btn-active', on);
+  const tp = $('tunerPanel');
+  if(tp){
+    if(on){
+      document.querySelector('.h-right').appendChild(tp);
+    } else {
+      const ap = $('acordesPanel');
+      ap.parentNode.insertBefore(tp, ap.nextSibling);
+    }
+  }
   try{ localStorage.setItem('appa_layout_h', on ? '1' : '0'); }catch(e){}
 }
 try{
