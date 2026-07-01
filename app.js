@@ -2843,12 +2843,7 @@ function applyLayoutH(on){
   const tp = $('tunerPanel');
   if(tp){
     if(on){
-      const ap = $('acordesPanel');
-      if(ap && !ap.classList.contains('hidden')){
-        ap.parentNode.insertBefore(tp, ap.nextSibling);
-      } else {
-        document.querySelector('.h-speed').appendChild(tp);
-      }
+      document.querySelector('.h-speed').appendChild(tp);
     } else {
       const ap = $('acordesPanel');
       ap.parentNode.insertBefore(tp, ap.nextSibling);
@@ -4742,22 +4737,14 @@ function updateReanalyzeShimmer(){
     $('btnAcordes').classList.toggle('active',!open);
     if(!open){
       renderSlots(); doSearchByBuilder();
-      if(layoutH){
-        // Move tuner next to acordes panel
-        p.parentNode.insertBefore(tunerPanel, p.nextSibling);
-        if(tunerPanel.classList.contains('hidden')){
-          tunerPanel.classList.remove('hidden');
-          _tunerAutoOpenedByAcordes = true;
-        }
+      if(layoutH && tunerPanel.classList.contains('hidden')){
+        tunerPanel.classList.remove('hidden');
+        _tunerAutoOpenedByAcordes = true;
       }
     } else {
-      if(layoutH){
-        if(_tunerAutoOpenedByAcordes){
-          tunerPanel.classList.add('hidden');
-          btnTunerToggle.classList.remove('active');
-        }
-        // Move tuner back below speed slider
-        document.querySelector('.h-speed').appendChild(tunerPanel);
+      if(layoutH && _tunerAutoOpenedByAcordes){
+        tunerPanel.classList.add('hidden');
+        btnTunerToggle.classList.remove('active');
       }
       _tunerAutoOpenedByAcordes = false;
     }
