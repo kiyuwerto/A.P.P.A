@@ -4729,25 +4729,12 @@ function updateReanalyzeShimmer(){
   }
 
   // Init
-  let _tunerAutoOpenedByAcordes = false;
   $('btnAcordes').addEventListener('click',()=>{
     const p=$('acordesPanel');
     const open=!p.classList.contains('hidden');
     p.classList.toggle('hidden',open);
     $('btnAcordes').classList.toggle('active',!open);
-    if(!open){
-      renderSlots(); doSearchByBuilder();
-      if(layoutH && tunerPanel.classList.contains('hidden')){
-        tunerPanel.classList.remove('hidden');
-        _tunerAutoOpenedByAcordes = true;
-      }
-    } else {
-      if(layoutH && _tunerAutoOpenedByAcordes){
-        tunerPanel.classList.add('hidden');
-        btnTunerToggle.classList.remove('active');
-      }
-      _tunerAutoOpenedByAcordes = false;
-    }
+    if(!open){ renderSlots(); doSearchByBuilder(); }
   });
 
   $('tabNotasAcorde').addEventListener('click',()=>{
