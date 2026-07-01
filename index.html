@@ -753,6 +753,11 @@ body.fondo-especial .appa-arrow{
 .chord-sel-btn.sel{ background:var(--brown); color:var(--white); }
 .chord-sel-btn:hover:not(.sel){ background:var(--brown-light); color:var(--white); }
 .menu-toggle-btn.btn-active{ background:var(--green); }
+#layoutHBtn.btn-active{
+  background:#3ab6d8; color:#fff;
+  box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4);
+  text-shadow:0 0 10px rgba(255,255,255,0.9);
+}
 .menu-toggle-btn.btn-sub{ background:var(--brown-light); }
 #fondoEspecialBtn.btn-active{
   background:#3ab6d8; color:#fff;
@@ -882,6 +887,11 @@ body.layout-h .h-cols > #tunerPanel{
   grid-column:2; grid-row:2;
   margin-top:0;
 }
+/* Acordes encima de efectos en modo horizontal */
+body.layout-h .h-left-b > .grid-buttons:nth-child(3){ order:0; }
+body.layout-h #acordesPanel{ order:1; }
+body.layout-h .h-left-b > .grid-buttons:first-child{ order:2; }
+body.layout-h #efectosPanel{ order:3; }
 /* Fondo: centrado */
 body.layout-h .h-bottom{
   display:flex; flex-direction:column; align-items:center;
