@@ -3157,6 +3157,11 @@ $('trimApply').addEventListener('click', ()=>{
     }
   }
 
+  // Guardar estado pre-recorte para poder deshacer
+  history = history.slice(0, historyIndex+1);
+  history.push({ pitchSemis, speedRate, pitchLockOn, isReversed,
+    _workingBuffer: workingBuffer, _originalBuffer: originalBuffer, _mediaType: mediaType });
+
   originalBuffer = result;
   workingBuffer = result;
   isReversed = false;
@@ -3172,7 +3177,13 @@ $('trimApply').addEventListener('click', ()=>{
   clearTrimMarkers();
   timeLabel.textContent = `0:00 / ${fmtTime(originalBuffer.duration)}`;
   setStatus(trimAction === 'cut' ? 'Trozo eliminado ✓' : 'Audio recortado ✓', 2000);
-  pushHistory();
+
+  // Guardar estado post-recorte (permite redo)
+  history.push({ pitchSemis, speedRate, pitchLockOn, isReversed: false,
+    _workingBuffer: result, _originalBuffer: result, _mediaType: mediaType });
+  historyIndex = history.length - 1;
+  updateUndoRedoButtons();
+  scheduleSaveSession();
 });
 
 function drawTrimMarkers(){
