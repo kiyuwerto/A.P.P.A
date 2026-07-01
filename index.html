@@ -839,47 +839,39 @@ body.fondo-especial .appa-arrow{
 /* ── LAYOUT HORIZONTAL (PC / iPad / Tablet) ── */
 .h-header,.h-wave,.h-cols,.h-left,.h-right,.h-sliders,.h-bottom{ display:contents; }
 
-body.layout-h{ overflow:hidden; }
 body.layout-h .app{
   max-width:none; width:100%; margin:0; padding:0;
   display:flex; flex-direction:column;
-  height:100dvh; overflow:hidden;
 }
-/* Encabezado: ancho completo, sin cambios */
-body.layout-h .h-header{ display:block; padding:0 16px; flex-shrink:0; }
+/* Encabezado: ancho completo */
+body.layout-h .h-header{ display:block; padding:0 16px; }
 /* Pista: ancho completo */
-body.layout-h .h-wave{ display:block; padding:0 16px; flex-shrink:0; }
-/* Columnas */
-body.layout-h .h-cols{
-  display:flex; flex-direction:row;
-  flex:1; min-height:0; overflow:hidden;
-  gap:0;
-}
+body.layout-h .h-wave{ display:block; padding:0 16px; }
+/* Columnas: se expanden al contenido, sin scroll propio */
+body.layout-h .h-cols{ display:flex; flex-direction:row; }
 body.layout-h .h-left{
   display:flex; flex-direction:column;
   flex:1 1 0; min-width:0;
-  overflow-y:auto; padding:10px 16px 20px;
+  padding:10px 16px 20px;
   border-right:2px solid var(--cream-2);
 }
 body.layout-h .h-right{
   display:flex; flex-direction:column;
   flex:1 1 0; min-width:0;
-  overflow-y:auto; padding:10px 16px 20px;
+  padding:10px 16px 20px;
 }
-/* Pitch y Speed uno al lado del otro */
-body.layout-h .h-sliders{
-  display:flex; flex-direction:row; gap:10px;
-}
+/* Pitch y Speed lado a lado */
+body.layout-h .h-sliders{ display:flex; flex-direction:row; gap:10px; }
 body.layout-h .h-sliders .control-block{ flex:1; min-width:0; }
-/* Fondo: centrado, ancho completo */
+/* Fondo: centrado */
 body.layout-h .h-bottom{
   display:flex; flex-direction:column; align-items:center;
-  flex-shrink:0; padding:6px 16px 0;
+  padding:6px 16px 0;
   border-top:2px solid var(--cream-2);
 }
-body.layout-h .h-bottom .export-section{ width:100%; max-width:420px; }
+body.layout-h .h-bottom .export-section{ width:100%; max-width:440px; }
 body.layout-h .h-bottom .section-sep{ display:none; }
-body.layout-h .h-bottom .app-footer{ width:100%; }
+body.layout-h .h-bottom .app-footer{ width:100%; max-width:560px; }
 body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
 </style>
 </head>
