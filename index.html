@@ -837,36 +837,58 @@ body.fondo-especial .appa-arrow{
 .eq-freq{ font-size:0.64rem; font-weight:700; color:var(--card-text); text-align:center; }
 
 /* ── LAYOUT HORIZONTAL (PC / iPad / Tablet) ── */
-.h-left,.h-right{ display:contents; }
+.h-header,.h-wave,.h-cols,.h-left,.h-right,.h-sliders,.h-bottom{ display:contents; }
 
 body.layout-h{ overflow:hidden; }
 body.layout-h .app{
-  max-width:none; width:100%; margin:0;
-  padding:0 12px;
-  display:flex; flex-direction:row; gap:16px; justify-content:center;
+  max-width:none; width:100%; margin:0; padding:0;
+  display:flex; flex-direction:column;
   height:100dvh; overflow:hidden;
-  background:var(--cream-2);
+}
+/* Encabezado: ancho completo, sin cambios */
+body.layout-h .h-header{ display:block; padding:0 16px; flex-shrink:0; }
+/* Pista: ancho completo */
+body.layout-h .h-wave{ display:block; padding:0 16px; flex-shrink:0; }
+/* Columnas */
+body.layout-h .h-cols{
+  display:flex; flex-direction:row;
+  flex:1; min-height:0; overflow:hidden;
+  gap:0;
 }
 body.layout-h .h-left{
   display:flex; flex-direction:column;
-  flex:1 1 420px; max-width:520px; min-width:280px;
-  height:100%; overflow-y:auto;
-  padding:10px 16px 24px;
+  flex:1 1 0; min-width:0;
+  overflow-y:auto; padding:10px 16px 20px;
+  border-right:2px solid var(--cream-2);
 }
 body.layout-h .h-right{
   display:flex; flex-direction:column;
-  flex:1 1 420px; max-width:520px; min-width:280px;
-  height:100%; overflow-y:auto;
-  padding:10px 16px 24px;
-  border-left:2px solid var(--cream-2);
+  flex:1 1 0; min-width:0;
+  overflow-y:auto; padding:10px 16px 20px;
 }
+/* Pitch y Speed uno al lado del otro */
+body.layout-h .h-sliders{
+  display:flex; flex-direction:row; gap:10px;
+}
+body.layout-h .h-sliders .control-block{ flex:1; min-width:0; }
+/* Fondo: centrado, ancho completo */
+body.layout-h .h-bottom{
+  display:flex; flex-direction:column; align-items:center;
+  flex-shrink:0; padding:6px 16px 0;
+  border-top:2px solid var(--cream-2);
+}
+body.layout-h .h-bottom .export-section{ width:100%; max-width:420px; }
+body.layout-h .h-bottom .section-sep{ display:none; }
+body.layout-h .h-bottom .app-footer{ width:100%; }
+body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
 </style>
 </head>
 <body>
 <div id="fondoLayer"></div>
 <div class="app">
-  <div class="h-left">
 
+  <!-- ENCABEZADO: ancho completo siempre -->
+  <div class="h-header">
   <div class="topbar">
     <div class="left">
       <button class="brand" id="appaMenuBtn">A.P.P.A.</button>
@@ -897,7 +919,10 @@ body.layout-h .h-right{
       <button class="icon-btn" id="btnRedo" title="Rehacer">&#8631;</button>
     </div>
   </div>
+  </div><!-- /h-header -->
 
+  <!-- PISTA: ancho completo, atraviesa las dos columnas -->
+  <div class="h-wave">
   <!-- Canvas oculto (sigue en DOM para que drawWaveform no crashee) -->
   <div class="preview" id="previewBox" aria-hidden="true">
     <canvas id="waveCanvas"></canvas>
@@ -947,6 +972,13 @@ body.layout-h .h-right{
       <button class="menu-toggle-btn" id="trimCancel" style="background:var(--red);">Cancelar</button>
     </div>
   </div>
+  </div><!-- /h-wave -->
+
+  <!-- DOS COLUMNAS -->
+  <div class="h-cols">
+
+  <!-- IZQUIERDA: subir/grabar/limpiar + pitch + speed -->
+  <div class="h-left">
 
   <div class="upload-row">
     <button class="upload-btn" id="btnUpload">Subir archivo</button>
@@ -969,6 +1001,7 @@ body.layout-h .h-right{
 
   <div class="status-bar" id="statusBar"></div>
 
+  <div class="h-sliders">
   <div class="control-block">
     <div class="control-label"><span>Pitch (±48 st)</span></div>
     <div class="control-row">
@@ -996,8 +1029,9 @@ body.layout-h .h-right{
     </div>
   </div>
 
-  <!-- Panel de carga inline: aparece entre las perillas y los botones, empujando
-       el contenido de abajo hacia abajo (igual que el desplegable de ayuda). -->
+  </div><!-- /h-sliders -->
+
+  <!-- Panel de carga inline -->
   <div class="inline-loading hidden" id="inlineLoading">
     <img src="appa-loading.png" alt="" class="appa-spinner">
     <div class="inline-loading-text" id="inlineLoadingText">Cargando…</div>
@@ -1005,6 +1039,8 @@ body.layout-h .h-right{
   </div>
 
   </div><!-- /h-left -->
+
+  <!-- DERECHA: tile buttons + paneles -->
   <div class="h-right">
 
   <div class="grid-buttons">
@@ -1326,6 +1362,11 @@ body.layout-h .h-right{
     </div>
   </div>
 
+  </div><!-- /h-right -->
+  </div><!-- /h-cols -->
+
+  <!-- FONDO: export + footer, ancho completo -->
+  <div class="h-bottom">
   <div class="section-sep"></div>
   <div class="export-section">
     <div class="export-row">
@@ -1442,7 +1483,7 @@ body.layout-h .h-right{
     </div>
   </footer>
 
-  </div><!-- /h-right -->
+  </div><!-- /h-bottom -->
 </div>
 
 <script src="lamejs.js"></script>
