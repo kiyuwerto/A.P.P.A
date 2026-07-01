@@ -2747,6 +2747,11 @@ $('colorBrownPicker').addEventListener('input', (e)=> setBrown(e.target.value));
 $('colorCreamPicker').addEventListener('input', (e)=> setCream(e.target.value));
 $('invertBtn').addEventListener('click', swapColors);
 $('resetColorsBtn').addEventListener('click', resetColors);
+$('colorThemeBtn').addEventListener('click', ()=>{
+  const panel = $('colorThemePanel');
+  panel.classList.toggle('hidden');
+  $('colorThemeBtn').classList.toggle('btn-active', !panel.classList.contains('hidden'));
+});
 
 $('clearLogBtn').addEventListener('click', ()=>{
   exportLog = [];

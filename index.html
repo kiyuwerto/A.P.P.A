@@ -753,7 +753,8 @@ body.fondo-especial .appa-arrow{
 .chord-sel-btn.sel{ background:var(--brown); color:var(--white); }
 .chord-sel-btn:hover:not(.sel){ background:var(--brown-light); color:var(--white); }
 .menu-toggle-btn.btn-active{ background:var(--green); }
-#layoutHBtn.btn-active{
+#layoutHBtn.btn-active,
+#colorThemeBtn.btn-active{
   background:#3ab6d8; color:#fff;
   box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4);
   text-shadow:0 0 10px rgba(255,255,255,0.9);
@@ -1158,21 +1159,23 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
       </div>
 
       <div class="menu-section">
-        <h4>Tema de color</h4>
-        <div class="color-picker-row">
-          <label class="color-picker-item" for="colorBrownPicker">
-            <span class="cp-swatch" id="swBrown"></span>
-            <span class="cp-label">Color café<small>botones y recuadros</small></span>
-            <input type="color" id="colorBrownPicker" value="#7a4a26">
-          </label>
-          <label class="color-picker-item" for="colorCreamPicker">
-            <span class="cp-swatch" id="swCream"></span>
-            <span class="cp-label">Color beige<small>fondo de la app</small></span>
-            <input type="color" id="colorCreamPicker" value="#fbe9cf">
-          </label>
+        <button class="menu-toggle-btn" id="colorThemeBtn">Cambiar colores</button>
+        <div id="colorThemePanel" class="hidden" style="margin-top:10px;">
+          <div class="color-picker-row">
+            <label class="color-picker-item" for="colorBrownPicker">
+              <span class="cp-swatch" id="swBrown"></span>
+              <span class="cp-label">Color café<small>botones y recuadros</small></span>
+              <input type="color" id="colorBrownPicker" value="#7a4a26">
+            </label>
+            <label class="color-picker-item" for="colorCreamPicker">
+              <span class="cp-swatch" id="swCream"></span>
+              <span class="cp-label">Color beige<small>fondo de la app</small></span>
+              <input type="color" id="colorCreamPicker" value="#fbe9cf">
+            </label>
+          </div>
+          <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir</button>
+          <button class="menu-toggle-btn" id="resetColorsBtn">Restablecer colores originales</button>
         </div>
-        <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir</button>
-        <button class="menu-toggle-btn" id="resetColorsBtn">Restablecer colores originales</button>
       </div>
 
       <div class="menu-section">
