@@ -2843,7 +2843,7 @@ function applyLayoutH(on){
   const tp = $('tunerPanel');
   if(tp){
     if(on){
-      document.querySelector('.h-speed').appendChild(tp);
+      document.querySelector('.h-cols').appendChild(tp);
     } else {
       const ap = $('acordesPanel');
       ap.parentNode.insertBefore(tp, ap.nextSibling);
