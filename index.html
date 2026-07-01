@@ -837,7 +837,7 @@ body.fondo-especial .appa-arrow{
 .eq-freq{ font-size:0.64rem; font-weight:700; color:var(--card-text); text-align:center; }
 
 /* ── LAYOUT HORIZONTAL (PC / iPad / Tablet) ── */
-.h-header,.h-wave,.h-cols,.h-left,.h-right,.h-left-b,.h-sliders,.h-bottom{ display:contents; }
+.h-header,.h-wave,.h-cols,.h-left,.h-speed,.h-right,.h-left-b,.h-sliders,.h-bottom{ display:contents; }
 
 body.layout-h .app{
   max-width:none; width:100%; margin:0; padding:0;
@@ -860,10 +860,15 @@ body.layout-h .h-left{
   padding:10px 16px 10px;
   border-right:2px solid var(--cream-2);
 }
+body.layout-h .h-speed{
+  display:flex; flex-direction:column;
+  grid-column:2; grid-row:2;
+  padding:0 16px 20px;
+}
 body.layout-h .h-right{
   display:flex; flex-direction:column;
-  grid-column:2; grid-row:1/3;
-  padding:10px 16px 20px;
+  grid-column:2; grid-row:1;
+  padding:10px 16px 10px;
 }
 body.layout-h .h-left-b{
   display:flex; flex-direction:column;
@@ -1024,7 +1029,23 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
 
   </div><!-- /h-left -->
 
-  <!-- DERECHA: 6 botones + velocidad + afinador -->
+  <!-- VELOCIDAD: col derecha fila 2 en layout-h; antes de h-right = posicion correcta en vertical -->
+  <div class="h-speed">
+  <div class="control-block">
+    <div class="control-label"><span>Velocidad (0.050x–10.000x)</span></div>
+    <div class="control-row">
+      <input type="range" id="speedSlider" min="0.05" max="10" step="0.001" value="1">
+      <input type="number" class="value-box" id="speedValue" step="0.001" value="1.000">
+      <button class="zero-btn" id="speedZeroBtn" title="Restablecer a 1x">0</button>
+    </div>
+    <div class="step-row">
+      <button class="step-btn" id="btnSpeedDown">−</button>
+      <button class="step-btn" id="btnSpeedUp">+</button>
+    </div>
+  </div>
+  </div><!-- /h-speed -->
+
+  <!-- DERECHA: 6 botones + afinador -->
   <div class="h-right">
 
   <div class="grid-buttons">
@@ -1058,19 +1079,6 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
       <span class="tile-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><rect x="10.5" y="1" width="3" height="6.5" rx="1.5"/><path fill-rule="evenodd" d="M12 7.5c-3.5 0-5 2-5 4 0 1 .5 2 1 2.5-.5.8-1 2-1 3C7 19.8 9.2 22 12 22s5-2.2 5-5c0-1-.5-2.2-1-3 .5-.5 1-1.5 1-2.5 0-2-1.5-4-5-4zM14 17.5a2 2 0 11-4 0 2 2 0 014 0z"/></svg></span>
       <span>Afinador <span id="tunerChevron">▼</span></span>
     </button>
-  </div>
-
-  <div class="control-block">
-    <div class="control-label"><span>Velocidad (0.050x–10.000x)</span></div>
-    <div class="control-row">
-      <input type="range" id="speedSlider" min="0.05" max="10" step="0.001" value="1">
-      <input type="number" class="value-box" id="speedValue" step="0.001" value="1.000">
-      <button class="zero-btn" id="speedZeroBtn" title="Restablecer a 1x">0</button>
-    </div>
-    <div class="step-row">
-      <button class="step-btn" data-target="speed" data-delta="-0.05">−</button>
-      <button class="step-btn" data-target="speed" data-delta="0.05">+</button>
-    </div>
   </div>
 
   <div class="panel hidden" id="tunerPanel">
