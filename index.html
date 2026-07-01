@@ -1159,30 +1159,32 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
       </div>
 
       <div class="menu-section">
-        <button class="menu-toggle-btn" id="colorThemeBtn">Cambiar colores</button>
-        <div id="colorThemePanel" class="hidden" style="margin-top:10px;">
-          <div class="color-picker-row">
-            <label class="color-picker-item" for="colorBrownPicker">
-              <span class="cp-swatch" id="swBrown"></span>
-              <span class="cp-label">Color café<small>botones y recuadros</small></span>
-              <input type="color" id="colorBrownPicker" value="#7a4a26">
-            </label>
-            <label class="color-picker-item" for="colorCreamPicker">
-              <span class="cp-swatch" id="swCream"></span>
-              <span class="cp-label">Color beige<small>fondo de la app</small></span>
-              <input type="color" id="colorCreamPicker" value="#fbe9cf">
-            </label>
-          </div>
-          <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir</button>
-          <button class="menu-toggle-btn" id="resetColorsBtn">Restablecer colores originales</button>
-        </div>
-      </div>
-
-      <div class="menu-section">
         <h4>Apariencia</h4>
         <div class="fondo-toggle-row">
           <button class="menu-toggle-btn" id="fondoEspecialBtn">Fondo especial</button>
           <button class="menu-toggle-btn btn-sub hidden" id="fondoMobileBtn">&#128247; Fondo móvil (parallax)</button>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="menu-toggle-btn" id="layoutHBtn">&#8646; Vista horizontal (PC / Tablet)</button>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="menu-toggle-btn" id="colorThemeBtn">Cambiar colores</button>
+          <div id="colorThemePanel" class="hidden" style="margin-top:10px;">
+            <div class="color-picker-row">
+              <label class="color-picker-item" for="colorBrownPicker">
+                <span class="cp-swatch" id="swBrown"></span>
+                <span class="cp-label">Color café<small>botones y recuadros</small></span>
+                <input type="color" id="colorBrownPicker" value="#7a4a26">
+              </label>
+              <label class="color-picker-item" for="colorCreamPicker">
+                <span class="cp-swatch" id="swCream"></span>
+                <span class="cp-label">Color beige<small>fondo de la app</small></span>
+                <input type="color" id="colorCreamPicker" value="#fbe9cf">
+              </label>
+            </div>
+            <button class="menu-toggle-btn" id="invertBtn">&#8646; Invertir</button>
+            <button class="menu-toggle-btn" id="resetColorsBtn">Restablecer colores originales</button>
+          </div>
         </div>
         <div style="margin-top:14px;">
           <div style="font-weight:800;font-size:0.9rem;color:var(--brown-dark);margin-bottom:4px;">Transparencia de botones</div>
@@ -1190,9 +1192,6 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
             <input type="range" id="btnOpacitySlider" min="10" max="100" value="100" step="5">
             <span class="opacity-val" id="btnOpacityVal">100%</span>
           </div>
-        </div>
-        <div style="margin-top:10px;">
-          <button class="menu-toggle-btn" id="layoutHBtn">&#8646; Vista horizontal (PC / Tablet)</button>
         </div>
       </div>
 
