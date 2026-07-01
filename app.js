@@ -3080,6 +3080,20 @@ $('btnSpeedUp').addEventListener('click', ()=> setSpeedStep(1));
 // ============================================================
 const btnTrim = $('btnTrim');
 const trimPanel = $('trimPanel');
+
+let trimPreviewNode = null;
+let trimPreviewing = false;
+function stopTrimPreview(){
+  if(trimPreviewNode){
+    try{ trimPreviewNode.stop(); }catch(e){}
+    trimPreviewNode.disconnect();
+    trimPreviewNode = null;
+  }
+  trimPreviewing = false;
+  const btn = $('trimPreview');
+  if(btn){ btn.textContent = '▶ Previsualizar'; btn.classList.remove('btn-active'); }
+}
+
 btnTrim.addEventListener('click', ()=>{
   if(!workingBuffer){ setStatus('Primero sube o graba un audio', 2500); return; }
   trimMode = !trimMode;
@@ -3097,6 +3111,7 @@ btnTrim.addEventListener('click', ()=>{
     drawTrimMarkers();
     trimPanel.scrollIntoView({behavior:'smooth', block:'center'});
   } else {
+    stopTrimPreview();
     clearTrimMarkers();
   }
 });
@@ -3119,7 +3134,44 @@ $('trimSetEnd').addEventListener('click', ()=>{
   drawTrimMarkers();
 });
 
+$('trimPreview').addEventListener('click', ()=>{
+  if(trimPreviewing){ stopTrimPreview(); return; }
+  const src = getEffectiveBuffer();
+  const sr = src.sampleRate;
+  const startSample = Math.floor(trimStart * sr);
+  const endSample   = Math.floor(trimEnd   * sr);
+  const ctx = ensureAudioCtx();
+  let buf, offset = 0, dur;
+  if(trimAction === 'keep'){
+    const len = endSample - startSample;
+    if(len <= 0){ setStatus('Rango inválido'); return; }
+    buf = src; offset = trimStart; dur = trimEnd - trimStart;
+  } else {
+    const newLen = startSample + (src.length - endSample);
+    if(newLen <= 0){ setStatus('Rango inválido'); return; }
+    buf = ctx.createBuffer(src.numberOfChannels, newLen, sr);
+    for(let ch=0; ch<src.numberOfChannels; ch++){
+      const inp = src.getChannelData(ch);
+      const out = buf.getChannelData(ch);
+      out.set(inp.subarray(0, startSample), 0);
+      out.set(inp.subarray(endSample), startSample);
+    }
+  }
+  stopPlayback();
+  const node = ctx.createBufferSource();
+  node.buffer = buf;
+  node.playbackRate.value = computePlaybackRate();
+  connectToOutput(node, ctx);
+  node.onended = ()=>{ if(trimPreviewing) stopTrimPreview(); };
+  node.start(0, offset, dur);
+  trimPreviewNode = node;
+  trimPreviewing = true;
+  $('trimPreview').textContent = '❚❚ Detener';
+  $('trimPreview').classList.add('btn-active');
+});
+
 $('trimCancel').addEventListener('click', ()=>{
+  stopTrimPreview();
   trimMode = false;
   btnTrim.classList.remove('active');
   trimPanel.classList.add('hidden');
@@ -3127,6 +3179,7 @@ $('trimCancel').addEventListener('click', ()=>{
 });
 
 $('trimApply').addEventListener('click', ()=>{
+  stopTrimPreview();
   const src = getEffectiveBuffer();
   const sr = src.sampleRate;
   const startSample = Math.floor(trimStart * sr);
