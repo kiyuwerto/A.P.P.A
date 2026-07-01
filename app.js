@@ -2583,6 +2583,13 @@ timeline.addEventListener('touchstart', tlPointerDown, {passive:false});
 timeline.addEventListener('touchmove', tlPointerMove, {passive:false});
 timeline.addEventListener('touchend', tlPointerUp);
 timeline.addEventListener('touchcancel', tlPointerUp);
+timeline.addEventListener('wheel', (e)=>{
+  if(!TL.waveImg) return;
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
+  TL.pxPerSec = Math.max(TL_MIN_PXPERSEC, Math.min(TL_MAX_PXPERSEC, TL.pxPerSec * factor));
+  tlBuildWaveImage();
+}, {passive:false});
 
 // Inicialización
 window.addEventListener('resize', ()=>{ if(workingBuffer){ drawWaveform(getEffectiveBuffer()); tlBuildWaveImage(); } });
