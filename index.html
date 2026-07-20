@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#7a4a26">
 <title>Appa</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -34,7 +35,38 @@ html,body{
   overscroll-behavior:none;
   width:100%; min-height:100vh;
 }
-button{font-family:inherit;}
+button{font-family:inherit; user-select:none; -webkit-user-select:none;}
+/* Micro-interacciones: transiciones suaves en todos los controles principales */
+.tile-btn, .upload-btn, .modal-option, .menu-toggle-btn, .step-btn, .zero-btn,
+.play-btn-main, .tl-skip-btn, .brand, .help-toggle, .string-chip, .mode-btn,
+.icon-btn, .skip-sec-btn, .trim-mode-btn, .acorde-tab, .diag-fmt-tab,
+.efx-toggle, .eq-preset, .tone-mode-btn, .video-toggle-btn, .refresh-perm-btn{
+  transition: transform 0.12s ease, box-shadow 0.22s ease, background-color 0.18s ease,
+              color 0.18s ease, filter 0.15s ease, border-color 0.18s ease;
+}
+.tile-btn:active, .upload-btn:active, .modal-option:active, .step-btn:active,
+.play-btn-main:active, .brand:active, .menu-toggle-btn:active, .help-toggle:active{
+  transform:scale(0.96);
+}
+.tl-skip-btn:active, .zero-btn:active, .icon-btn:active{ transform:scale(0.92); }
+/* Hover solo en dispositivos con puntero fino (PC) */
+@media (hover:hover) and (pointer:fine){
+  .tile-btn:hover, .upload-btn:hover, .modal-option:hover, .menu-toggle-btn:hover,
+  .help-toggle:hover, .brand:hover, .video-toggle-btn:hover{
+    filter:brightness(1.07);
+    box-shadow:0 4px 14px rgba(0,0,0,0.16);
+  }
+  .tile-btn:hover{ transform:translateY(-1px); }
+  .play-btn-main:hover, .step-btn:hover, .string-chip:hover, .refresh-perm-btn:hover{ filter:brightness(1.1); }
+  .zero-btn:hover, .tl-skip-btn:hover, .icon-btn:not(:disabled):hover{ background:var(--cream-2); }
+  /* al presionar, la escala de :active gana sobre el hover */
+  .tile-btn:hover:active, .upload-btn:hover:active, .modal-option:hover:active,
+  .menu-toggle-btn:hover:active, .help-toggle:hover:active, .brand:hover:active,
+  .step-btn:hover:active, .play-btn-main:hover:active{ transform:scale(0.96); }
+}
+/* Accesibilidad: anillo de foco visible al navegar con teclado */
+:focus-visible{ outline:3px solid #3ab6d8; outline-offset:2px; }
+:focus:not(:focus-visible){ outline:none; }
 .app{
   max-width:520px; margin:0 auto; padding:0 16px calc(24px + env(safe-area-inset-bottom));
   padding-top:env(safe-area-inset-top);
@@ -260,6 +292,26 @@ input[type=range]::-moz-range-thumb{
 }
 .hidden{display:none !important;}
 
+/* Animaciones de entrada: paneles que aparecen se deslizan suavemente */
+@keyframes panel-in{
+  from{ opacity:0; transform:translateY(-8px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.trim-panel:not(.hidden), .panel:not(.hidden),
+.inline-loading:not(.hidden), .perm-banner:not(.hidden),
+.video-section:not(.hidden){
+  animation:panel-in 0.25s ease-out;
+}
+.help-item.open .help-item-body{ animation:panel-in 0.22s ease-out; }
+/* Modales: fondo con fundido + tarjeta con rebote sutil */
+@keyframes modal-fade{ from{ opacity:0; } to{ opacity:1; } }
+@keyframes modal-pop{
+  from{ opacity:0; transform:scale(0.93) translateY(12px); }
+  to{ opacity:1; transform:scale(1) translateY(0); }
+}
+.modal-overlay:not(.hidden){ animation:modal-fade 0.2s ease-out; }
+.modal-overlay:not(.hidden) .modal-card{ animation:modal-pop 0.28s cubic-bezier(0.34,1.4,0.64,1); }
+
 /* FLECHA CABEZA DE APPA — nace del borde superior */
 .topbar{
   position:relative;
@@ -427,6 +479,14 @@ input[type=range]::-moz-range-thumb{
 .appa-face-wrap img{
   width:40px; height:40px; object-fit:contain; display:block;
 }
+/* Appa flota en el aire cuando está en reposo, como buen bisonte volador */
+.appa-face-wrap:not(.spinning) img{
+  animation:appa-hover-float 3.8s ease-in-out infinite;
+}
+@keyframes appa-hover-float{
+  0%,100%{ transform:translateY(0) rotate(-2deg); }
+  50%    { transform:translateY(-4px) rotate(2.5deg); }
+}
 .appa-face-wrap.spinning img{
   animation:appa-spin 1.4s linear infinite;
   transform-origin:center;
@@ -444,10 +504,6 @@ input[type=range]::-moz-range-thumb{
 .appa-spinner{
   display:block; width:140px; height:140px; margin:0 auto 14px;
   animation: appa-spin 2.2s linear infinite;
-}
-@keyframes appa-spin{
-  from{ transform: rotate(0deg); }
-  to{ transform: rotate(360deg); }
 }
 
 /* Panel de carga inline (entre las perillas y los botones, empuja el contenido) */
@@ -601,6 +657,42 @@ input[type=range]::-moz-range-thumb{
   margin-top:24px; padding-top:4px;
   border-top:1.5px solid var(--cream-2);
 }
+
+/* Cielo con nubes suaves — el aire por donde vuela Appa.
+   Deriva lenta, casi imperceptible; se oculta con el fondo especial. */
+#skyClouds{
+  position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+}
+#skyClouds::before, #skyClouds::after{
+  content:''; position:absolute; left:-30%; width:160%; height:38%;
+  background-image:
+    radial-gradient(ellipse 20% 52% at 14% 58%, rgba(255,255,255,0.55), transparent 70%),
+    radial-gradient(ellipse 28% 62% at 44% 38%, rgba(255,255,255,0.42), transparent 70%),
+    radial-gradient(ellipse 18% 46% at 74% 55%, rgba(255,255,255,0.48), transparent 70%),
+    radial-gradient(ellipse 12% 34% at 92% 42%, rgba(255,255,255,0.35), transparent 70%);
+  animation:clouds-drift 95s ease-in-out infinite alternate;
+  will-change:transform;
+}
+#skyClouds::before{ top:1%; }
+#skyClouds::after{
+  bottom:4%; animation-duration:140s; animation-delay:-60s;
+  transform:scaleX(-1); /* variación: espejado para que no se vean iguales */
+}
+@keyframes clouds-drift{
+  from{ translate:-5% 0; }
+  to{ translate:5% 0; }
+}
+body.fondo-especial #skyClouds{ display:none; }
+.app{ z-index:1; }
+
+/* Playhead brilla celeste (aire-control) mientras suena */
+.timeline .playhead{ transition:background 0.3s, box-shadow 0.3s; }
+.timeline.playing .playhead{
+  background:#3ab6d8;
+  box-shadow:0 0 10px rgba(58,182,216,0.85), 0 0 22px rgba(58,182,216,0.4);
+}
+.timeline.playing .playhead::before{ border-top-color:#3ab6d8; }
+.timeline.playing .playhead::after{ border-bottom-color:#3ab6d8; }
 
 /* Capa de fondo especial */
 #fondoLayer{
@@ -904,10 +996,21 @@ body.layout-h .h-bottom .export-section{ width:100%; max-width:440px; }
 body.layout-h .h-bottom .section-sep{ display:none; }
 body.layout-h .h-bottom .app-footer{ width:100%; max-width:560px; }
 body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
+
+/* Accesibilidad: respeta la preferencia de movimiento reducido del sistema */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.01ms !important;
+  }
+  #skyClouds{ display:none; }
+}
 </style>
 </head>
 <body>
 <div id="fondoLayer"></div>
+<div id="skyClouds" aria-hidden="true"></div>
 <div class="app">
 
   <!-- ENCABEZADO: ancho completo siempre -->
@@ -970,7 +1073,7 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
     </div>
     <div class="tl-controls hidden" id="previewControls">
       <button class="tl-skip-btn" id="btnSkipBack">◀</button>
-      <button class="play-btn-main" id="btnPlayPause">&#9658;</button>
+      <button class="play-btn-main" id="btnPlayPause">&#9654;</button>
       <button class="tl-skip-btn" id="btnSkipFwd">▶</button>
       <span class="tl-time" id="timeLabel">0:00 / 0:00</span>
     </div>

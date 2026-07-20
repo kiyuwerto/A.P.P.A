@@ -815,6 +815,7 @@ function buildPlaybackBufferForVideo(){
 const appaFaceWrap = $('appaFaceWrap');
 function updateAppaAnimation(){
   appaFaceWrap.classList.toggle('spinning', isPlaying || isRecording);
+  timeline.classList.toggle('playing', isPlaying);
 }
 
 // ============================================================
