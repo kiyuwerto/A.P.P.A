@@ -380,6 +380,9 @@ input[type=range]::-moz-range-thumb{
 }
 .modal-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
 .modal-header h3{margin:0; font-size:1.4rem; font-weight:800; color:var(--brown-dark);}
+/* Menú A.P.P.A.: título centrado como el resto del contenido */
+#appaMenu .modal-header{ position:relative; justify-content:center; }
+#appaMenu .modal-close{ position:absolute; right:0; top:50%; transform:translateY(-50%); }
 .modal-close{
   background:none; border:none; font-size:2rem; line-height:1; color:var(--brown);
   padding:0 6px; font-weight:300;
@@ -738,6 +741,13 @@ body.fondo-especial .appa-arrow{
 
 /* Controles de apariencia en el menú */
 .fondo-toggle-row{ display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+/* Elección de imagen del fondo especial (vertical / horizontal) */
+.fondo-img-row{ display:flex; gap:8px; width:75%; align-self:flex-end; }
+.fondo-img-row .menu-toggle-btn{ flex:1; margin-top:0; font-size:0.85rem; }
+/* La regla .btn-sub pisa a .btn-active por orden; esta más específica gana */
+.fondo-img-row .menu-toggle-btn.btn-active{ background:var(--green); }
+body.fondo-img-v #fondoLayer{ background-image:url('fondo.jfif'); }
+body.fondo-img-h #fondoLayer{ background-image:url('fondo2.jfif'); }
 
 /* Barrido de luz celeste en el botón Fondo especial */
 #fondoEspecialBtn{ position:relative; overflow:hidden; }
@@ -1273,6 +1283,10 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
         <div class="fondo-toggle-row">
           <button class="menu-toggle-btn" id="fondoEspecialBtn">Fondo especial</button>
           <button class="menu-toggle-btn btn-sub hidden" id="fondoMobileBtn">&#128247; Fondo móvil (parallax)</button>
+          <div class="fondo-img-row hidden" id="fondoImgRow">
+            <button class="menu-toggle-btn btn-sub" id="fondoImgVBtn">&#9647; Vertical</button>
+            <button class="menu-toggle-btn btn-sub" id="fondoImgHBtn">&#9645; Horizontal</button>
+          </div>
         </div>
         <div style="margin-top:10px;">
           <button class="menu-toggle-btn" id="layoutHBtn">&#8646; Vista horizontal (PC / Tablet)</button>

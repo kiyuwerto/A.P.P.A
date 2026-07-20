@@ -2832,8 +2832,33 @@ function applyFondoEspecial(on){
   if(btn) btn.classList.toggle('btn-active', on);
   const mobileBtn = $('fondoMobileBtn');
   if(mobileBtn) mobileBtn.classList.toggle('hidden', !on);
+  const imgRow = $('fondoImgRow');
+  if(imgRow) imgRow.classList.toggle('hidden', !on);
   if(!on && fondoMobile) applyFondoMobile(false);
   try{ localStorage.setItem('appa_fondo', on ? '1' : '0'); }catch(e){}
+}
+
+// ── Imagen del fondo especial: vertical u horizontal ──
+// 'auto' usa la que corresponde al dispositivo (media query CSS);
+// 'v'/'h' fuerzan una, útil p. ej. para tablets que prefieren la vertical.
+let fondoImg = 'auto';
+
+function deviceFondoImg(){
+  return window.matchMedia('(min-width:600px)').matches ? 'h' : 'v';
+}
+
+function applyFondoImg(mode){
+  fondoImg = mode;
+  document.body.classList.toggle('fondo-img-v', mode === 'v');
+  document.body.classList.toggle('fondo-img-h', mode === 'h');
+  const eff = mode === 'auto' ? deviceFondoImg() : mode;
+  const bV = $('fondoImgVBtn'), bH = $('fondoImgHBtn');
+  if(bV) bV.classList.toggle('btn-active', eff === 'v');
+  if(bH) bH.classList.toggle('btn-active', eff === 'h');
+  try{
+    if(mode === 'auto') localStorage.removeItem('appa_fondo_img');
+    else localStorage.setItem('appa_fondo_img', mode);
+  }catch(e){}
 }
 
 function applyFondoMobile(on){
@@ -2889,10 +2914,15 @@ try{
   if(sm === '1' && fondoEspecial) applyFondoMobile(true);
   const so = localStorage.getItem('appa_btn_opacity');
   if(so !== null) applyBtnOpacity(parseInt(so));
+  const si = localStorage.getItem('appa_fondo_img');
+  applyFondoImg(si === 'v' || si === 'h' ? si : 'auto');
 }catch(e){}
 
 $('fondoEspecialBtn').addEventListener('click', ()=> applyFondoEspecial(!fondoEspecial));
 $('fondoMobileBtn').addEventListener('click', ()=> applyFondoMobile(!fondoMobile));
+// Elegir imagen; tocar la que ya está forzada vuelve al modo automático del dispositivo
+$('fondoImgVBtn').addEventListener('click', ()=> applyFondoImg(fondoImg === 'v' ? 'auto' : 'v'));
+$('fondoImgHBtn').addEventListener('click', ()=> applyFondoImg(fondoImg === 'h' ? 'auto' : 'h'));
 $('btnOpacitySlider').addEventListener('input', (e)=> applyBtnOpacity(parseInt(e.target.value)));
 
 // ── Layout horizontal ──
