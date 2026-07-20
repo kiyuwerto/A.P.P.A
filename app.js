@@ -136,8 +136,11 @@ function setLoadingText(text){
 
 function fmtTime(s){
   if(!isFinite(s)) return '0:00';
-  const m = Math.floor(s/60);
-  const sec = Math.floor(s%60).toString().padStart(2,'0');
+  s = Math.floor(s);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = (s%60).toString().padStart(2,'0');
+  if(h > 0) return `${h}:${m.toString().padStart(2,'0')}:${sec}`;
   return `${m}:${sec}`;
 }
 
@@ -319,6 +322,34 @@ async function extractVideoAudioBackground(arrayBuf, audioCtx){
     showFfmpegProgress(false);
   }
 }
+
+// --- Arrastrar y soltar archivos (PC) ---
+const dropOverlay = $('dropOverlay');
+let dragDepth = 0;
+window.addEventListener('dragenter', (e)=>{
+  if(!e.dataTransfer || !Array.from(e.dataTransfer.types||[]).includes('Files')) return;
+  e.preventDefault();
+  dragDepth++;
+  dropOverlay.classList.remove('hidden');
+});
+window.addEventListener('dragover', (e)=>{ e.preventDefault(); });
+window.addEventListener('dragleave', ()=>{
+  dragDepth = Math.max(0, dragDepth-1);
+  if(dragDepth===0) dropOverlay.classList.add('hidden');
+});
+window.addEventListener('drop', async (e)=>{
+  e.preventDefault();
+  dragDepth = 0;
+  dropOverlay.classList.add('hidden');
+  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if(!file) return;
+  // Si el navegador no reporta tipo (p. ej. .m4r), igual se intenta decodificar
+  if(file.type && !file.type.startsWith('audio') && !file.type.startsWith('video')){
+    setStatus('Ese archivo no parece audio ni video', 2500);
+    return;
+  }
+  await loadFile(file);
+});
 
 // --- Grabación con micrófono ---
 let mediaRecorder = null;
@@ -1266,6 +1297,25 @@ function skipBy(delta){
 
 $('btnSkipBack').addEventListener('click', ()=> skipBy(-skipSec));
 $('btnSkipFwd').addEventListener('click', ()=> skipBy(+skipSec));
+
+// --- Atajos de teclado (PC): espacio = play/pausa, ←/→ = saltar ---
+window.addEventListener('keydown', (e)=>{
+  const t = e.target;
+  if(t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.tagName==='SELECT' ||
+           t.tagName==='BUTTON' || t.isContentEditable)) return;
+  if(document.querySelector('.modal-overlay:not(.hidden)')) return;
+  if(!workingBuffer && !originalBuffer) return;
+  if(e.code==='Space'){
+    e.preventDefault();
+    btnPlayPause.click();
+  } else if(e.code==='ArrowLeft'){
+    e.preventDefault();
+    skipBy(-skipSec);
+  } else if(e.code==='ArrowRight'){
+    e.preventDefault();
+    skipBy(+skipSec);
+  }
+});
 
 // Restaurar skipSec guardado
 try{

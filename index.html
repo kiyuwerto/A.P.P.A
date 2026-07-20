@@ -151,7 +151,11 @@ button{font-family:inherit; user-select:none; -webkit-user-select:none;}
   box-shadow:0 2px 8px rgba(0,0,0,0.12);
 }
 .upload-btn.secondary{background:var(--brown-dark);}
-.upload-btn.recording{background:var(--red);}
+.upload-btn.recording{background:var(--red); animation:rec-pulse 1.3s ease-in-out infinite;}
+@keyframes rec-pulse{
+  0%,100%{ box-shadow:0 2px 8px rgba(0,0,0,0.12); }
+  50%{ box-shadow:0 0 0 5px rgba(185,74,58,0.30), 0 0 18px rgba(185,74,58,0.55); }
+}
 .upload-btn.gray{background:#9a9a92; color:#fff;}
 .limpiar-pair{flex:1; display:flex; gap:5px;}
 .limpiar-pair .upload-btn{font-size:0.78rem; padding:13px 4px;}
@@ -658,32 +662,21 @@ input[type=range]::-moz-range-thumb{
   border-top:1.5px solid var(--cream-2);
 }
 
-/* Cielo con nubes suaves — el aire por donde vuela Appa.
-   Deriva lenta, casi imperceptible; se oculta con el fondo especial. */
-#skyClouds{
-  position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+/* Overlay de arrastrar y soltar archivos (PC) */
+#dropOverlay{
+  position:fixed; inset:0; z-index:300;
+  background:rgba(92,55,25,0.55);
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
 }
-#skyClouds::before, #skyClouds::after{
-  content:''; position:absolute; left:-30%; width:160%; height:38%;
-  background-image:
-    radial-gradient(ellipse 20% 52% at 14% 58%, rgba(255,255,255,0.55), transparent 70%),
-    radial-gradient(ellipse 28% 62% at 44% 38%, rgba(255,255,255,0.42), transparent 70%),
-    radial-gradient(ellipse 18% 46% at 74% 55%, rgba(255,255,255,0.48), transparent 70%),
-    radial-gradient(ellipse 12% 34% at 92% 42%, rgba(255,255,255,0.35), transparent 70%);
-  animation:clouds-drift 95s ease-in-out infinite alternate;
-  will-change:transform;
+.drop-inner{
+  background:var(--cream); border:4px dashed var(--brown); border-radius:24px;
+  padding:28px 42px; text-align:center;
+  font-weight:800; font-size:1.15rem; color:var(--brown-dark);
+  box-shadow:0 10px 40px rgba(0,0,0,0.35);
 }
-#skyClouds::before{ top:1%; }
-#skyClouds::after{
-  bottom:4%; animation-duration:140s; animation-delay:-60s;
-  transform:scaleX(-1); /* variación: espejado para que no se vean iguales */
-}
-@keyframes clouds-drift{
-  from{ translate:-5% 0; }
-  to{ translate:5% 0; }
-}
-body.fondo-especial #skyClouds{ display:none; }
-.app{ z-index:1; }
+.drop-inner img{ width:76px; height:76px; object-fit:contain; margin-bottom:8px; }
+.drop-inner small{ display:block; font-weight:600; font-size:0.85rem; color:var(--brown-light); margin-top:4px; }
 
 /* Playhead brilla celeste (aire-control) mientras suena */
 .timeline .playhead{ transition:background 0.3s, box-shadow 0.3s; }
@@ -1004,13 +997,18 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
     animation-iteration-count:1 !important;
     transition-duration:0.01ms !important;
   }
-  #skyClouds{ display:none; }
 }
 </style>
 </head>
 <body>
 <div id="fondoLayer"></div>
-<div id="skyClouds" aria-hidden="true"></div>
+<div id="dropOverlay" class="hidden" aria-hidden="true">
+  <div class="drop-inner">
+    <img src="appa-loading.png" alt="">
+    <div>Suelta tu archivo aquí</div>
+    <small>Audio o video — Appa lo carga al vuelo</small>
+  </div>
+</div>
 <div class="app">
 
   <!-- ENCABEZADO: ancho completo siempre -->
@@ -1040,9 +1038,9 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
       </svg>
     </div>
     <div class="right">
-      <button class="icon-btn" id="btnInfo" title="Acerca de">ⓘ</button>
-      <button class="icon-btn" id="btnUndo" title="Deshacer">&#8630;</button>
-      <button class="icon-btn" id="btnRedo" title="Rehacer">&#8631;</button>
+      <button class="icon-btn" id="btnInfo" title="Acerca de" aria-label="Acerca de">ⓘ</button>
+      <button class="icon-btn" id="btnUndo" title="Deshacer" aria-label="Deshacer">&#8630;</button>
+      <button class="icon-btn" id="btnRedo" title="Rehacer" aria-label="Rehacer">&#8631;</button>
     </div>
   </div>
   </div><!-- /h-header -->
@@ -1072,9 +1070,9 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
       <div class="tl-empty" id="tlEmpty">Sube un archivo o graba para ver la pista aquí</div>
     </div>
     <div class="tl-controls hidden" id="previewControls">
-      <button class="tl-skip-btn" id="btnSkipBack">◀</button>
-      <button class="play-btn-main" id="btnPlayPause">&#9654;</button>
-      <button class="tl-skip-btn" id="btnSkipFwd">▶</button>
+      <button class="tl-skip-btn" id="btnSkipBack" aria-label="Saltar atrás">◀</button>
+      <button class="play-btn-main" id="btnPlayPause" aria-label="Reproducir / pausar">&#9654;</button>
+      <button class="tl-skip-btn" id="btnSkipFwd" aria-label="Saltar adelante">▶</button>
       <span class="tl-time" id="timeLabel">0:00 / 0:00</span>
     </div>
   </div>
@@ -1524,7 +1522,7 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
 
       <div class="help-item">
         <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><b>Subir archivo / Grabar mic</b><span class="help-chevron">▾</span></div>
-        <div class="help-item-body">Carga un audio o video desde tu celular o computadora, o graba directo con el micrófono. La app detecta sola si es audio o video — no tienes que hacer nada extra. Si es un video, extrae el audio automáticamente para que puedas editarlo.</div>
+        <div class="help-item-body">Carga un audio o video desde tu celular o computadora, o graba directo con el micrófono. La app detecta sola si es audio o video — no tienes que hacer nada extra. Si es un video, extrae el audio automáticamente para que puedas editarlo. <b>En PC también puedes arrastrar y soltar el archivo</b> en cualquier parte de la pantalla.</div>
       </div>
 
       <div class="help-item">
@@ -1534,7 +1532,7 @@ body.layout-h .h-bottom .refresh-perm-btn{ margin-bottom:4px; }
 
       <div class="help-item">
         <div class="help-item-header"><span class="help-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="3" x2="12" y2="21" stroke-width="2.5"/><line x1="3" y1="8" x2="3" y2="16"/><line x1="7" y1="5" x2="7" y2="19"/><line x1="17" y1="5" x2="17" y2="19"/><line x1="21" y1="8" x2="21" y2="16"/></svg></span><b>La pista (timeline)</b><span class="help-chevron">▾</span></div>
-        <div class="help-item-body">El audio se desplaza bajo la línea central mientras suena. <b>Arrastra</b> para moverte por el audio. Para hacer zoom: <b>pellizca con dos dedos</b> en móvil/tablet, o <b>rueda del mouse</b> en PC — la línea central queda siempre fija.</div>
+        <div class="help-item-body">El audio se desplaza bajo la línea central mientras suena. <b>Arrastra</b> para moverte por el audio. Para hacer zoom: <b>pellizca con dos dedos</b> en móvil/tablet, o <b>rueda del mouse</b> en PC — la línea central queda siempre fija. Atajos de teclado en PC: <b>barra espaciadora</b> reproduce/pausa y las <b>flechas ←/→</b> saltan atrás/adelante.</div>
       </div>
 
       <div class="help-item">
