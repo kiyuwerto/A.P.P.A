@@ -36,6 +36,7 @@ html,body{
   width:100%; min-height:100vh;
 }
 button{font-family:inherit; user-select:none; -webkit-user-select:none;}
+input, select, textarea{font-family:inherit;}
 /* Micro-interacciones: transiciones suaves en todos los controles principales */
 .tile-btn, .upload-btn, .modal-option, .menu-toggle-btn, .step-btn, .zero-btn,
 .play-btn-main, .tl-skip-btn, .brand, .help-toggle, .string-chip, .mode-btn,
@@ -606,8 +607,12 @@ input[type=range]::-moz-range-thumb{
 .session-restore-btns button{
   border:none; border-radius:10px; padding:9px 14px; font-weight:800; font-size:0.85rem;
 }
-#sessionRestoreYes{background:var(--green); color:#fff;}
-#sessionRestoreNo{background:var(--brown-light); color:#fff;}
+#sessionRestoreYes{
+  background:#3ab6d8; color:#fff;
+  box-shadow:0 0 14px rgba(58,182,216,0.8),0 0 30px rgba(58,182,216,0.4);
+  text-shadow:0 0 10px rgba(255,255,255,0.9);
+}
+#sessionRestoreNo{background:var(--red); color:#fff;}
 
 /* Confirmación de "Limpiar todo" */
 .confirm-text{font-size:0.95rem; color:var(--brown-dark); font-weight:600; line-height:1.5; margin-bottom:18px; text-align:center;}
